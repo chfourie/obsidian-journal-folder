@@ -1,0 +1,12 @@
+.journal-title h1 {
+	width: fit-content;
+	margin: .2em auto;
+}
+
+.journal-title-links {
+	padding: .2em 0;
+	border-block: solid var(--border-width) var(--hr-color);
+	display: flex;
+	gap: 2em;
+	margin-bottom: 1em;
+}
