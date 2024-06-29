@@ -4,8 +4,6 @@
 	type Props = { file: JournalFile }
 
 	let {file}: Props = $props()
-
-	let displayHiddenLinks = $state(false)
 </script>
 
 <h1>{file.title}</h1>
@@ -18,9 +16,7 @@
 			<div>&lt;--</div>
 		{/if}
 		{#each file.centerLinks as link}
-			{#if displayHiddenLinks || !link.hidden}
-				<a class="internal-link center-link" href={link.url}>{link.title}</a>
-			{/if}
+			<a class="internal-link center-link" href={link.url}>{link.title}</a>
 		{/each}
 		{#if file.forwardLink}
 			<div>--&gt;</div>

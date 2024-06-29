@@ -31,23 +31,23 @@ export abstract class JournalFile {
 		return path ? `${path}/${fileName}` : fileName
 	}
 
-	journalFileLink(titlePattern:string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment, hidden = false): HeaderLink {
+	journalFileLink(titlePattern: string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment): HeaderLink {
 		return {
 			title: targetMoment.format(titlePattern),
-			url: this.fullPath(targetMoment.format(fileNamePattern)),
-			hidden
+			url: this.fullPath(targetMoment.format(fileNamePattern))
 		}
 	}
 
 	protected pushFileTypeLink(links: HeaderLink[], strategy: JournalFileStrategy, hideIfPastAndMissing = true) {
-		links.push(
-			this.journalFileLink(
-				strategy.shortTitlePattern,
-				strategy.filePattern,
-				this.fileMoment,
-				hideIfPastAndMissing && !this.currentOrExistingByStrategy(strategy)
+		if (!hideIfPastAndMissing || this.isFuture() || this.currentOrExistingByStrategy(strategy)) {
+			links.push(
+				this.journalFileLink(
+					strategy.shortTitlePattern,
+					strategy.filePattern,
+					this.fileMoment
+				)
 			)
-		)
+		}
 	}
 
 	protected isFuture(): boolean {
@@ -134,7 +134,7 @@ class WeeklyFile extends JournalFile {
 		createJournalFile: (file: TFile) => new WeeklyFile(file)
 	}
 
-		constructor(file: TFile) {
+	constructor(file: TFile) {
 		super(file, WeeklyFile.STRATEGY)
 	}
 }
@@ -164,7 +164,7 @@ class YearlyFile extends JournalFile {
 		createJournalFile: (file: TFile) => new YearlyFile(file)
 	}
 
-		constructor(file: TFile) {
+	constructor(file: TFile) {
 		super(file, YearlyFile.STRATEGY)
 	}
 }
