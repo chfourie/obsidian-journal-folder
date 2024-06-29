@@ -2,10 +2,7 @@ import {type TFile} from "obsidian";
 import moment from "moment/moment";
 import type {LinkInfo} from "./link-info.type";
 
-type JournalFileType = 'Day' | 'Week' | 'Month' | 'Year';
-
 type JournalFileStrategy = {
-	fileType: JournalFileType
 	fileRegex: RegExp
 	filePattern: string
 	titlePattern: string
@@ -14,21 +11,18 @@ type JournalFileStrategy = {
 }
 
 export abstract class JournalFile {
-	readonly #strategy: JournalFileStrategy
-	readonly #file: TFile
 	readonly fileMoment: moment.Moment
+	readonly today: moment.Moment = moment().startOf("day")
 	readonly title: string
 	readonly centerLinks: LinkInfo[] = []
 
-	protected constructor(file: TFile, strategy: JournalFileStrategy) {
-		this.#file = file
-		this.#strategy = strategy
-		this.fileMoment = moment(file.basename, this.#strategy.filePattern)
-		this.title = this.fileMoment.format(this.#strategy.titlePattern)
+	protected constructor(protected file: TFile, protected strategy: JournalFileStrategy) {
+		this.fileMoment = moment(file.basename, strategy.filePattern)
+		this.title = this.fileMoment.format(strategy.titlePattern)
 	}
 
 	fullPath(fileName: string): string {
-		const path = this.#file.parent?.path
+		const path = this.file.parent?.path
 		return path ? `${path}/${fileName}` : fileName
 	}
 
@@ -39,15 +33,39 @@ export abstract class JournalFile {
 		}
 	}
 
-	shortTitledLink(strategy: JournalFileStrategy, fileMoment: moment.Moment = this.fileMoment): LinkInfo {
-		return this.journalFileLink(strategy.shortTitlePattern, strategy.filePattern)
+	protected pushFileTypeLink(links: LinkInfo[], strategy: JournalFileStrategy, onlyIfCurrentOrExisting = true) {
+		if (this.currentOrExistingByStrategy(strategy)) {
+			links.push(this.journalFileLink(strategy.shortTitlePattern, strategy.filePattern))
+		}
+	}
+
+	protected pushToday(links: LinkInfo[], titlePattern = '[Today]', onlyIfCurrentOrExisting = true) {
+		if (!this.currentByPattern()) {
+			links.push(this.journalFileLink(titlePattern, this.strategy.filePattern, this.today))
+		}
+	}
+
+	protected currentOrExistingByStrategy(strategy: JournalFileStrategy): boolean {
+		return this.currentOrExistingByPattern(strategy.filePattern)
+	}
+
+	protected currentOrExistingByPattern(pattern = 'YYYY-MM-DD'): boolean {
+		const fileName = this.fileMoment.format(pattern)
+		return fileName === this.today.format(pattern) || this.journalFileExists(fileName)
+	}
+
+	protected currentByPattern(pattern = 'YYYY-MM-DD'): boolean {
+		return this.fileMoment.format(pattern) === this.today.format(pattern)
+	}
+
+	protected journalFileExists(name: string): boolean {
+		return (this.file.parent?.children || []).some(file => file.name === name)
 	}
 }
 
 class DailyFile extends JournalFile {
 	static readonly STRATEGY: JournalFileStrategy = {
-		fileType: 'Day',
-		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([012][1-9])|(3[01]))$/,
+		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
 		filePattern: 'YYYY-MM-DD',
 		titlePattern: 'dddd, DD MMMM YYYY',
 		shortTitlePattern: 'ddd, D MMM',
@@ -61,15 +79,15 @@ class DailyFile extends JournalFile {
 
 
 	protected addCenterLinks() {
-		this.centerLinks.push(this.shortTitledLink(YearlyFile.STRATEGY));
-		this.centerLinks.push(this.shortTitledLink(MonthlyFile.STRATEGY));
-		this.centerLinks.push(this.shortTitledLink(WeeklyFile.STRATEGY));
+		this.pushFileTypeLink(this.centerLinks, YearlyFile.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, MonthlyFile.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, WeeklyFile.STRATEGY)
+		this.pushToday(this.centerLinks)
 	}
 }
 
 class WeeklyFile extends JournalFile {
 	static readonly STRATEGY: JournalFileStrategy = {
-		fileType: 'Week',
 		fileRegex: /^W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
 		filePattern: 'YYYY-[W]ww',
 		titlePattern: 'YYYY [Week] w',
@@ -84,7 +102,6 @@ class WeeklyFile extends JournalFile {
 
 class MonthlyFile extends JournalFile {
 	static readonly STRATEGY: JournalFileStrategy = {
-		fileType: 'Month',
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
 		filePattern: 'YYYY-MM',
 		titlePattern: 'MMMM YYYY',
@@ -99,7 +116,6 @@ class MonthlyFile extends JournalFile {
 
 class YearlyFile extends JournalFile {
 	static readonly STRATEGY: JournalFileStrategy = {
-		fileType: 'Year',
 		fileRegex: /^20\d{2}$/,
 		filePattern: 'YYYY',
 		titlePattern: 'YYYY',
