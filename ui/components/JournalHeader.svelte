@@ -5,7 +5,7 @@
 
 	let {file}: Props = $props()
 
-	let linksOpen = $state(false)
+	let displayHiddenLinks = $state(false)
 </script>
 
 <h1>{file.title}</h1>
@@ -13,13 +13,19 @@
 <div class="options">
 	<div class="links">
 
-		<div>Mon, 24 Jun</div>
-		<div>&lt;--</div>
+		{#if file.backwardLink}
+			<a class="internal-link center-link" href={file.backwardLink.url}>{file.backwardLink.title}</a>
+			<div>&lt;--</div>
+		{/if}
 		{#each file.centerLinks as link}
-			<a class="internal-link center-link" href={link.url}>{link.title}</a>
+			{#if displayHiddenLinks || !link.hidden}
+				<a class="internal-link center-link" href={link.url}>{link.title}</a>
+			{/if}
 		{/each}
-		<div>--&gt;</div>
-		<div>Wed, 26 Jun</div>
+		{#if file.forwardLink}
+			<div>--&gt;</div>
+			<a class="internal-link center-link" href={file.forwardLink.url}>{file.forwardLink.title}</a>
+		{/if}
 	</div>
 </div>
 
@@ -27,22 +33,23 @@
 	h1 {
 		width: fit-content;
 		margin-inline: auto;
-		margin-bottom: 0.2em;
+		margin-bottom: 0.2rem;
 
 	}
 
 	.options {
-		padding: .2em 0;
-		gap: .2em;
+		font-size: .8rem;
+		padding: .2rem 0;
+		gap: .2rem;
 		border-block: solid var(--border-width) var(--hr-color);
 		display: flex;
 		flex-direction: column;
-		margin-bottom: 1em;
+		margin-bottom: 1rem;
 	}
 
 	.links {
 		display: flex;
-		gap: .2em .5em;
+		gap: .2rem .5rem;
 		justify-content: center;
 		align-items: center;
 		flex-wrap: wrap;

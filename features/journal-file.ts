@@ -1,6 +1,6 @@
 import {type TFile} from "obsidian";
 import moment from "moment/moment";
-import type {LinkInfo} from "./link-info.type";
+import type {HeaderLink} from "./header-link.type";
 
 type JournalFileStrategy = {
 	fileRegex: RegExp
@@ -8,17 +8,22 @@ type JournalFileStrategy = {
 	titlePattern: string
 	shortTitlePattern: string
 	createJournalFile: (file: TFile) => JournalFile
+	timeUnit: 'day' | 'week' | 'month' | 'year'
 }
 
 export abstract class JournalFile {
 	readonly fileMoment: moment.Moment
 	readonly today: moment.Moment = moment().startOf("day")
 	readonly title: string
-	readonly centerLinks: LinkInfo[] = []
+	readonly centerLinks: HeaderLink[] = []
+	readonly backwardLink: HeaderLink | undefined
+	readonly forwardLink: HeaderLink | undefined
 
 	protected constructor(protected file: TFile, protected strategy: JournalFileStrategy) {
 		this.fileMoment = moment(file.basename, strategy.filePattern)
 		this.title = this.fileMoment.format(strategy.titlePattern)
+		this.backwardLink = this.createBackwardLink()
+		this.forwardLink = this.createForwardLink()
 	}
 
 	fullPath(fileName: string): string {
@@ -26,21 +31,35 @@ export abstract class JournalFile {
 		return path ? `${path}/${fileName}` : fileName
 	}
 
-	journalFileLink(titlePattern:string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment): LinkInfo {
+	journalFileLink(titlePattern:string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment, hidden = false): HeaderLink {
 		return {
 			title: targetMoment.format(titlePattern),
-			url: this.fullPath(targetMoment.format(fileNamePattern))
+			url: this.fullPath(targetMoment.format(fileNamePattern)),
+			hidden
 		}
 	}
 
-	protected pushFileTypeLink(links: LinkInfo[], strategy: JournalFileStrategy, onlyIfCurrentOrExisting = true) {
-		if (this.currentOrExistingByStrategy(strategy)) {
-			links.push(this.journalFileLink(strategy.shortTitlePattern, strategy.filePattern))
-		}
+	protected pushFileTypeLink(links: HeaderLink[], strategy: JournalFileStrategy, hideIfPastAndMissing = true) {
+		links.push(
+			this.journalFileLink(
+				strategy.shortTitlePattern,
+				strategy.filePattern,
+				this.fileMoment,
+				hideIfPastAndMissing && !this.currentOrExistingByStrategy(strategy)
+			)
+		)
 	}
 
-	protected pushToday(links: LinkInfo[], titlePattern = '[Today]', onlyIfCurrentOrExisting = true) {
-		if (!this.currentByPattern()) {
+	protected isFuture(): boolean {
+		return this.fileMoment.isAfter(this.today)
+	}
+
+	protected isToday(): boolean {
+		return this.currentByPattern()
+	}
+
+	protected pushToday(links: HeaderLink[], titlePattern = '[Today]') {
+		if (!this.isToday()) {
 			links.push(this.journalFileLink(titlePattern, this.strategy.filePattern, this.today))
 		}
 	}
@@ -59,7 +78,29 @@ export abstract class JournalFile {
 	}
 
 	protected journalFileExists(name: string): boolean {
-		return (this.file.parent?.children || []).some(file => file.name === name)
+		return (this.file.parent?.children || []).some(file => file.name === name + '.md')
+	}
+
+	protected createBackwardLink(): HeaderLink | undefined {
+		if (this.isFuture()) {
+			return this.journalFileLink(
+				this.strategy.shortTitlePattern,
+				this.strategy.filePattern,
+				this.fileMoment.clone().subtract(1, this.strategy.timeUnit))
+		}
+
+		return
+	}
+
+	protected createForwardLink() {
+		if (this.isToday() || this.isFuture()) {
+			return this.journalFileLink(
+				this.strategy.shortTitlePattern,
+				this.strategy.filePattern,
+				this.fileMoment.clone().add(1, this.strategy.timeUnit))
+		}
+
+		return
 	}
 }
 
@@ -69,16 +110,13 @@ class DailyFile extends JournalFile {
 		filePattern: 'YYYY-MM-DD',
 		titlePattern: 'dddd, DD MMMM YYYY',
 		shortTitlePattern: 'ddd, D MMM',
+		timeUnit: 'day',
 		createJournalFile: (file: TFile) => new DailyFile(file)
 	}
 
 	constructor(file: TFile) {
 		super(file, DailyFile.STRATEGY)
-		this.addCenterLinks()
-	}
 
-
-	protected addCenterLinks() {
 		this.pushFileTypeLink(this.centerLinks, YearlyFile.STRATEGY)
 		this.pushFileTypeLink(this.centerLinks, MonthlyFile.STRATEGY)
 		this.pushFileTypeLink(this.centerLinks, WeeklyFile.STRATEGY)
@@ -92,6 +130,7 @@ class WeeklyFile extends JournalFile {
 		filePattern: 'YYYY-[W]ww',
 		titlePattern: 'YYYY [Week] w',
 		shortTitlePattern: '[W]ww',
+		timeUnit: 'week',
 		createJournalFile: (file: TFile) => new WeeklyFile(file)
 	}
 
@@ -106,6 +145,7 @@ class MonthlyFile extends JournalFile {
 		filePattern: 'YYYY-MM',
 		titlePattern: 'MMMM YYYY',
 		shortTitlePattern: 'MMM',
+		timeUnit: 'month',
 		createJournalFile: (file: TFile) => new MonthlyFile(file)
 	}
 
@@ -120,6 +160,7 @@ class YearlyFile extends JournalFile {
 		filePattern: 'YYYY',
 		titlePattern: 'YYYY',
 		shortTitlePattern: 'YYYY',
+		timeUnit: 'year',
 		createJournalFile: (file: TFile) => new YearlyFile(file)
 	}
 
