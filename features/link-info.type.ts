@@ -1,5 +1,5 @@
 
-export type Link = {
+export type LinkInfo = {
 	title: string
 	url: string
 }
