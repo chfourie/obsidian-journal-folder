@@ -78,7 +78,13 @@ export abstract class JournalFile {
 	}
 
 	protected journalFileExists(name: string): boolean {
-		return (this.file.parent?.children || []).some(file => file.name === name + '.md')
+		return this.getJournalNoteNames().some(noteName => noteName === name)
+	}
+
+	protected getJournalNoteNames(filter: RegExp | null = null): string[] {
+		const fileNames = (this.file.parent?.children || [])
+			.map(f => f.name.replace(/\.md$/, ''))
+		return filter ? fileNames.filter(fn => filter.test(fn)) : fileNames
 	}
 
 	protected createBackwardLink(): HeaderLink | undefined {
@@ -88,8 +94,7 @@ export abstract class JournalFile {
 				this.strategy.filePattern,
 				this.fileMoment.clone().subtract(1, this.strategy.timeUnit))
 		}
-
-		return
+		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort());
 	}
 
 	protected createForwardLink() {
@@ -98,6 +103,19 @@ export abstract class JournalFile {
 				this.strategy.shortTitlePattern,
 				this.strategy.filePattern,
 				this.fileMoment.clone().add(1, this.strategy.timeUnit))
+		}
+		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort().reverse());
+	}
+
+	private linkToNoteNameBefore(noteNames: string[]): HeaderLink | undefined {
+		const index = noteNames.indexOf(this.file.basename)
+
+		if (index > 0) {
+			return this.journalFileLink(
+				this.strategy.shortTitlePattern,
+				this.strategy.filePattern,
+				moment(noteNames[index - 1], this.strategy.filePattern)
+			)
 		}
 
 		return
