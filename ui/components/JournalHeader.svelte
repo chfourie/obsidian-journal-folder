@@ -15,7 +15,7 @@
 
 		<div>Mon, 24 Jun</div>
 		<div>&lt;--</div>
-		{#each file.headerCenterLinks as link}
+		{#each file.centerLinks as link}
 			<a class="internal-link center-link" href={link.url}>{link.title}</a>
 		{/each}
 		<div>--&gt;</div>
