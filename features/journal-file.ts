@@ -11,6 +11,7 @@ type JournalFileStrategy = {
 	fileRegex: RegExp
 	filePattern: string
 	titlePattern: string
+	shortTitlePattern: string
 }
 
 const DAY_STRATEGY: JournalFileStrategy = {
@@ -19,6 +20,7 @@ const DAY_STRATEGY: JournalFileStrategy = {
 	fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([012][1-9])|(3[01]))$/,
 	filePattern: 'YYYY-MM-DD',
 	titlePattern: 'dddd, DD MMMM YYYY',
+	shortTitlePattern: 'ddd, D MMM',
 }
 
 const WEEK_STRATEGY: JournalFileStrategy = {
@@ -27,6 +29,7 @@ const WEEK_STRATEGY: JournalFileStrategy = {
 	fileRegex: /^W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
 	filePattern: 'YYYY-[W]ww',
 	titlePattern: 'YYYY [Week] w',
+	shortTitlePattern: '[W]ww',
 }
 
 const MONTH_STRATEGY: JournalFileStrategy = {
@@ -35,6 +38,7 @@ const MONTH_STRATEGY: JournalFileStrategy = {
 	fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
 	filePattern: 'YYYY-MM',
 	titlePattern: 'MMMM YYYY',
+	shortTitlePattern: 'MMM',
 }
 
 const YEAR_STRATEGY: JournalFileStrategy = {
@@ -43,6 +47,7 @@ const YEAR_STRATEGY: JournalFileStrategy = {
 	fileRegex: /^20\d{2}$/,
 	filePattern: 'YYYY',
 	titlePattern: 'YYYY',
+	shortTitlePattern: 'YYYY',
 }
 
 const buildStrategies: JournalFileStrategy[] = [
@@ -77,7 +82,7 @@ export class JournalFile {
 			.reverse()
 			.forEach(strategy => {
 				this.headerCenterLinks.push({
-					title: strategy.fileType,
+					title: this.fileMoment.format(strategy.shortTitlePattern),
 					url: this.fullPath(this.fileMoment.format(strategy.filePattern))
 				})
 			})
