@@ -1,26 +1,26 @@
 <script lang="ts">
-	import type {JournalFile} from "../../features/journal-file";
+	import type {JournalHeaderState} from "../../features/journal-header-state";
 
-	type Props = { file: JournalFile }
+	type Props = { state: JournalHeaderState }
 
-	let {file}: Props = $props()
+	let {state}: Props = $props()
 </script>
 
-<h1>{file.title}</h1>
+<h1>{state.title}</h1>
 
 <div class="options">
 	<div class="links">
 
-		{#if file.backwardLink}
-			<a class="internal-link center-link" href={file.backwardLink.url}>{file.backwardLink.title}</a>
+		{#if state.backwardLink}
+			<a class="internal-link center-link" href={state.backwardLink.url}>{state.backwardLink.title}</a>
 			<div>&lt;--</div>
 		{/if}
-		{#each file.centerLinks as link}
+		{#each state.centerLinks as link}
 			<a class="internal-link center-link" href={link.url}>{link.title}</a>
 		{/each}
-		{#if file.forwardLink}
+		{#if state.forwardLink}
 			<div>--&gt;</div>
-			<a class="internal-link center-link" href={file.forwardLink.url}>{file.forwardLink.title}</a>
+			<a class="internal-link center-link" href={state.forwardLink.url}>{state.forwardLink.title}</a>
 		{/if}
 	</div>
 </div>
@@ -34,7 +34,7 @@
 	}
 
 	.options {
-		font-size: .8rem;
+		font-size: .9rem;
 		padding: .2rem 0;
 		gap: .2rem;
 		border-block: solid var(--border-width) var(--hr-color);
@@ -45,7 +45,7 @@
 
 	.links {
 		display: flex;
-		gap: .2rem .5rem;
+		gap: .2rem .3rem;
 		justify-content: center;
 		align-items: center;
 		flex-wrap: wrap;
@@ -58,13 +58,23 @@
 	.center-link {
 		border: solid thin;
 		display: block;
-		line-height: 1.2rem;
-		border-radius: .6rem;
-		padding-inline: .6rem;
+		line-height: 1rem;
+		border-radius: .5rem;
+		padding-inline: .5rem;
 		height: fit-content;
+		text-decoration: none;
 	}
 
-	.center-link:link {
-		text-decoration: none;
+	.center-link:link, .center-link:visited, .center-link:hover, .center-link:active {
+		text-decoration: none !important;
+	}
+
+	.center-link:hover {
+		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
+	}
+
+	.center-link:active {
+		color: var(--background-primary);
+		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 	}
 </style>

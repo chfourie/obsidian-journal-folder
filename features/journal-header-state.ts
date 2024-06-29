@@ -7,11 +7,11 @@ type JournalFileStrategy = {
 	filePattern: string
 	titlePattern: string
 	shortTitlePattern: string
-	createJournalFile: (file: TFile) => JournalFile
+	createJournalHeaderState: (file: TFile) => JournalHeaderState
 	timeUnit: 'day' | 'week' | 'month' | 'year'
 }
 
-export abstract class JournalFile {
+export abstract class JournalHeaderState {
 	readonly fileMoment: moment.Moment
 	readonly today: moment.Moment = moment().startOf("day")
 	readonly title: string
@@ -122,73 +122,73 @@ export abstract class JournalFile {
 	}
 }
 
-class DailyFile extends JournalFile {
+class DailyHeaderState extends JournalHeaderState {
 	static readonly STRATEGY: JournalFileStrategy = {
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
 		filePattern: 'YYYY-MM-DD',
 		titlePattern: 'dddd, DD MMMM YYYY',
 		shortTitlePattern: 'ddd, D MMM',
 		timeUnit: 'day',
-		createJournalFile: (file: TFile) => new DailyFile(file)
+		createJournalHeaderState: (file: TFile) => new DailyHeaderState(file)
 	}
 
 	constructor(file: TFile) {
-		super(file, DailyFile.STRATEGY)
+		super(file, DailyHeaderState.STRATEGY)
 
-		this.pushFileTypeLink(this.centerLinks, YearlyFile.STRATEGY)
-		this.pushFileTypeLink(this.centerLinks, MonthlyFile.STRATEGY)
-		this.pushFileTypeLink(this.centerLinks, WeeklyFile.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, YearlyHeaderState.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, MonthlyHeaderState.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, WeeklyHeaderState.STRATEGY)
 		this.pushToday(this.centerLinks)
 	}
 }
 
-class WeeklyFile extends JournalFile {
+class WeeklyHeaderState extends JournalHeaderState {
 	static readonly STRATEGY: JournalFileStrategy = {
 		fileRegex: /^W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
 		filePattern: 'YYYY-[W]ww',
 		titlePattern: 'YYYY [Week] w',
 		shortTitlePattern: '[W]ww',
 		timeUnit: 'week',
-		createJournalFile: (file: TFile) => new WeeklyFile(file)
+		createJournalHeaderState: (file: TFile) => new WeeklyHeaderState(file)
 	}
 
 	constructor(file: TFile) {
-		super(file, WeeklyFile.STRATEGY)
+		super(file, WeeklyHeaderState.STRATEGY)
 	}
 }
 
-class MonthlyFile extends JournalFile {
+class MonthlyHeaderState extends JournalHeaderState {
 	static readonly STRATEGY: JournalFileStrategy = {
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
 		filePattern: 'YYYY-MM',
 		titlePattern: 'MMMM YYYY',
 		shortTitlePattern: 'MMM',
 		timeUnit: 'month',
-		createJournalFile: (file: TFile) => new MonthlyFile(file)
+		createJournalHeaderState: (file: TFile) => new MonthlyHeaderState(file)
 	}
 
 	constructor(file: TFile) {
-		super(file, MonthlyFile.STRATEGY)
+		super(file, MonthlyHeaderState.STRATEGY)
 	}
 }
 
-class YearlyFile extends JournalFile {
+class YearlyHeaderState extends JournalHeaderState {
 	static readonly STRATEGY: JournalFileStrategy = {
 		fileRegex: /^20\d{2}$/,
 		filePattern: 'YYYY',
 		titlePattern: 'YYYY',
 		shortTitlePattern: 'YYYY',
 		timeUnit: 'year',
-		createJournalFile: (file: TFile) => new YearlyFile(file)
+		createJournalHeaderState: (file: TFile) => new YearlyHeaderState(file)
 	}
 
 	constructor(file: TFile) {
-		super(file, YearlyFile.STRATEGY)
+		super(file, YearlyHeaderState.STRATEGY)
 	}
 }
 
 const buildStrategies = [
-	DailyFile.STRATEGY, WeeklyFile.STRATEGY, MonthlyFile.STRATEGY, YearlyFile.STRATEGY,
+	DailyHeaderState.STRATEGY, WeeklyHeaderState.STRATEGY, MonthlyHeaderState.STRATEGY, YearlyHeaderState.STRATEGY,
 ]
 
 function getFileStrategy(file: TFile): JournalFileStrategy {
@@ -197,6 +197,6 @@ function getFileStrategy(file: TFile): JournalFileStrategy {
 	return buildStrategy
 }
 
-export function createJournalFile(file: TFile): JournalFile {
-	return getFileStrategy(file).createJournalFile(file)
+export function createJournalHeaderState(file: TFile): JournalHeaderState {
+	return getFileStrategy(file).createJournalHeaderState(file)
 }

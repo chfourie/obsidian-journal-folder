@@ -1,13 +1,13 @@
 import {Plugin, TFile} from 'obsidian';
 import moment from "moment";
-import {JournalTitleFeature, PluginFeatureSet} from "./features";
+import {JournalHeaderFeature, PluginFeatureSet} from "./features";
 import {DEFAULT_SETTINGS, type JournalFolderSettings} from "./data-access/journal-folder-settings";
 
 export default class JournalFolderPlugin extends Plugin {
 	#settings: JournalFolderSettings = DEFAULT_SETTINGS
 
 	#features: PluginFeatureSet = new PluginFeatureSet()
-		.addFeature(new JournalTitleFeature())
+		.addFeature(new JournalHeaderFeature())
 
 	get settings(): JournalFolderSettings {
 		return this.#settings;
