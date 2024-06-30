@@ -1,4 +1,4 @@
-import {type TFile} from "obsidian";
+import {TAbstractFile, type TFile} from "obsidian";
 import moment from "moment/moment";
 import type {HeaderLink} from "./header-link.type";
 
@@ -93,6 +93,27 @@ export abstract class JournalHeaderState {
 		return filter ? fileNames.filter(fn => filter.test(fn)) : fileNames
 	}
 
+	protected getAdjacentNoteLink(beforeOrAfter: 'BEFORE' | 'AFTER'): HeaderLink | undefined {
+		const thisFileName = this.file.basename
+		const multiplier = beforeOrAfter === 'BEFORE' ? -1 : 1
+		const fileNames = (this.file.parent?.children || [])
+		const adjacentFileName = fileNames.reduce<string | null>((prev, curr) => {
+			const currName = curr.name.replace(/\.md$/, '')
+			if (!this.strategy.fileRegex.test(currName)) return prev
+			if (currName.localeCompare(thisFileName) * multiplier <= 0) return prev
+			if (prev == null) return currName
+			return (currName.localeCompare(prev) * multiplier < 0) ? currName : prev
+		}, null)
+
+		if (adjacentFileName) {
+			return this.journalFileLink(
+				this.strategy.shortTitlePattern,
+				this.strategy.filePattern,
+				moment(adjacentFileName, this.strategy.filePattern)
+			)
+		}
+	}
+
 	protected createBackwardLink(): HeaderLink | undefined {
 		const prevDate = this.fileMoment.clone().subtract(1, this.strategy.timeUnit)
 
@@ -102,7 +123,7 @@ export abstract class JournalHeaderState {
 				this.strategy.filePattern,
 				prevDate)
 		}
-		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort());
+		return this.getAdjacentNoteLink('BEFORE')
 	}
 
 	protected createForwardLink() {
@@ -114,21 +135,7 @@ export abstract class JournalHeaderState {
 				this.strategy.filePattern,
 				nextDate)
 		}
-		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort().reverse());
-	}
-
-	private linkToNoteNameBefore(noteNames: string[]): HeaderLink | undefined {
-		const index = noteNames.indexOf(this.file.basename)
-
-		if (index > 0) {
-			return this.journalFileLink(
-				this.strategy.shortTitlePattern,
-				this.strategy.filePattern,
-				moment(noteNames[index - 1], this.strategy.filePattern)
-			)
-		}
-
-		return
+		return this.getAdjacentNoteLink('AFTER')
 	}
 
 	protected pushCurrent(links: HeaderLink[], titlePattern = this.strategy.shortTitlePattern) {
