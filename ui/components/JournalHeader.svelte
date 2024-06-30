@@ -10,7 +10,6 @@
 
 <div class="options">
 	<div class="links">
-
 		{#if state.backwardLink}
 			<a class="internal-link center-link" href={state.backwardLink.url}>{state.backwardLink.title}</a>
 			<div>&lt;--</div>
@@ -23,6 +22,15 @@
 			<a class="internal-link center-link" href={state.forwardLink.url}>{state.forwardLink.title}</a>
 		{/if}
 	</div>
+
+	{#if state.secondaryLinks.length > 0}
+		<div class="links">
+			{#each state.secondaryLinks as link, i}
+				{#if i > 0}<div>|</div>{/if}
+				<a class="internal-link" href={link.url}>{link.title}</a>
+			{/each}
+		</div>
+	{/if}
 </div>
 
 <style>

@@ -18,6 +18,7 @@ export abstract class JournalHeaderState {
 	readonly centerLinks: HeaderLink[] = []
 	readonly backwardLink: HeaderLink | undefined
 	readonly forwardLink: HeaderLink | undefined
+	readonly secondaryLinks: HeaderLink[] = []
 
 	protected constructor(protected file: TFile, protected strategy: JournalFileStrategy) {
 		this.fileMoment = moment(file.basename, strategy.filePattern)
@@ -55,12 +56,12 @@ export abstract class JournalHeaderState {
 	}
 
 	protected isToday(): boolean {
-		return this.currentByPattern()
+		return false
 	}
 
 	protected pushToday(links: HeaderLink[], titlePattern = '[Today]') {
 		if (!this.isToday()) {
-			links.push(this.journalFileLink(titlePattern, this.strategy.filePattern, this.today))
+			links.push(this.journalFileLink(titlePattern, DailyHeaderState.STRATEGY.filePattern, this.today))
 		}
 	}
 
@@ -74,7 +75,11 @@ export abstract class JournalHeaderState {
 	}
 
 	protected currentByPattern(pattern = 'YYYY-MM-DD'): boolean {
-		return this.fileMoment.format(pattern) === this.today.format(pattern)
+		return this.matchedByPattern(this.fileMoment, this.today, pattern)
+	}
+
+	protected matchedByPattern(a: moment.Moment, b: moment.Moment, pattern = 'YYYY-MM-DD'): boolean {
+		return a.format(pattern) === b.format(pattern)
 	}
 
 	protected journalFileExists(name: string): boolean {
@@ -124,6 +129,27 @@ export abstract class JournalHeaderState {
 
 		return
 	}
+
+	protected pushCurrent(links: HeaderLink[], titlePattern = this.strategy.shortTitlePattern) {
+		if (!this.currentByPattern(this.strategy.filePattern)) {
+			links.push(this.journalFileLink(titlePattern, this.strategy.filePattern, this.today))
+		}
+	}
+
+	protected addSecondaryLinks(links: HeaderLink[], strategy: JournalFileStrategy, titlePattern = ''): void {
+		const linkedMoment = this.fileMoment.clone()
+
+		while (this.matchedByPattern(linkedMoment, this.fileMoment, this.strategy.filePattern)) {
+			links.push(
+				this.journalFileLink(
+					titlePattern ? titlePattern : strategy.shortTitlePattern,
+					strategy.filePattern,
+					linkedMoment
+				)
+			)
+			linkedMoment.add(1, strategy.timeUnit)
+		}
+	}
 }
 
 class DailyHeaderState extends JournalHeaderState {
@@ -144,11 +170,15 @@ class DailyHeaderState extends JournalHeaderState {
 		this.pushFileTypeLink(this.centerLinks, WeeklyHeaderState.STRATEGY)
 		this.pushToday(this.centerLinks)
 	}
+
+	protected isToday(): boolean {
+		return this.currentByPattern()
+	}
 }
 
 class WeeklyHeaderState extends JournalHeaderState {
 	static readonly STRATEGY: JournalFileStrategy = {
-		fileRegex: /^W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
+		fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
 		filePattern: 'YYYY-[W]ww',
 		titlePattern: 'YYYY [Week] w',
 		shortTitlePattern: '[W]ww',
@@ -158,6 +188,13 @@ class WeeklyHeaderState extends JournalHeaderState {
 
 	constructor(file: TFile) {
 		super(file, WeeklyHeaderState.STRATEGY)
+
+		this.pushFileTypeLink(this.centerLinks, YearlyHeaderState.STRATEGY)
+		this.pushFileTypeLink(this.centerLinks, MonthlyHeaderState.STRATEGY)
+		this.pushCurrent(this.centerLinks)
+		this.pushToday(this.centerLinks)
+
+		this.addSecondaryLinks(this.secondaryLinks, DailyHeaderState.STRATEGY)
 	}
 }
 
@@ -173,6 +210,12 @@ class MonthlyHeaderState extends JournalHeaderState {
 
 	constructor(file: TFile) {
 		super(file, MonthlyHeaderState.STRATEGY)
+
+		this.pushFileTypeLink(this.centerLinks, YearlyHeaderState.STRATEGY)
+		this.pushCurrent(this.centerLinks)
+		this.pushToday(this.centerLinks)
+
+		this.addSecondaryLinks(this.secondaryLinks, WeeklyHeaderState.STRATEGY)
 	}
 }
 
@@ -188,6 +231,11 @@ class YearlyHeaderState extends JournalHeaderState {
 
 	constructor(file: TFile) {
 		super(file, YearlyHeaderState.STRATEGY)
+
+		this.pushCurrent(this.centerLinks)
+		this.pushToday(this.centerLinks)
+
+		this.addSecondaryLinks(this.secondaryLinks, MonthlyHeaderState.STRATEGY)
 	}
 }
 
