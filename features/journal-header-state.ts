@@ -32,10 +32,11 @@ export abstract class JournalHeaderState {
 		return path ? `${path}/${fileName}` : fileName
 	}
 
-	journalFileLink(titlePattern: string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment): HeaderLink {
+	journalFileLink(titlePattern: string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment, inactive = false): HeaderLink {
 		return {
 			title: targetMoment.format(titlePattern),
-			url: this.fullPath(targetMoment.format(fileNamePattern))
+			url: this.fullPath(targetMoment.format(fileNamePattern)),
+			inactive
 		}
 	}
 
@@ -51,8 +52,8 @@ export abstract class JournalHeaderState {
 		}
 	}
 
-	protected isFuture(): boolean {
-		return this.fileMoment.isAfter(this.today)
+	protected isFuture(moment = this.fileMoment): boolean {
+		return moment.isAfter(this.today)
 	}
 
 	protected isToday(): boolean {
@@ -65,12 +66,12 @@ export abstract class JournalHeaderState {
 		}
 	}
 
-	protected currentOrExistingByStrategy(strategy: JournalFileStrategy): boolean {
-		return this.currentOrExistingByPattern(strategy.filePattern)
+	protected currentOrExistingByStrategy(strategy: JournalFileStrategy, moment = this.fileMoment): boolean {
+		return this.currentOrExistingByPattern(strategy.filePattern, moment)
 	}
 
-	protected currentOrExistingByPattern(pattern = 'YYYY-MM-DD'): boolean {
-		const fileName = this.fileMoment.format(pattern)
+	protected currentOrExistingByPattern(pattern = 'YYYY-MM-DD', moment = this.fileMoment): boolean {
+		const fileName = moment.format(pattern)
 		return fileName === this.today.format(pattern) || this.journalFileExists(fileName)
 	}
 
@@ -144,7 +145,8 @@ export abstract class JournalHeaderState {
 				this.journalFileLink(
 					titlePattern ? titlePattern : strategy.shortTitlePattern,
 					strategy.filePattern,
-					linkedMoment
+					linkedMoment,
+					!(this.currentOrExistingByStrategy(strategy, linkedMoment) || this.isFuture(linkedMoment))
 				)
 			)
 			linkedMoment.add(1, strategy.timeUnit)
