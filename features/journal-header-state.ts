@@ -88,21 +88,25 @@ export abstract class JournalHeaderState {
 	}
 
 	protected createBackwardLink(): HeaderLink | undefined {
-		if (this.isFuture()) {
+		const prevDate = this.fileMoment.clone().subtract(1, this.strategy.timeUnit)
+
+		if (!prevDate.isBefore(this.today)) {
 			return this.journalFileLink(
 				this.strategy.shortTitlePattern,
 				this.strategy.filePattern,
-				this.fileMoment.clone().subtract(1, this.strategy.timeUnit))
+				prevDate)
 		}
 		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort());
 	}
 
 	protected createForwardLink() {
-		if (this.isToday() || this.isFuture()) {
+		const nextDate = this.fileMoment.clone().add(1, this.strategy.timeUnit)
+
+		if (!nextDate.isBefore(this.today)) {
 			return this.journalFileLink(
 				this.strategy.shortTitlePattern,
 				this.strategy.filePattern,
-				this.fileMoment.clone().add(1, this.strategy.timeUnit))
+				nextDate)
 		}
 		return this.linkToNoteNameBefore(this.getJournalNoteNames(this.strategy.fileRegex).sort().reverse());
 	}
