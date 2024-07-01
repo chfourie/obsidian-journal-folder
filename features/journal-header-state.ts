@@ -1,6 +1,6 @@
-import {TAbstractFile, type TFile} from "obsidian";
-import moment from "moment/moment";
-import type {HeaderLink} from "./header-link.type";
+import { type TFile } from 'obsidian'
+import moment from 'moment/moment'
+import type { HeaderLink } from './header-link.type'
 
 type JournalFileStrategy = {
 	fileRegex: RegExp
@@ -13,7 +13,7 @@ type JournalFileStrategy = {
 
 export abstract class JournalHeaderState {
 	readonly fileMoment: moment.Moment
-	readonly today: moment.Moment = moment().startOf("day")
+	readonly today: moment.Moment = moment().startOf('day')
 	readonly title: string
 	readonly centerLinks: HeaderLink[] = []
 	readonly backwardLink: HeaderLink | undefined
@@ -36,7 +36,7 @@ export abstract class JournalHeaderState {
 		return {
 			title: targetMoment.format(titlePattern),
 			url: this.fullPath(targetMoment.format(fileNamePattern)),
-			inactive
+			inactive,
 		}
 	}
 
@@ -46,8 +46,8 @@ export abstract class JournalHeaderState {
 				this.journalFileLink(
 					strategy.shortTitlePattern,
 					strategy.filePattern,
-					this.fileMoment
-				)
+					this.fileMoment,
+				),
 			)
 		}
 	}
@@ -109,7 +109,7 @@ export abstract class JournalHeaderState {
 			return this.journalFileLink(
 				this.strategy.shortTitlePattern,
 				this.strategy.filePattern,
-				moment(adjacentFileName, this.strategy.filePattern)
+				moment(adjacentFileName, this.strategy.filePattern),
 			)
 		}
 	}
@@ -153,8 +153,8 @@ export abstract class JournalHeaderState {
 					titlePattern ? titlePattern : strategy.shortTitlePattern,
 					strategy.filePattern,
 					linkedMoment,
-					!(this.currentOrExistingByStrategy(strategy, linkedMoment) || this.isFuture(linkedMoment))
-				)
+					!(this.currentOrExistingByStrategy(strategy, linkedMoment) || this.isFuture(linkedMoment)),
+				),
 			)
 			linkedMoment.add(1, strategy.timeUnit)
 		}
@@ -168,7 +168,7 @@ class DailyHeaderState extends JournalHeaderState {
 		titlePattern: 'dddd, DD MMMM YYYY',
 		shortTitlePattern: 'ddd, D MMM',
 		timeUnit: 'day',
-		createJournalHeaderState: (file: TFile) => new DailyHeaderState(file)
+		createJournalHeaderState: (file: TFile) => new DailyHeaderState(file),
 	}
 
 	constructor(file: TFile) {
@@ -192,7 +192,7 @@ class WeeklyHeaderState extends JournalHeaderState {
 		titlePattern: 'YYYY [Week] w',
 		shortTitlePattern: '[W]ww',
 		timeUnit: 'week',
-		createJournalHeaderState: (file: TFile) => new WeeklyHeaderState(file)
+		createJournalHeaderState: (file: TFile) => new WeeklyHeaderState(file),
 	}
 
 	constructor(file: TFile) {
@@ -214,7 +214,7 @@ class MonthlyHeaderState extends JournalHeaderState {
 		titlePattern: 'MMMM YYYY',
 		shortTitlePattern: 'MMM',
 		timeUnit: 'month',
-		createJournalHeaderState: (file: TFile) => new MonthlyHeaderState(file)
+		createJournalHeaderState: (file: TFile) => new MonthlyHeaderState(file),
 	}
 
 	constructor(file: TFile) {
@@ -235,7 +235,7 @@ class YearlyHeaderState extends JournalHeaderState {
 		titlePattern: 'YYYY',
 		shortTitlePattern: 'YYYY',
 		timeUnit: 'year',
-		createJournalHeaderState: (file: TFile) => new YearlyHeaderState(file)
+		createJournalHeaderState: (file: TFile) => new YearlyHeaderState(file),
 	}
 
 	constructor(file: TFile) {

@@ -1,7 +1,6 @@
-import {Plugin, TFile} from 'obsidian';
-import moment from "moment";
-import {JournalHeaderFeature, PluginFeatureSet} from "./features";
-import {DEFAULT_SETTINGS, type JournalFolderSettings} from "./data-access/journal-folder-settings";
+import { Plugin } from 'obsidian'
+import { JournalHeaderFeature, PluginFeatureSet } from './features'
+import { DEFAULT_SETTINGS, type JournalFolderSettings } from './data-access/journal-folder-settings'
 
 export default class JournalFolderPlugin extends Plugin {
 	#settings: JournalFolderSettings = DEFAULT_SETTINGS
@@ -10,7 +9,7 @@ export default class JournalFolderPlugin extends Plugin {
 		.addFeature(new JournalHeaderFeature())
 
 	get settings(): JournalFolderSettings {
-		return this.#settings;
+		return this.#settings
 	}
 
 	async onload() {
@@ -22,19 +21,7 @@ export default class JournalFolderPlugin extends Plugin {
 		this.#features.unload(this)
 	}
 
-	getActiveFileMoment(): moment.Moment {
-		return moment(this.getActiveFile().basename)
-	}
-
-	getActiveFile(): TFile {
-		return this.app.workspace.getActiveFile()!;
-	}
-
-	createLink(el: HTMLElement, href: string, text: string) {
-		return el.createEl("a", {href, text});
-	}
-
 	async loadSettings(): Promise<void> {
-		this.#settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.#settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
 	}
 }

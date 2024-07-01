@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type {HeaderLink} from "../../features/header-link.type"
+	import type { HeaderLink } from '../../features/header-link.type'
 
 	type Props = { link: HeaderLink, primary?: boolean }
 
-	let {link, primary = true}: Props = $props()
+	let { link, primary = true }: Props = $props()
 </script>
 
 {#if link.inactive}

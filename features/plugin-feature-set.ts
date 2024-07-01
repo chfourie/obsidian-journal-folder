@@ -1,10 +1,10 @@
-import type {PluginFeature} from "./plugin-feature";
-import type JournalFolderPlugin from "../main";
+import type { PluginFeature } from './plugin-feature'
+import type JournalFolderPlugin from '../main'
 
 export class PluginFeatureSet {
-	readonly #pluginFeatures:PluginFeature[] = []
+	readonly #pluginFeatures: PluginFeature[] = []
 
-	addFeature(feature:PluginFeature): PluginFeatureSet {
+	addFeature(feature: PluginFeature): PluginFeatureSet {
 		this.#pluginFeatures.push(feature)
 		return this
 	}

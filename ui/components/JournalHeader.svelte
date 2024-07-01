@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type {JournalHeaderState} from "../../features/journal-header-state";
-	import HeaderLink from "./HeaderLink.svelte";
+	import type { JournalHeaderState } from '../../features/journal-header-state'
+	import HeaderLink from './HeaderLink.svelte'
 
 	type Props = { state: JournalHeaderState }
 
-	let {state}: Props = $props()
+	let { state }: Props = $props()
 </script>
 
 <h1>{state.title}</h1>
@@ -12,7 +12,7 @@
 <div class="options">
 	<div class="links">
 		{#if state.backwardLink}
-			<HeaderLink link={state.backwardLink}/>
+			<HeaderLink link={state.backwardLink} />
 			<div>&lt;--</div>
 		{/if}
 		{#each state.centerLinks as link}
@@ -20,14 +20,16 @@
 		{/each}
 		{#if state.forwardLink}
 			<div>--&gt;</div>
-			<HeaderLink link={state.forwardLink}/>
+			<HeaderLink link={state.forwardLink} />
 		{/if}
 	</div>
 
 	{#if state.secondaryLinks.length > 0}
 		<div class="links">
 			{#each state.secondaryLinks as link, i}
-				{#if i > 0}<div>|</div>{/if}
+				{#if i > 0}
+					<div>|</div>
+				{/if}
 				<HeaderLink {link} primary={false} />
 			{/each}
 		</div>
