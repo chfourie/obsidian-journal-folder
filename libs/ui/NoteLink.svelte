@@ -2,19 +2,20 @@
 
 	import { type Link } from '@journal-folder/data-access'
 
-	type Props = { link: Link, primary?: boolean }
+	type LinkStyle = 'hyperlink' | 'chip'
+	type Props = { link: Link, linkStyle?: LinkStyle }
 
-	let { link, primary = true }: Props = $props()
+	let { link, linkStyle = 'hyperlink' }: Props = $props()
 </script>
 
 {#if link.inactive}
 	<span class="inactive">{link.title}</span>
 {:else}
-	<a class="internal-link" class:primary={primary} href={link.url}>{link.title}</a>
+	<a class="internal-link" class:chip={linkStyle === 'chip'} href={link.url}>{link.title}</a>
 {/if}
 
 <style>
-	.primary {
+	.chip {
 		border: solid thin;
 		display: block;
 		line-height: 1rem;
@@ -24,15 +25,15 @@
 		text-decoration: none;
 	}
 
-	.primary:link, .primary:visited, .primary:hover, .primary:active {
+	.chip:link, .chip:visited, .chip:hover, .chip:active {
 		text-decoration: none !important;
 	}
 
-	.primary:hover {
+	.chip:hover {
 		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
 	}
 
-	.primary:active {
+	.chip:active {
 		color: var(--background-primary);
 		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 	}

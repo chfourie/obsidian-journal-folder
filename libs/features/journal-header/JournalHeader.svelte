@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { JournalHeaderState } from './journal-header-state'
-	import HeaderLink from './HeaderLink.svelte'
+	import { NoteLink } from '@journal-folder/ui'
 
 	type Props = { state: JournalHeaderState }
 
@@ -12,15 +12,15 @@
 <div class="options">
 	<div class="links">
 		{#if state.backwardLink}
-			<HeaderLink link={state.backwardLink} />
+			<NoteLink link={state.backwardLink} linkStyle="chip" />
 			<div>&lt;--</div>
 		{/if}
 		{#each state.centerLinks as link}
-			<HeaderLink {link} />
+			<NoteLink {link} linkStyle="chip" />
 		{/each}
 		{#if state.forwardLink}
 			<div>--&gt;</div>
-			<HeaderLink link={state.forwardLink} />
+			<NoteLink link={state.forwardLink} linkStyle="chip" />
 		{/if}
 	</div>
 
@@ -30,7 +30,7 @@
 				{#if i > 0}
 					<div>|</div>
 				{/if}
-				<HeaderLink {link} primary={false} />
+				<NoteLink {link} />
 			{/each}
 		</div>
 	{/if}
