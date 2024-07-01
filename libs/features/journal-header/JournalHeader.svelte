@@ -12,15 +12,15 @@
 <div class="options">
 	<div class="links">
 		{#if state.backwardLink}
-			<NoteLink link={state.backwardLink} linkStyle="chip" />
+			<NoteLink {...state.backwardLink} linkStyle="chip" />
 			<div>&lt;--</div>
 		{/if}
 		{#each state.centerLinks as link}
-			<NoteLink {link} linkStyle="chip" />
+			<NoteLink {...link}  linkStyle="chip" />
 		{/each}
 		{#if state.forwardLink}
 			<div>--&gt;</div>
-			<NoteLink link={state.forwardLink} linkStyle="chip" />
+			<NoteLink {...state.forwardLink} linkStyle="chip" />
 		{/if}
 	</div>
 
@@ -30,7 +30,7 @@
 				{#if i > 0}
 					<div>|</div>
 				{/if}
-				<NoteLink {link} />
+				<NoteLink {...link} />
 			{/each}
 		</div>
 	{/if}

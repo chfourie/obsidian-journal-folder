@@ -1,17 +1,14 @@
 <script lang="ts">
-
-	import { type Link } from '@journal-folder/data-access'
-
 	type LinkStyle = 'hyperlink' | 'chip'
-	type Props = { link: Link, linkStyle?: LinkStyle }
+	type Props = { title: string, url: string, inactive?: boolean, linkStyle?: LinkStyle }
 
-	let { link, linkStyle = 'hyperlink' }: Props = $props()
+	let { title, url, inactive = false, linkStyle = 'hyperlink' }: Props = $props()
 </script>
 
-{#if link.inactive}
-	<span class="inactive">{link.title}</span>
+{#if inactive}
+	<span class="inactive">{title}</span>
 {:else}
-	<a class="internal-link" class:chip={linkStyle === 'chip'} href={link.url}>{link.title}</a>
+	<a class="internal-link" class:chip={linkStyle === 'chip'} href={url}>{title}</a>
 {/if}
 
 <style>
