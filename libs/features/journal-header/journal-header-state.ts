@@ -1,6 +1,6 @@
 import { type TFile } from 'obsidian'
 import moment from 'moment/moment'
-import type { HeaderLink } from './header-link.type'
+import type { Link } from '@journal-folder/data-access'
 
 type JournalFileStrategy = {
 	fileRegex: RegExp
@@ -15,10 +15,10 @@ export abstract class JournalHeaderState {
 	readonly fileMoment: moment.Moment
 	readonly today: moment.Moment = moment().startOf('day')
 	readonly title: string
-	readonly centerLinks: HeaderLink[] = []
-	readonly backwardLink: HeaderLink | undefined
-	readonly forwardLink: HeaderLink | undefined
-	readonly secondaryLinks: HeaderLink[] = []
+	readonly centerLinks: Link[] = []
+	readonly backwardLink: Link | undefined
+	readonly forwardLink: Link | undefined
+	readonly secondaryLinks: Link[] = []
 
 	protected constructor(protected file: TFile, protected strategy: JournalFileStrategy) {
 		this.fileMoment = moment(file.basename, strategy.filePattern)
@@ -32,7 +32,7 @@ export abstract class JournalHeaderState {
 		return path ? `${path}/${fileName}` : fileName
 	}
 
-	journalFileLink(titlePattern: string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment, inactive = false): HeaderLink {
+	journalFileLink(titlePattern: string, fileNamePattern: string, targetMoment: moment.Moment = this.fileMoment, inactive = false): Link {
 		return {
 			title: targetMoment.format(titlePattern),
 			url: this.fullPath(targetMoment.format(fileNamePattern)),
@@ -40,7 +40,7 @@ export abstract class JournalHeaderState {
 		}
 	}
 
-	protected pushFileTypeLink(links: HeaderLink[], strategy: JournalFileStrategy, hideIfPastAndMissing = true) {
+	protected pushFileTypeLink(links: Link[], strategy: JournalFileStrategy, hideIfPastAndMissing = true) {
 		if (!hideIfPastAndMissing || this.isFuture() || this.currentOrExistingByStrategy(strategy)) {
 			links.push(
 				this.journalFileLink(
@@ -60,7 +60,7 @@ export abstract class JournalHeaderState {
 		return false
 	}
 
-	protected pushToday(links: HeaderLink[], titlePattern = '[Today]') {
+	protected pushToday(links: Link[], titlePattern = '[Today]') {
 		if (!this.isToday()) {
 			links.push(this.journalFileLink(titlePattern, DailyHeaderState.STRATEGY.filePattern, this.today))
 		}
@@ -93,7 +93,7 @@ export abstract class JournalHeaderState {
 		return filter ? fileNames.filter(fn => filter.test(fn)) : fileNames
 	}
 
-	protected getAdjacentNoteLink(beforeOrAfter: 'BEFORE' | 'AFTER'): HeaderLink | undefined {
+	protected getAdjacentNoteLink(beforeOrAfter: 'BEFORE' | 'AFTER'): Link | undefined {
 		const thisFileName = this.file.basename
 		const multiplier = beforeOrAfter === 'BEFORE' ? -1 : 1
 		const fileNames = (this.file.parent?.children || [])
@@ -114,7 +114,7 @@ export abstract class JournalHeaderState {
 		}
 	}
 
-	protected createBackwardLink(): HeaderLink | undefined {
+	protected createBackwardLink(): Link | undefined {
 		const prevDate = this.fileMoment.clone().subtract(1, this.strategy.timeUnit)
 
 		if (!prevDate.isBefore(this.today)) {
@@ -138,13 +138,13 @@ export abstract class JournalHeaderState {
 		return this.getAdjacentNoteLink('AFTER')
 	}
 
-	protected pushCurrent(links: HeaderLink[], titlePattern = this.strategy.shortTitlePattern) {
+	protected pushCurrent(links: Link[], titlePattern = this.strategy.shortTitlePattern) {
 		if (!this.currentByPattern(this.strategy.filePattern)) {
 			links.push(this.journalFileLink(titlePattern, this.strategy.filePattern, this.today))
 		}
 	}
 
-	protected addSecondaryLinks(links: HeaderLink[], strategy: JournalFileStrategy, titlePattern = ''): void {
+	protected addSecondaryLinks(links: Link[], strategy: JournalFileStrategy, titlePattern = ''): void {
 		const linkedMoment = this.fileMoment.clone()
 
 		while (this.matchedByPattern(linkedMoment, this.fileMoment, this.strategy.filePattern)) {

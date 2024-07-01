@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { JournalHeaderState } from '../../features/journal-header-state'
+	import type { JournalHeaderState } from './journal-header-state'
 	import HeaderLink from './HeaderLink.svelte'
 
 	type Props = { state: JournalHeaderState }

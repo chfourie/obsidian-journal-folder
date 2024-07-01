@@ -1,5 +1,5 @@
-import type { PluginFeature } from './plugin-feature'
-import type JournalFolderPlugin from '../main'
+import type { PluginFeature } from '@journal-folder/data-access'
+import type { JournalFolderPlugin } from './journal-folder-plugin'
 
 export class PluginFeatureSet {
 	readonly #pluginFeatures: PluginFeature[] = []

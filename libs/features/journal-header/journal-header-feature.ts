@@ -1,9 +1,10 @@
 import { mount } from 'svelte'
-import { PluginFeature } from './plugin-feature'
-import { ErrorMessage, JournalHeader } from '../ui/components'
-import type JournalFolderPlugin from '../main'
 import type { TFile } from 'obsidian'
+import type { JournalFolderPlugin } from '@journal-folder/plugin' // TODO: break this dependency?
+import { PluginFeature } from 'libs/data-access'
+import { ErrorMessage } from 'libs/ui'
 import { createJournalHeaderState } from './journal-header-state'
+import JournalHeader from './JournalHeader.svelte'
 
 // noinspection ExceptionCaughtLocallyJS
 export class JournalHeaderFeature extends PluginFeature {

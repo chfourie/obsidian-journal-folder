@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { HeaderLink } from '../../features/header-link.type'
 
-	type Props = { link: HeaderLink, primary?: boolean }
+	import { type Link } from '@journal-folder/data-access'
+
+	type Props = { link: Link, primary?: boolean }
 
 	let { link, primary = true }: Props = $props()
 </script>

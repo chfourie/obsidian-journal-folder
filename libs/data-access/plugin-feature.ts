@@ -1,4 +1,4 @@
-import type JournalFolderPlugin from '../main'
+import type JournalFolderPlugin from '../../main'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
