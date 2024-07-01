@@ -1,6 +1,6 @@
 import { mount } from 'svelte'
 import type { TFile } from 'obsidian'
-import type { JournalFolderPlugin } from '@journal-folder/plugin' // TODO: break this dependency?
+import type { JournalFolderPlugin } from '@journal-folder/plugin'
 import { PluginFeature } from 'libs/data-access'
 import { ErrorMessage } from 'libs/ui'
 import { createJournalHeaderState } from './journal-header-state'
