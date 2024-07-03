@@ -90,12 +90,13 @@ export class JournalNote {
 	}
 
 	forwardInTime(): JournalNote {
-		const moment = this.fileMoment.add(1, this.strategy.timeUnit)
+		const moment = this.fileMoment.clone().add(1, this.strategy.timeUnit)
+		console.log(this.fileMoment.format('YYYY-MM-DD'), ' -> ', moment.format('YYYY-MM-DD'))
 		return this.createNoteOfSameTimeUnit(moment)
 	}
 
 	backInTime(): JournalNote {
-		const moment = this.fileMoment.add(1, this.strategy.timeUnit)
+		const moment = this.fileMoment.clone().subtract(1, this.strategy.timeUnit)
 		return this.createNoteOfSameTimeUnit(moment)
 	}
 
