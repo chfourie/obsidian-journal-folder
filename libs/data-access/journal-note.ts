@@ -1,6 +1,6 @@
 import { type TFile } from 'obsidian'
 import moment from 'moment/moment'
-import type { Link } from '@journal-folder/data-access'
+import type { Link } from './index'
 
 type JournalNoteStrategy = {
 	fileRegex: RegExp
@@ -91,7 +91,6 @@ export class JournalNote {
 
 	forwardInTime(): JournalNote {
 		const moment = this.fileMoment.clone().add(1, this.strategy.timeUnit)
-		console.log(this.fileMoment.format('YYYY-MM-DD'), ' -> ', moment.format('YYYY-MM-DD'))
 		return this.createNoteOfSameTimeUnit(moment)
 	}
 

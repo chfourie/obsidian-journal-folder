@@ -1,6 +1,7 @@
 import { Plugin } from 'obsidian'
-import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeatureSet } from '@journal-folder/data-access'
+import { DEFAULT_SETTINGS, type JournalFolderSettings } from '@journal-folder/data-access'
 import { JournalHeaderFeature } from '@journal-folder/features/journal-header'
+import { PluginFeatureSet } from './plugin-feature-set'
 
 export class JournalFolderPlugin extends Plugin {
 	#settings: JournalFolderSettings = DEFAULT_SETTINGS
