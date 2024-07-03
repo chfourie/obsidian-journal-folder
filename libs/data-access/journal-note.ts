@@ -130,6 +130,10 @@ export class JournalNote {
 		return this.noteNames.some(name => name === this.name)
 	}
 
+	isToday(): boolean {
+		return this.strategy.timeUnit === 'day' && this.isPresentTime()
+	}
+
 	// noinspection JSUnusedGlobalSymbols
 	isMissingNote(): boolean {
 		return !this.isExistingNote()
@@ -141,6 +145,22 @@ export class JournalNote {
 		for (const strategy of STRATEGIES) {
 			if (this.strategy === strategy) break
 			notes.push(this.createNote(strategy))
+		}
+
+		return notes
+	}
+
+	getLowerOrderNotes(): JournalNote[] {
+		const notes: JournalNote[] = []
+		const lowerOrderStrategy = this.getLowerOrderStrategy()
+
+		if (lowerOrderStrategy) {
+			const moment = this.fileMoment.clone()
+
+			while (this.name === moment.format(this.strategy.filePattern)) {
+				notes.push(this.createNote(lowerOrderStrategy, moment))
+				moment.add(1, lowerOrderStrategy.timeUnit)
+			}
 		}
 
 		return notes
@@ -173,6 +193,15 @@ export class JournalNote {
 			return this.createNoteOfSameTimeUnit(
 				moment(adjacentFileName, this.strategy.filePattern),
 			)
+		}
+	}
+
+	private getLowerOrderStrategy(): JournalNoteStrategy | undefined {
+		let currentStrategyFound = false
+
+		for (const strategy of STRATEGIES) {
+			if (currentStrategyFound) return strategy
+			currentStrategyFound = this.strategy === strategy
 		}
 	}
 

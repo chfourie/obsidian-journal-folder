@@ -26,7 +26,7 @@ export function buildJournalHeaderInfo(file: TFile): JournalHeaderInfo {
 			.filter(note => note.isExistingNote() || note.isPresentOrFuture())
 			.map(note => note.link())
 
-		if (!note.isPresentTime()) {
+		if (!note.isToday()) {
 			links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
 		}
 
@@ -44,6 +44,11 @@ export function buildJournalHeaderInfo(file: TFile): JournalHeaderInfo {
 	}
 
 	function buildSecondaryLinks(): Link[] {
-		return []
+		return note
+			.getLowerOrderNotes()
+			.map(n => n.link(
+				'short',
+				n.isMissingNote() && n.isPast()
+			))
 	}
 }
