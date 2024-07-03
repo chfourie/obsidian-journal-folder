@@ -2,10 +2,10 @@
 	export let error: string
 </script>
 
-<div class="error">{error}</div>
+<div>{error}</div>
 
 <style>
-	.error {
+	div {
 		font-weight: bold;
 		color: red;
 	}

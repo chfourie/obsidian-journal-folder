@@ -6,7 +6,7 @@
 </script>
 
 {#if inactive}
-	<span class="inactive">{title}</span>
+	<span>{title}</span>
 {:else}
 	<a class="internal-link" class:chip={linkStyle === 'chip'} href={url}>{title}</a>
 {/if}
@@ -20,22 +20,22 @@
 		padding-inline: .5rem;
 		height: fit-content;
 		text-decoration: none;
+
+		&:link, &:visited, &:hover, &:active {
+			text-decoration: none !important;
+		}
+
+		&:hover {
+			background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
+		}
+
+		&:active {
+			color: var(--background-primary);
+			background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+		}
 	}
 
-	.chip:link, .chip:visited, .chip:hover, .chip:active {
-		text-decoration: none !important;
-	}
-
-	.chip:hover {
-		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
-	}
-
-	.chip:active {
-		color: var(--background-primary);
-		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
-	}
-
-	.inactive {
+	span {
 		color: var(--text-faint)
 	}
 </style>
