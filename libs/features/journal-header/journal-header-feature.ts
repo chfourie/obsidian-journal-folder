@@ -3,8 +3,8 @@ import type { TFile } from 'obsidian'
 import type { JournalFolderPlugin } from '@journal-folder/plugin'
 import { PluginFeature } from 'libs/data-access'
 import { ErrorMessage } from 'libs/ui'
-import { createJournalHeaderState } from './journal-header-state'
 import JournalHeader from './JournalHeader.svelte'
+import { buildJournalHeaderInfo } from './journal-header-info'
 
 // noinspection ExceptionCaughtLocallyJS
 export class JournalHeaderFeature extends PluginFeature {
@@ -15,8 +15,9 @@ export class JournalHeaderFeature extends PluginFeature {
 				const file: TFile | null = plugin.app.metadataCache.getFirstLinkpathDest(ctx.sourcePath, '')
 				if (!file) throw Error(`File not found - ${ctx.sourcePath}`)
 				// @ts-ignore
-				mount(JournalHeader, { target: el, props: { state: createJournalHeaderState(file) } })
+				mount(JournalHeader, { target: el, props: { info: buildJournalHeaderInfo(file) } })
 			} catch (error) {
+				console.error(error)
 				mount(ErrorMessage, { target: el, props: { error: `${error}` } })
 			}
 		})

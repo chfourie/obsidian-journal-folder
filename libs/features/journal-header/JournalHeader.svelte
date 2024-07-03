@@ -1,32 +1,32 @@
 <script lang="ts">
-	import type { JournalHeaderState } from './journal-header-state'
 	import { NoteLink } from '@journal-folder/ui'
+	import type { JournalHeaderInfo } from './journal-header-info'
 
-	type Props = { state: JournalHeaderState }
+	type Props = { info: JournalHeaderInfo }
 
-	let { state }: Props = $props()
+	let { info }: Props = $props()
 </script>
 
-<h1>{state.title}</h1>
+<h1>{info.title}</h1>
 
 <div class="options">
 	<div class="links">
-		{#if state.backwardLink}
-			<NoteLink {...state.backwardLink} linkStyle="chip" />
+		{#if info.backwardLink}
+			<NoteLink {...info.backwardLink} linkStyle="chip" />
 			<div>&lt;--</div>
 		{/if}
-		{#each state.centerLinks as link}
+		{#each info.centerLinks as link}
 			<NoteLink {...link}  linkStyle="chip" />
 		{/each}
-		{#if state.forwardLink}
+		{#if info.forwardLink}
 			<div>--&gt;</div>
-			<NoteLink {...state.forwardLink} linkStyle="chip" />
+			<NoteLink {...info.forwardLink} linkStyle="chip" />
 		{/if}
 	</div>
 
-	{#if state.secondaryLinks.length > 0}
+	{#if info.secondaryLinks.length > 0}
 		<div class="links">
-			{#each state.secondaryLinks as link, i}
+			{#each info.secondaryLinks as link, i}
 				{#if i > 0}
 					<div>|</div>
 				{/if}
