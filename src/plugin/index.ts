@@ -1,1 +1,2 @@
-export * as JournalFolderPlugin from './journal-folder-plugin'
+import JournalFolderPlugin from './journal-folder-plugin'
+export default JournalFolderPlugin
