@@ -1,6 +1,5 @@
-import type JournalFolderPlugin from '../../main'
+import { JournalFolderPlugin } from '../plugin'
 
-// noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
 	load(plugin: JournalFolderPlugin): void {
 	}

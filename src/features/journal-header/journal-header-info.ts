@@ -1,4 +1,4 @@
-import { journalNote, type Link } from '@journal-folder/data-access'
+import { journalNote, type Link } from '../../data-access'
 import type { TFile } from 'obsidian'
 
 export type JournalHeaderInfo = {

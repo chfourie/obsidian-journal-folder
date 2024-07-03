@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NoteLink } from '@journal-folder/ui'
+	import { NoteLink } from '../../ui'
 	import type { JournalHeaderInfo } from './journal-header-info'
 
 	type Props = { info: JournalHeaderInfo }

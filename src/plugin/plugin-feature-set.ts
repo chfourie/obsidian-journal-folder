@@ -1,4 +1,4 @@
-import type { PluginFeature } from '@journal-folder/data-access'
+import type { PluginFeature } from '../data-access'
 import type { JournalFolderPlugin } from './journal-folder-plugin'
 
 export class PluginFeatureSet {

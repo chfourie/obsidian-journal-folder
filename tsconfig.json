@@ -16,20 +16,6 @@
 			"DOM",
 			"ES2020"
 		],
-		"paths": {
-			"@journal-folder/features/journal-header": [
-				"libs/features/journal-header/index.ts"
-			],
-			"@journal-folder/data-access": [
-				"libs/data-access/index.ts"
-			],
-			"@journal-folder/ui": [
-				"libs/ui/index.ts"
-			],
-			"@journal-folder/plugin": [
-				"libs/plugin/index.ts"
-			]
-		}
 	},
 	"include": [
 		"**/*.ts"
