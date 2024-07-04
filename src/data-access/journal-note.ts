@@ -5,8 +5,8 @@ import type { JournalFolderSettings, Link } from './index'
 type JournalNoteStrategy = {
 	fileRegex: RegExp
 	filePattern: string
-	titlePattern: string
-	shortTitlePattern: string
+	titlePattern: () => string
+	shortTitlePattern: () => string
 	timeUnit: 'day' | 'week' | 'month' | 'year'
 }
 
@@ -26,33 +26,33 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings) 
 
 	const DAILY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
-		filePattern: settings.dailyNoteTitlePattern,
-		titlePattern: settings.dailyNoteShortTitlePattern,
-		shortTitlePattern: 'ddd, D MMM',
+		filePattern: 'YYYY-MM-DD',
+		titlePattern: () => settings.dailyNoteTitlePattern,
+		shortTitlePattern: () => settings.dailyNoteShortTitlePattern,
 		timeUnit: 'day',
 	}
 
 	const WEEKLY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
-		filePattern: settings.weeklyNoteTitlePattern,
-		titlePattern: settings.weeklyNoteShortTitlePattern,
-		shortTitlePattern: '[W]ww',
+		filePattern: 'YYYY-[W]ww',
+		titlePattern: () => settings.weeklyNoteTitlePattern,
+		shortTitlePattern: () => settings.weeklyNoteShortTitlePattern,
 		timeUnit: 'week',
 	}
 
 	const MONTHLY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
-		filePattern: settings.monthlyNoteTitlePattern,
-		titlePattern: settings.monthlyNoteShortTitlePattern,
-		shortTitlePattern: 'MMM',
+		filePattern: 'YYYY-MM',
+		titlePattern: () => settings.monthlyNoteTitlePattern,
+		shortTitlePattern: () => settings.monthlyNoteShortTitlePattern,
 		timeUnit: 'month',
 	}
 
 	const YEARLY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^20\d{2}$/,
-		filePattern: settings.yearlyNoteTitlePattern,
-		titlePattern: settings.yearlyNoteShortTitlePattern,
-		shortTitlePattern: 'YYYY',
+		filePattern: 'YYYY',
+		titlePattern: () => settings.yearlyNoteTitlePattern,
+		shortTitlePattern: () => settings.yearlyNoteShortTitlePattern,
 		timeUnit: 'year',
 	}
 
@@ -107,7 +107,7 @@ export class JournalNote {
 	}
 
 	getTitle(): string {
-		return this.fileMoment.format(this.strategy.titlePattern)
+		return this.fileMoment.format(this.strategy.titlePattern())
 	}
 
 	forwardInTime(): JournalNote {
@@ -189,7 +189,7 @@ export class JournalNote {
 
 	link(titlePattern: 'regular' | 'short' = 'short', inactive = false): Link {
 		const pattern = titlePattern === 'regular' ? this.strategy.titlePattern : this.strategy.shortTitlePattern
-		return this.linkWithTitlePattern(pattern, inactive)
+		return this.linkWithTitlePattern(pattern(), inactive)
 	}
 
 	linkWithTitlePattern(pattern: string, inactive = false): Link {

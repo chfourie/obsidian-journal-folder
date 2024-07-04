@@ -2,6 +2,7 @@ import { Plugin } from 'obsidian'
 import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../data-access'
 import { JournalHeaderFeature } from '../features/journal-header'
 import { PluginFeatureSet } from './plugin-feature-set'
+import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
 
 export default class JournalFolderPlugin extends Plugin {
 	#settings: JournalFolderSettings = DEFAULT_SETTINGS
@@ -14,8 +15,8 @@ export default class JournalFolderPlugin extends Plugin {
 	}
 
 	async onload() {
-		await this.saveData(this.#settings);
 		await this.loadSettings()
+		this.addSettingTab(new JournalFolderSettingsTab(this))
 		this.#features.load(this)
 	}
 
