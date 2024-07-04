@@ -1,5 +1,4 @@
-import { journalNote, type Link } from '../../data-access'
-import type { TFile } from 'obsidian'
+import { JournalNote, type Link } from '../../data-access'
 
 export type JournalHeaderInfo = {
 	title: string
@@ -9,9 +8,7 @@ export type JournalHeaderInfo = {
 	secondaryLinks: Link[]
 }
 
-export function buildJournalHeaderInfo(file: TFile): JournalHeaderInfo {
-	const note = journalNote(file)
-
+export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 	return {
 		title: note.getTitle(),
 		centerLinks: buildCenterLinks(),

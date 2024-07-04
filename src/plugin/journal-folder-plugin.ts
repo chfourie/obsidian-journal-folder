@@ -14,6 +14,7 @@ export default class JournalFolderPlugin extends Plugin {
 	}
 
 	async onload() {
+		await this.saveData(this.#settings);
 		await this.loadSettings()
 		this.#features.load(this)
 	}
@@ -22,7 +23,11 @@ export default class JournalFolderPlugin extends Plugin {
 		this.#features.unload(this)
 	}
 
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.#settings)
+	}
+
 	async loadSettings(): Promise<void> {
-		this.#settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+		this.#settings = {...DEFAULT_SETTINGS, ...await this.loadData()}
 	}
 }

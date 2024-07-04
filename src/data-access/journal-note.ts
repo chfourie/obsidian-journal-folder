@@ -1,6 +1,6 @@
 import { type TFile } from 'obsidian'
 import moment from 'moment/moment'
-import type { Link } from './index'
+import type { JournalFolderSettings, Link } from './index'
 
 type JournalNoteStrategy = {
 	fileRegex: RegExp
@@ -10,72 +10,93 @@ type JournalNoteStrategy = {
 	timeUnit: 'day' | 'week' | 'month' | 'year'
 }
 
-const DAILY_NOTE_STRATEGY: JournalNoteStrategy = {
-	fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
-	filePattern: 'YYYY-MM-DD',
-	titlePattern: 'dddd, DD MMMM YYYY',
-	shortTitlePattern: 'ddd, D MMM',
-	timeUnit: 'day',
-}
-
-const WEEKLY_NOTE_STRATEGY: JournalNoteStrategy = {
-	fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
-	filePattern: 'YYYY-[W]ww',
-	titlePattern: 'YYYY [Week] w',
-	shortTitlePattern: '[W]ww',
-	timeUnit: 'week',
-}
-
-const MONTHLY_NOTE_STRATEGY: JournalNoteStrategy = {
-	fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
-	filePattern: 'YYYY-MM',
-	titlePattern: 'MMMM YYYY',
-	shortTitlePattern: 'MMM',
-	timeUnit: 'month',
-}
-
-const YEARLY_NOTE_STRATEGY: JournalNoteStrategy = {
-	fileRegex: /^20\d{2}$/,
-	filePattern: 'YYYY',
-	titlePattern: 'YYYY',
-	shortTitlePattern: 'YYYY',
-	timeUnit: 'year',
-}
-
-const STRATEGIES = [
-	YEARLY_NOTE_STRATEGY, MONTHLY_NOTE_STRATEGY, WEEKLY_NOTE_STRATEGY, DAILY_NOTE_STRATEGY,
-]
-
-function getNoteStrategy(file: TFile): JournalNoteStrategy {
-	const buildStrategy = STRATEGIES.filter(s => s.fileRegex.test(file.basename)).first()
-	if (!buildStrategy) throw new Error(`File name does not represent a valid journal file - ${file.basename}`)
-	return buildStrategy
+type JournalNoteStrategies = {
+	DAILY_NOTE_STRATEGY: JournalNoteStrategy
+	WEEKLY_NOTE_STRATEGY: JournalNoteStrategy
+	MONTHLY_NOTE_STRATEGY: JournalNoteStrategy
+	YEARLY_NOTE_STRATEGY: JournalNoteStrategy
+	BY_DESCENDING_ORDER: JournalNoteStrategy[]
 }
 
 function startOfInterval(sourceMoment: moment.Moment, pattern: string): moment.Moment {
 	return moment(sourceMoment.format(pattern), pattern)
 }
 
-export function journalNote(file: TFile): JournalNote {
-	const strategy = getNoteStrategy(file)
-	const today = moment().startOf('day')
-	const noteNames = (file.parent?.children || [])
-		.map(f => f.name.replace(/\.md$/, ''))
+export function journalNoteFactoryWithSettings(settings: JournalFolderSettings) {
 
-	return new JournalNote(
-		file.parent?.path || '',
-		noteNames,
-		strategy,
-		moment(file.basename, strategy.filePattern),
-		startOfInterval(today, strategy.filePattern),
-		today,
-	)
+	const DAILY_NOTE_STRATEGY: JournalNoteStrategy = {
+		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
+		filePattern: settings.dailyNoteTitlePattern,
+		titlePattern: settings.dailyNoteShortTitlePattern,
+		shortTitlePattern: 'ddd, D MMM',
+		timeUnit: 'day',
+	}
+
+	const WEEKLY_NOTE_STRATEGY: JournalNoteStrategy = {
+		fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
+		filePattern: settings.weeklyNoteTitlePattern,
+		titlePattern: settings.weeklyNoteShortTitlePattern,
+		shortTitlePattern: '[W]ww',
+		timeUnit: 'week',
+	}
+
+	const MONTHLY_NOTE_STRATEGY: JournalNoteStrategy = {
+		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
+		filePattern: settings.monthlyNoteTitlePattern,
+		titlePattern: settings.monthlyNoteShortTitlePattern,
+		shortTitlePattern: 'MMM',
+		timeUnit: 'month',
+	}
+
+	const YEARLY_NOTE_STRATEGY: JournalNoteStrategy = {
+		fileRegex: /^20\d{2}$/,
+		filePattern: settings.yearlyNoteTitlePattern,
+		titlePattern: settings.yearlyNoteShortTitlePattern,
+		shortTitlePattern: 'YYYY',
+		timeUnit: 'year',
+	}
+
+	const strategies: JournalNoteStrategies = {
+		DAILY_NOTE_STRATEGY, WEEKLY_NOTE_STRATEGY, MONTHLY_NOTE_STRATEGY, YEARLY_NOTE_STRATEGY,
+		BY_DESCENDING_ORDER: [YEARLY_NOTE_STRATEGY, MONTHLY_NOTE_STRATEGY, WEEKLY_NOTE_STRATEGY, DAILY_NOTE_STRATEGY]
+	}
+
+	function getNoteStrategy(file: TFile): JournalNoteStrategy {
+		const buildStrategy = strategies
+			.BY_DESCENDING_ORDER
+			.filter(s => s.fileRegex.test(file.basename))
+			.first()
+
+		if (!buildStrategy) throw new Error(`File name does not represent a valid journal file - ${file.basename}`)
+
+		return buildStrategy
+	}
+
+	return function journalNote(file: TFile): JournalNote {
+		const strategy = getNoteStrategy(file)
+		const today = moment().startOf('day')
+		const noteNames = (file.parent?.children || [])
+			.map(f => f.name.replace(/\.md$/, ''))
+
+		return new JournalNote(
+			strategies,
+			file.parent?.path || '',
+			noteNames,
+			strategy,
+			moment(file.basename, strategy.filePattern),
+			startOfInterval(today, strategy.filePattern),
+			today,
+		)
+	}
+
+
 }
 
 export class JournalNote {
 	private readonly name: string
 
 	constructor(
+		private strategies: JournalNoteStrategies,
 		private path: string,
 		private noteNames: string[],
 		private strategy: JournalNoteStrategy,
@@ -105,7 +126,7 @@ export class JournalNote {
 	}
 
 	dailyNoteToday(): JournalNote {
-		return this.createNote(DAILY_NOTE_STRATEGY, this.today)
+		return this.createNote(this.strategies.DAILY_NOTE_STRATEGY, this.today)
 	}
 
 	// noinspection JSUnusedGlobalSymbols
@@ -142,7 +163,7 @@ export class JournalNote {
 	getHigherOrderNotes(): JournalNote[] {
 		const notes: JournalNote[] = []
 
-		for (const strategy of STRATEGIES) {
+		for (const strategy of this.strategies.BY_DESCENDING_ORDER) {
 			if (this.strategy === strategy) break
 			notes.push(this.createNote(strategy))
 		}
@@ -199,7 +220,7 @@ export class JournalNote {
 	private getLowerOrderStrategy(): JournalNoteStrategy | undefined {
 		let currentStrategyFound = false
 
-		for (const strategy of STRATEGIES) {
+		for (const strategy of this.strategies.BY_DESCENDING_ORDER) {
 			if (currentStrategyFound) return strategy
 			currentStrategyFound = this.strategy === strategy
 		}
@@ -215,6 +236,7 @@ export class JournalNote {
 
 	private createNoteOfSameTimeUnit(moment: moment.Moment): JournalNote {
 		return new JournalNote(
+			this.strategies,
 			this.path,
 			this.noteNames,
 			this.strategy,
@@ -226,6 +248,7 @@ export class JournalNote {
 
 	private createNote(strategy: JournalNoteStrategy, moment: moment.Moment = this.fileMoment): JournalNote {
 		return new JournalNote(
+			this.strategies,
 			this.path,
 			this.noteNames,
 			strategy,
