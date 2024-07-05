@@ -12,15 +12,15 @@ export class JournalFolderSettingsFeature extends PluginFeature {
 		await this.updateSettingsFromStorage()
 	}
 
-
-	onExternalSettingsChange() {
-		// noinspection JSIgnoredPromiseFromCall
-		this.updateSettingsFromStorage()
+	private readonly saveSettings = async (settings: JournalFolderSettings): Promise<void> => {
+		await this.plugin.saveData(settings)
+		this.propagateSettings(settings)
 	}
 
 	readonly updateSettingsFromStorage = async (): Promise<void> => {
 		const settings = {...this.settings, ...await this.plugin.loadData()}
-		await this.plugin.saveData(settings)
-		this.propagateSettings(settings)
+		await this.saveSettings(settings)
 	}
+
+	readonly onExternalSettingsChange = this.updateSettingsFromStorage
 }
