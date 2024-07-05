@@ -7,15 +7,11 @@ export default class JournalFolderPlugin extends Plugin {
 	#features: PluginFeatureSet = new PluginFeatureSet()
 		.addFeature(new JournalHeaderFeature(this.app))
 
-	#configManager = new SettingsManager({
-		loadFromStorage: this.loadData.bind(this),
-		saveToStorage: this.saveData.bind(this),
-		addSettingTab: this.addSettingTab.bind(this),
-		useSettings: this.#features.useSettings,
-		addFeature: this.#features.addFeature
-	})
+	#configManager = new SettingsManager(this)
 
-	onExternalSettingsChange = this.#configManager.updateSettingsFromStorage
+	readonly onExternalSettingsChange = this.#configManager.updateSettingsFromStorage
+	readonly useSettings = this.#features.useSettings
+	readonly addFeature = this.#features.addFeature
 
 	readonly onload = async () => {
 		await this.#configManager.updateSettingsFromStorage()

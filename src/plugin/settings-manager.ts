@@ -1,35 +1,17 @@
 import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeature } from '../data-access'
-import type { PluginSettingTab } from 'obsidian'
-
-export type SettingsManagerSupport = {
-	saveToStorage: (settings: JournalFolderSettings) => Promise<void>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	loadFromStorage: () => Promise<any>
-	addSettingTab: (settingTab: PluginSettingTab) => void
-	useSettings: (settings: JournalFolderSettings) => void
-	addFeature: (feature: PluginFeature) => void
-}
+import type JournalFolderPlugin from './journal-folder-plugin'
 
 export class SettingsManager {
 	#settings: JournalFolderSettings = DEFAULT_SETTINGS
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private readonly loadFromStorage: () => Promise<any>
-	private readonly saveToStorage: (settings: JournalFolderSettings) => Promise<void>
-	private readonly useSettings: (settings: JournalFolderSettings) => void
+	#plugin: JournalFolderPlugin
 
-	constructor(ctx: SettingsManagerSupport) {
-		this.saveToStorage = ctx.saveToStorage
-		this.loadFromStorage = ctx.loadFromStorage
-		this.useSettings = ctx.useSettings
+	constructor(plugin: JournalFolderPlugin) {
+		this.#plugin = plugin
 	}
 
 	readonly updateSettingsFromStorage = async (): Promise<void> => {
-		this.#settings = {...this.#settings, ...await this.loadFromStorage()}
-		await this.saveSettings()
-		this.useSettings({...this.#settings})
-	}
-
-	private async saveSettings(): Promise<void> {
-		await this.saveToStorage(this.#settings)
+		this.#settings = {...this.#settings, ...await this.#plugin.loadData()}
+		await this.#plugin.saveData(this.#settings)
+		this.#plugin.useSettings({...this.#settings})
 	}
 }

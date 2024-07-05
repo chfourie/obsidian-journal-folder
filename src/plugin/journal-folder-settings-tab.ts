@@ -1,4 +1,4 @@
-import { MomentFormatComponent, PluginSettingTab, Setting, TextComponent } from 'obsidian'
+import { PluginSettingTab, Setting, TextComponent } from 'obsidian'
 import JournalFolderPlugin from './journal-folder-plugin'
 import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../data-access'
 
@@ -47,13 +47,11 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 	}
 
 	createMomentSetting(fieldName: SettingsStringFieldName, name: string): Setting {
-		let inputComponent: MomentFormatComponent
 		const sampleEl = document.createElement('div')
 
 		const setting = new Setting(this.containerEl)
 			.setName(name)
 			.addMomentFormat(text => {
-				inputComponent = text
 				text.setDefaultFormat(DEFAULT_SETTINGS[fieldName])
 				text.setValue(this.settings[fieldName])
 					// .setPlaceholder(DEFAULT_SETTINGS[fieldName])
