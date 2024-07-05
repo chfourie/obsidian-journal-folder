@@ -31,7 +31,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"The pattern used to render the title of a daily note. " +
 				"This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). " +
 				"For instance, using a pattern of 'WW-HH' would not make sense " +
-				"as the hour component represents a fraction of the day."
+				"as the hour component represents a fraction of the day. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'dailyNoteShortTitlePattern', 'Daily note short title pattern')
@@ -40,7 +41,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"as multiple links may be rendered next to each other. " +
 				"This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). " +
 				"For instance, using a pattern of 'WW-HH' would not make sense " +
-				"as the hour component represents a fraction of the day."
+				"as the hour component represents a fraction of the day. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'weeklyNoteTitlePattern', 'Weekly note title pattern')
@@ -48,7 +50,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"The pattern used to render the title of a weekly note. " +
 				"This pattern should not render any date/time elements shorter than a week (e.g. day or hour). " +
 				"For instance, using a pattern of 'WW-DD' would not make sense " +
-				"as the day component represents a fraction of the week."
+				"as the day component represents a fraction of the week. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'weeklyNoteShortTitlePattern', 'Weekly note short title pattern')
@@ -57,7 +60,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"as multiple links may be rendered next to each other. " +
 				"This pattern should not render any date/time elements shorter than a week (e.g. day or hour). " +
 				"For instance, using a pattern of 'WW-DD' would not make sense " +
-				"as the day component represents a fraction of the week."
+				"as the day component represents a fraction of the week. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'monthlyNoteTitlePattern', 'Monthly note title pattern')
@@ -65,7 +69,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"The pattern used to render the title of a monthly note. " +
 				"This pattern should not render any date/time elements shorter than a month (e.g. week or day). " +
 				"For instance, using a pattern of 'MM-DD' would not make sense " +
-				"as the day component represents a fraction of the month."
+				"as the day component represents a fraction of the month. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'monthlyNoteShortTitlePattern', 'Monthly note short title pattern')
@@ -74,7 +79,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"as multiple links may be rendered next to each other. " +
 				"This pattern should not render any date/time elements shorter than a month (e.g. week or day). " +
 				"For instance, using a pattern of 'MM-DD' would not make sense " +
-				"as the day component represents a fraction of the month."
+				"as the day component represents a fraction of the month. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'yearlyNoteTitlePattern', 'Yearly note title pattern')
@@ -82,7 +88,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"The pattern used to render the title of a yearly note. " +
 				"This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). " +
 				"For instance, using a pattern of 'YYYY-MM' would not make sense " +
-				"as the month component represents a fraction of the year."
+				"as the month component represents a fraction of the year. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		this.createMomentSetting(settings, 'yearlyNoteShortTitlePattern', 'Yearly note short title pattern')
@@ -91,7 +98,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				"as multiple links may be rendered next to each other. " +
 				"This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). " +
 				"For instance, using a pattern of 'YYYY-MM' would not make sense " +
-				"as the month component represents a fraction of the year."
+				"as the month component represents a fraction of the year. " +
+				"For help on the pattern syntax, refer to the link below."
 			)
 
 		new Setting(this.containerEl)
@@ -108,7 +116,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
 	createMomentSetting(settings: JournalFolderSettings, fieldName: SettingsStringFieldName, name: string): Setting {
 		let component: MomentFormatComponent
-		const sampleValueEl = document.createElement('span')
+		const sampleValueEl = document.createElement('div')
+		sampleValueEl.setAttr('style', 'opacity: 50%')
 
 		const setting = new Setting(this.containerEl)
 			.setName(name)
@@ -137,10 +146,18 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 			})
 
 		const sampleEl = document.createElement('div')
-		sampleEl.setAttr('style', 'margin-left: auto; width: fit-content; opacity: 50%; margin-bottom: .25em;')
-		const sampleLabelEl = document.createElement('span')
-		sampleLabelEl.setAttr('style', 'opacity: 50%')
-		sampleLabelEl.setText("Sample value: ")
+		sampleEl.setAttr('style', 'display: flex; gap: 1em; margin-bottom: .25em;')
+
+		const helpLinkEl = document.createElement('a')
+		helpLinkEl.setAttribute('href', 'https://momentjs.com/docs/#/displaying/format/')
+		helpLinkEl.innerText = 'Pattern syntax reference'
+		helpLinkEl.setAttr('style', 'margin-right: auto;')
+
+		const sampleLabelEl = document.createElement('div')
+		sampleLabelEl.setAttr('style', 'opacity: 75%')
+		sampleLabelEl.setText("Sample value:")
+
+		sampleEl.appendChild(helpLinkEl)
 		sampleEl.appendChild(sampleLabelEl)
 		sampleEl.appendChild(sampleValueEl)
 		this.containerEl.appendChild(sampleEl)
