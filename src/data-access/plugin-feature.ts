@@ -1,22 +1,22 @@
 import type { JournalFolderSettings } from './journal-folder-settings.type'
-import type { App, Plugin, TFile } from 'obsidian'
+import type { Plugin, TFile } from 'obsidian'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
 	#settings: JournalFolderSettings | undefined
 
-	constructor(protected app: App) {
+	constructor(protected plugin: Plugin) {
 	}
 
-	get settings() {
+	protected get settings() {
 		if (!this.#settings) throw new Error('Settings must be set')
 		return this.#settings
 	}
 
-	async load(_plugin: Plugin): Promise<void> {
+	async load(): Promise<void> {
 	}
 
-	unload(_plugin: Plugin): void {
+	unload(): void {
 	}
 
 	useSettings(settings: JournalFolderSettings): void {
@@ -24,7 +24,7 @@ export abstract class PluginFeature {
 	}
 
 	getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {
-		return this.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath)
+		return this.plugin.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath)
 	}
 
 	expectCurrentFile(linkPath: string, sourcePath = ''): TFile {

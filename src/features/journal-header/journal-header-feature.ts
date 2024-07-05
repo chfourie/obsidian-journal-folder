@@ -13,6 +13,10 @@ import type { Plugin } from 'obsidian'
 export class JournalHeaderFeature extends PluginFeature {
 	#journalNote: JournalNoteFactory | undefined
 
+	constructor(plugin: Plugin) {
+		super(plugin)
+	}
+
 	private get journalNote(): JournalNoteFactory {
 		if (!this.#journalNote) throw new Error('Settings must be set')
 		return this.#journalNote
@@ -24,8 +28,8 @@ export class JournalHeaderFeature extends PluginFeature {
 		this.#journalNote = journalNoteFactoryWithSettings(settings)
 	}
 
-	async load(plugin: Plugin) {
-		plugin.registerMarkdownCodeBlockProcessor('journal-header', (_source, el, ctx) => {
+	async load() {
+		this.plugin.registerMarkdownCodeBlockProcessor('journal-header', (_source, el, ctx) => {
 			try {
 				const note = this.journalNote(this.expectCurrentFile(ctx.sourcePath))
 				const info = buildJournalHeaderInfo(note)

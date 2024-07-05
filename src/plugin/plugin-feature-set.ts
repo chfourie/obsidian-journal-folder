@@ -1,5 +1,4 @@
 import type { JournalFolderSettings, PluginFeature } from '../data-access'
-import { Plugin } from 'obsidian'
 
 export class PluginFeatureSet {
 	readonly #pluginFeatures: PluginFeature[] = []
@@ -9,20 +8,20 @@ export class PluginFeatureSet {
 		return this
 	}
 
-	readonly load = async (plugin: Plugin): Promise<void> => {
+	readonly load = async (): Promise<void> => {
 		for (const feature of this.#pluginFeatures) {
 			try {
-				await feature.load(plugin)
+				await feature.load()
 			} catch (e) {
 				console.error(e)
 			}
 		}
 	}
 
-	readonly unload = (plugin: Plugin): void => {
+	readonly unload = (): void => {
 		this.#pluginFeatures.forEach(feature => {
 			try {
-				feature.unload(plugin)
+				feature.unload()
 			} catch (e) {
 				console.error(e)
 			}

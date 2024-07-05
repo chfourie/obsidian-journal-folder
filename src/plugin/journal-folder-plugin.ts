@@ -5,7 +5,7 @@ import { SettingsManager } from './settings-manager'
 
 export default class JournalFolderPlugin extends Plugin {
 	#features: PluginFeatureSet = new PluginFeatureSet()
-		.addFeature(new JournalHeaderFeature(this.app))
+		.addFeature(new JournalHeaderFeature(this))
 
 	#configManager = new SettingsManager(this)
 
@@ -15,8 +15,8 @@ export default class JournalFolderPlugin extends Plugin {
 
 	readonly onload = async () => {
 		await this.#configManager.updateSettingsFromStorage()
-		await this.#features.load(this)
+		await this.#features.load()
 	}
 
-	readonly onunload = () => this.#features.unload(this)
+	readonly onunload = () => this.#features.unload()
 }
