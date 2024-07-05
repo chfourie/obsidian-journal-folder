@@ -1,5 +1,5 @@
 /*
-Utilities for folder-based journaling in Obsidian
+Obsidian Journal Folder - Utilities for folder-based journaling in Obsidian
 Copyright (C) 2024  Charl Fourie
 
 This program is free software: you can redistribute it and/or modify
