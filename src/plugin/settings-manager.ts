@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeature } from '../data-access'
+import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../data-access'
 import type JournalFolderPlugin from './journal-folder-plugin'
 
 export class SettingsManager {

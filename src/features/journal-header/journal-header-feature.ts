@@ -8,7 +8,7 @@ import {
 import { ErrorMessage } from 'src/ui'
 import JournalHeader from './JournalHeader.svelte'
 import { buildJournalHeaderInfo } from './journal-header-info'
-import  JournalFolderPlugin from '../../plugin/journal-folder-plugin'
+import type { Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
 	#journalNote: JournalNoteFactory | undefined
@@ -24,7 +24,7 @@ export class JournalHeaderFeature extends PluginFeature {
 		this.#journalNote = journalNoteFactoryWithSettings(settings)
 	}
 
-	async load(plugin: JournalFolderPlugin) {
+	async load(plugin: Plugin) {
 		plugin.registerMarkdownCodeBlockProcessor('journal-header', (_source, el, ctx) => {
 			try {
 				const note = this.journalNote(this.expectCurrentFile(ctx.sourcePath))

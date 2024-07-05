@@ -1,6 +1,5 @@
-import JournalFolderPlugin from '../plugin'
 import type { JournalFolderSettings } from './journal-folder-settings.type'
-import type { App, TFile } from 'obsidian'
+import type { App, Plugin, TFile } from 'obsidian'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
@@ -14,10 +13,10 @@ export abstract class PluginFeature {
 		return this.#settings
 	}
 
-	async load(_plugin: JournalFolderPlugin): Promise<void> {
+	async load(_plugin: Plugin): Promise<void> {
 	}
 
-	unload(_plugin: JournalFolderPlugin): void {
+	unload(_plugin: Plugin): void {
 	}
 
 	useSettings(settings: JournalFolderSettings): void {

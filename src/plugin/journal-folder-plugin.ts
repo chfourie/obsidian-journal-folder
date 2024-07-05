@@ -18,5 +18,5 @@ export default class JournalFolderPlugin extends Plugin {
 		await this.#features.load(this)
 	}
 
-	readonly onunload = () =>this.#features.unload(this)
+	readonly onunload = () => this.#features.unload(this)
 }
