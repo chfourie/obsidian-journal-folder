@@ -16,7 +16,7 @@ export default class JournalFolderPlugin extends Plugin {
 	onExternalSettingsChange = this.#configManager.updateSettingsFromStorage
 
 	async onload() {
-		await this.#configManager.loadSettings()
+		await this.#configManager.updateSettingsFromStorage()
 		await this.#features.load(this)
 	}
 
