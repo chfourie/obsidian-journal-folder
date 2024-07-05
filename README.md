@@ -4,7 +4,7 @@
 
 This is a sample plugin for Obsidian (https://obsidian.md).
 
-![](Pasted%20image%2020240705210746.png)
+![](documents/attachments/Pasted%20image%2020240705211027.png)
 
 This project uses Typescript to provide type checking and documentation.
 The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.

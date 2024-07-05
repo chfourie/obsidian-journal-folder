@@ -1,5 +1,6 @@
 {
   "showInlineTitle": false,
   "attachmentFolderPath": "documents/attachments",
-  "useMarkdownLinks": true
+  "useMarkdownLinks": true,
+  "newLinkFormat": "relative"
 }
