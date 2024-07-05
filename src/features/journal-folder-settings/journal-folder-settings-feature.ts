@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeature } from '../../data-access'
 import type { Plugin } from 'obsidian'
+import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
 
 export class JournalFolderSettingsFeature extends PluginFeature {
 
@@ -10,6 +11,12 @@ export class JournalFolderSettingsFeature extends PluginFeature {
 
 	async load(): Promise<void> {
 		await this.updateSettingsFromStorage()
+
+		this.plugin.addSettingTab(
+			new JournalFolderSettingsTab(
+				this.plugin, () => this.settings, this.saveSettings
+			)
+		)
 	}
 
 	private readonly saveSettings = async (settings: JournalFolderSettings): Promise<void> => {
