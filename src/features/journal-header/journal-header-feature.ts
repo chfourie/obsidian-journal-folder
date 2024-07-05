@@ -9,7 +9,7 @@ import type JournalFolderPlugin from '../../plugin/journal-folder-plugin'
 // noinspection ExceptionCaughtLocallyJS
 export class JournalHeaderFeature extends PluginFeature {
 
-	load(plugin: JournalFolderPlugin) {
+	async load(plugin: JournalFolderPlugin) {
 		const journalNote = journalNoteFactoryWithSettings(plugin.settings)
 		plugin.registerMarkdownCodeBlockProcessor('journal-header', (source, el, ctx) => {
 			try {

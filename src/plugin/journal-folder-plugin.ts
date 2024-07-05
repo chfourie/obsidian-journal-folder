@@ -1,34 +1,26 @@
 import { Plugin } from 'obsidian'
-import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../data-access'
 import { JournalHeaderFeature } from '../features/journal-header'
 import { PluginFeatureSet } from './plugin-feature-set'
-import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
+import { SettingsManager } from '../features/journal-folder-settings'
 
 export default class JournalFolderPlugin extends Plugin {
-	#settings: JournalFolderSettings = DEFAULT_SETTINGS
-
 	#features: PluginFeatureSet = new PluginFeatureSet()
 		.addFeature(new JournalHeaderFeature())
 
-	get settings(): JournalFolderSettings {
-		return this.#settings
-	}
+	#configManager = new SettingsManager({
+		loadFromStorage: this.loadData,
+		saveToStorage: this.saveData,
+		useSettings: this.#features.useSettings
+	})
+
+	onExternalSettingsChange = this.#configManager.onExternalSettingsChange
 
 	async onload() {
-		await this.loadSettings()
-		this.addSettingTab(new JournalFolderSettingsTab(this))
-		this.#features.load(this)
+		await this.#configManager.loadSettings()
+		await this.#features.load(this)
 	}
 
 	onunload() {
 		this.#features.unload(this)
-	}
-
-	async saveSettings(): Promise<void> {
-		await this.saveData(this.#settings)
-	}
-
-	async loadSettings(): Promise<void> {
-		this.#settings = {...DEFAULT_SETTINGS, ...await this.loadData()}
 	}
 }
