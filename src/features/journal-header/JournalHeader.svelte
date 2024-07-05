@@ -59,7 +59,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		width: fit-content;
 		margin-inline: auto;
 		margin-bottom: 0.2rem;
-
 	}
 
 	.options {
