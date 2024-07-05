@@ -1,9 +1,10 @@
 import type { JournalFolderSettings, PluginFeature } from '../data-access'
+import type { Plugin } from 'obsidian'
 
 export class PluginFeatureSet {
-	readonly #pluginFeatures: PluginFeature[] = []
+	readonly #pluginFeatures: PluginFeature<Plugin>[] = []
 
-	readonly addFeature = (feature: PluginFeature): PluginFeatureSet => {
+	readonly addFeature = (feature: PluginFeature<Plugin>): PluginFeatureSet => {
 		this.#pluginFeatures.push(feature)
 		return this
 	}
@@ -32,6 +33,16 @@ export class PluginFeatureSet {
 		this.#pluginFeatures.forEach(feature => {
 			try {
 				feature.useSettings({...settings})
+			} catch (e) {
+				console.error(e)
+			}
+		})
+	}
+
+	readonly onExternalSettingsChange = (): void => {
+		this.#pluginFeatures.forEach(feature => {
+			try {
+				feature.onExternalSettingsChange()
 			} catch (e) {
 				console.error(e)
 			}

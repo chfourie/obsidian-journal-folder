@@ -20,6 +20,9 @@ export abstract class PluginFeature<T extends Plugin> {
 	unload(): void {
 	}
 
+	onExternalSettingsChange(): void {
+	}
+
 	useSettings(settings: JournalFolderSettings): void {
 		this.#settings = settings
 	}
