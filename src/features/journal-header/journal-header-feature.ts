@@ -1,22 +1,36 @@
 import { mount } from 'svelte'
-import type { TFile } from 'obsidian'
-import { journalNoteFactoryWithSettings, PluginFeature } from 'src/data-access'
+import {
+	type JournalFolderSettings,
+	type JournalNoteFactory,
+	journalNoteFactoryWithSettings,
+	PluginFeature,
+} from 'src/data-access'
 import { ErrorMessage } from 'src/ui'
 import JournalHeader from './JournalHeader.svelte'
 import { buildJournalHeaderInfo } from './journal-header-info'
-import type JournalFolderPlugin from '../../plugin/journal-folder-plugin'
+import  JournalFolderPlugin from '../../plugin/journal-folder-plugin'
 
-// noinspection ExceptionCaughtLocallyJS
 export class JournalHeaderFeature extends PluginFeature {
+	#journalNote: JournalNoteFactory | undefined
+
+	private get journalNote(): JournalNoteFactory {
+		if (!this.#journalNote) throw new Error('Settings must be set')
+		return this.#journalNote
+	}
+
+
+	useSettings(settings: JournalFolderSettings) {
+		super.useSettings(settings);
+		this.#journalNote = journalNoteFactoryWithSettings(settings)
+	}
 
 	async load(plugin: JournalFolderPlugin) {
-		const journalNote = journalNoteFactoryWithSettings(plugin.settings)
-		plugin.registerMarkdownCodeBlockProcessor('journal-header', (source, el, ctx) => {
+		plugin.registerMarkdownCodeBlockProcessor('journal-header', (_source, el, ctx) => {
 			try {
-				const file: TFile | null = plugin.app.metadataCache.getFirstLinkpathDest(ctx.sourcePath, '')
-				if (!file) throw Error(`File not found - ${ctx.sourcePath}`)
+				const note = this.journalNote(this.expectCurrentFile(ctx.sourcePath))
+				const info = buildJournalHeaderInfo(note)
 				// @ts-ignore
-				mount(JournalHeader, { target: el, props: { info: buildJournalHeaderInfo(journalNote(file)) } })
+				mount(JournalHeader, { target: el, props: { info } })
 			} catch (error) {
 				console.error(error)
 				mount(ErrorMessage, { target: el, props: { error: `${error}` } })

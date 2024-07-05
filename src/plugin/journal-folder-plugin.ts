@@ -5,15 +5,15 @@ import { SettingsManager } from '../features/journal-folder-settings'
 
 export default class JournalFolderPlugin extends Plugin {
 	#features: PluginFeatureSet = new PluginFeatureSet()
-		.addFeature(new JournalHeaderFeature())
+		.addFeature(new JournalHeaderFeature(this.app))
 
 	#configManager = new SettingsManager({
-		loadFromStorage: this.loadData,
-		saveToStorage: this.saveData,
+		loadFromStorage: this.loadData.bind(this),
+		saveToStorage: this.saveData.bind(this),
 		useSettings: this.#features.useSettings
 	})
 
-	onExternalSettingsChange = this.#configManager.onExternalSettingsChange
+	onExternalSettingsChange = this.#configManager.updateSettingsFromStorage
 
 	async onload() {
 		await this.#configManager.loadSettings()

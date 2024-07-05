@@ -23,15 +23,11 @@ export class SettingsManager {
 		await this.updateSettingsFromStorage()
 	}
 
-	async onExternalSettingsChange(): Promise<void> {
-		return this.updateSettingsFromStorage()
-	}
-
 	private async saveSettings(): Promise<void> {
 		await this.saveToStorage(this.#settings)
 	}
 
-	private async updateSettingsFromStorage(): Promise<void> {
+	readonly updateSettingsFromStorage = async (): Promise<void> => {
 		this.#settings = {...this.#settings, ...await this.loadFromStorage()}
 		await this.saveSettings()
 		this.useSettings(this.#settings)

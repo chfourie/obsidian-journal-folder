@@ -29,7 +29,7 @@ export class PluginFeatureSet {
 		})
 	}
 
-	useSettings(settings: JournalFolderSettings): void {
+	readonly useSettings = (settings: JournalFolderSettings): void => {
 		this.#pluginFeatures.forEach(feature => {
 			try {
 				feature.useSettings(settings)

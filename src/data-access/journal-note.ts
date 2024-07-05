@@ -18,11 +18,13 @@ type JournalNoteStrategies = {
 	BY_DESCENDING_ORDER: JournalNoteStrategy[]
 }
 
+export type JournalNoteFactory = (file: TFile) => JournalNote
+
 function startOfInterval(sourceMoment: moment.Moment, pattern: string): moment.Moment {
 	return moment(sourceMoment.format(pattern), pattern)
 }
 
-export function journalNoteFactoryWithSettings(settings: JournalFolderSettings) {
+export function journalNoteFactoryWithSettings(settings: JournalFolderSettings): JournalNoteFactory {
 
 	const DAILY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
