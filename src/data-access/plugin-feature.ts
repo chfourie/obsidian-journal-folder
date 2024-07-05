@@ -5,7 +5,7 @@ import type { Plugin, TFile } from 'obsidian'
 export abstract class PluginFeature {
 	#settings: JournalFolderSettings | undefined
 
-	constructor(protected plugin: Plugin) {
+	protected constructor(protected plugin: Plugin) {
 	}
 
 	protected get settings() {
