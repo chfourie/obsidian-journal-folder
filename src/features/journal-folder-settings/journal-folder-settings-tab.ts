@@ -5,6 +5,10 @@ type SettingsStringFieldName = 'dailyNoteTitlePattern' | 'dailyNoteShortTitlePat
 	| 'weeklyNoteShortTitlePattern' | 'monthlyNoteTitlePattern' | 'monthlyNoteShortTitlePattern'
 	| 'yearlyNoteTitlePattern' | 'yearlyNoteShortTitlePattern'
 
+/***************************************************************************************************
+ ** NOTE: This class has been slapped together in order to get the plugin released into the wild. **
+ ** It does the job, but will be replaced with a more refined version somewhere in the future.    **
+ ** ************************************************************************************************/
 export class JournalFolderSettingsTab extends PluginSettingTab {
 	constructor(
 		private plugin: Plugin,
