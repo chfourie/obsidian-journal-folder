@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian'
 import { JournalHeaderFeature } from '../features/journal-header'
 import { PluginFeatureSet } from './plugin-feature-set'
-import { SettingsManager } from '../features/journal-folder-settings'
+import { SettingsManager } from './settings-manager'
 
 export default class JournalFolderPlugin extends Plugin {
 	#features: PluginFeatureSet = new PluginFeatureSet()
@@ -10,17 +10,17 @@ export default class JournalFolderPlugin extends Plugin {
 	#configManager = new SettingsManager({
 		loadFromStorage: this.loadData.bind(this),
 		saveToStorage: this.saveData.bind(this),
-		useSettings: this.#features.useSettings
+		addSettingTab: this.addSettingTab.bind(this),
+		useSettings: this.#features.useSettings,
+		addFeature: this.#features.addFeature
 	})
 
 	onExternalSettingsChange = this.#configManager.updateSettingsFromStorage
 
-	async onload() {
+	readonly onload = async () => {
 		await this.#configManager.updateSettingsFromStorage()
 		await this.#features.load(this)
 	}
 
-	onunload() {
-		this.#features.unload(this)
-	}
+	readonly onunload = () =>this.#features.unload(this)
 }

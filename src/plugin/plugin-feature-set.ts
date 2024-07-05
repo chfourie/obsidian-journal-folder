@@ -4,12 +4,12 @@ import type JournalFolderPlugin from './journal-folder-plugin'
 export class PluginFeatureSet {
 	readonly #pluginFeatures: PluginFeature[] = []
 
-	addFeature(feature: PluginFeature): PluginFeatureSet {
+	readonly addFeature = (feature: PluginFeature): PluginFeatureSet => {
 		this.#pluginFeatures.push(feature)
 		return this
 	}
 
-	async load(plugin: JournalFolderPlugin): Promise<void> {
+	readonly load = async (plugin: JournalFolderPlugin): Promise<void> => {
 		for (const feature of this.#pluginFeatures) {
 			try {
 				await feature.load(plugin)
@@ -19,7 +19,7 @@ export class PluginFeatureSet {
 		}
 	}
 
-	unload(plugin: JournalFolderPlugin): void {
+	readonly unload = (plugin: JournalFolderPlugin): void => {
 		this.#pluginFeatures.forEach(feature => {
 			try {
 				feature.unload(plugin)
@@ -32,7 +32,7 @@ export class PluginFeatureSet {
 	readonly useSettings = (settings: JournalFolderSettings): void => {
 		this.#pluginFeatures.forEach(feature => {
 			try {
-				feature.useSettings(settings)
+				feature.useSettings({...settings})
 			} catch (e) {
 				console.error(e)
 			}
