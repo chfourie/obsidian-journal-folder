@@ -1,3 +1,21 @@
+/*
+Utilities for folder-based journaling in Obsidian
+Copyright (C) 2024  Charl Fourie
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { debounce, MomentFormatComponent, type Plugin, PluginSettingTab, Setting } from 'obsidian'
 import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../../data-access'
 
@@ -28,82 +46,82 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
 		this.createMomentSetting(settings, 'dailyNoteTitlePattern', 'Daily note title pattern')
 			.setDesc(
-				"The pattern used to render the title of a daily note. " +
-				"This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). " +
-				"For instance, using a pattern of 'WW-HH' would not make sense " +
-				"as the hour component represents a fraction of the day. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render the title of a daily note. ' +
+				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
+				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'as the hour component represents a fraction of the day. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'dailyNoteShortTitlePattern', 'Daily note short title pattern')
 			.setDesc(
-				"The pattern used to render links to daily notes. The user should aim to keep this pattern short " +
-				"as multiple links may be rendered next to each other. " +
-				"This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). " +
-				"For instance, using a pattern of 'WW-HH' would not make sense " +
-				"as the hour component represents a fraction of the day. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render links to daily notes. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
+				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'as the hour component represents a fraction of the day. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'weeklyNoteTitlePattern', 'Weekly note title pattern')
 			.setDesc(
-				"The pattern used to render the title of a weekly note. " +
-				"This pattern should not render any date/time elements shorter than a week (e.g. day or hour). " +
-				"For instance, using a pattern of 'WW-DD' would not make sense " +
-				"as the day component represents a fraction of the week. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render the title of a weekly note. ' +
+				'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
+				'For instance, using a pattern of \'WW-DD\' would not make sense ' +
+				'as the day component represents a fraction of the week. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'weeklyNoteShortTitlePattern', 'Weekly note short title pattern')
 			.setDesc(
-				"The pattern used to render links to weekly notes. The user should aim to keep this pattern short " +
-				"as multiple links may be rendered next to each other. " +
-				"This pattern should not render any date/time elements shorter than a week (e.g. day or hour). " +
-				"For instance, using a pattern of 'WW-DD' would not make sense " +
-				"as the day component represents a fraction of the week. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render links to weekly notes. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
+				'For instance, using a pattern of \'WW-DD\' would not make sense ' +
+				'as the day component represents a fraction of the week. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'monthlyNoteTitlePattern', 'Monthly note title pattern')
 			.setDesc(
-				"The pattern used to render the title of a monthly note. " +
-				"This pattern should not render any date/time elements shorter than a month (e.g. week or day). " +
-				"For instance, using a pattern of 'MM-DD' would not make sense " +
-				"as the day component represents a fraction of the month. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render the title of a monthly note. ' +
+				'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
+				'For instance, using a pattern of \'MM-DD\' would not make sense ' +
+				'as the day component represents a fraction of the month. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'monthlyNoteShortTitlePattern', 'Monthly note short title pattern')
 			.setDesc(
-				"The pattern used to render links to monthly notes. The user should aim to keep this pattern short " +
-				"as multiple links may be rendered next to each other. " +
-				"This pattern should not render any date/time elements shorter than a month (e.g. week or day). " +
-				"For instance, using a pattern of 'MM-DD' would not make sense " +
-				"as the day component represents a fraction of the month. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render links to monthly notes. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
+				'For instance, using a pattern of \'MM-DD\' would not make sense ' +
+				'as the day component represents a fraction of the month. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'yearlyNoteTitlePattern', 'Yearly note title pattern')
 			.setDesc(
-				"The pattern used to render the title of a yearly note. " +
-				"This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). " +
-				"For instance, using a pattern of 'YYYY-MM' would not make sense " +
-				"as the month component represents a fraction of the year. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render the title of a yearly note. ' +
+				'This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). ' +
+				'For instance, using a pattern of \'YYYY-MM\' would not make sense ' +
+				'as the month component represents a fraction of the year. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		this.createMomentSetting(settings, 'yearlyNoteShortTitlePattern', 'Yearly note short title pattern')
 			.setDesc(
-				"The pattern used to render links to yearly notes. The user should aim to keep this pattern short " +
-				"as multiple links may be rendered next to each other. " +
-				"This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). " +
-				"For instance, using a pattern of 'YYYY-MM' would not make sense " +
-				"as the month component represents a fraction of the year. " +
-				"For help on the pattern syntax, refer to the link below."
+				'The pattern used to render links to yearly notes. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). ' +
+				'For instance, using a pattern of \'YYYY-MM\' would not make sense ' +
+				'as the month component represents a fraction of the year. ' +
+				'For help on the pattern syntax, refer to the link below.',
 			)
 
 		new Setting(this.containerEl)
-			.setName("Reset all to default values")
+			.setName('Reset all to default values')
 			.addButton(btn => {
 				btn.setIcon('reset')
 					.setWarning()
@@ -155,7 +173,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
 		const sampleLabelEl = document.createElement('div')
 		sampleLabelEl.setAttr('style', 'opacity: 75%')
-		sampleLabelEl.setText("Sample value:")
+		sampleLabelEl.setText('Sample value:')
 
 		sampleEl.appendChild(helpLinkEl)
 		sampleEl.appendChild(sampleLabelEl)
