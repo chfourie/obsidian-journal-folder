@@ -95,6 +95,10 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 			.addButton(btn => {
 				btn.setIcon('reset')
 					.setWarning()
+					.onClick(() => {
+						// noinspection JSIgnoredPromiseFromCall
+						this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
+					})
 			})
 	}
 
