@@ -10,7 +10,7 @@ import JournalHeader from './JournalHeader.svelte'
 import { buildJournalHeaderInfo } from './journal-header-info'
 import type { Plugin } from 'obsidian'
 
-export class JournalHeaderFeature extends PluginFeature {
+export class JournalHeaderFeature extends PluginFeature<Plugin> {
 	#journalNote: JournalNoteFactory | undefined
 
 	constructor(plugin: Plugin) {
