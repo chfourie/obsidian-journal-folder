@@ -1,10 +1,9 @@
 import type { JournalFolderSettings, PluginFeature } from '../data-access'
-import type { Plugin } from 'obsidian'
 
 export class PluginFeatureSet {
-	readonly #pluginFeatures: PluginFeature<Plugin>[] = []
+	readonly #pluginFeatures: PluginFeature[] = []
 
-	readonly addFeature = (feature: PluginFeature<Plugin>): PluginFeatureSet => {
+	readonly addFeature = (feature: PluginFeature): PluginFeatureSet => {
 		this.#pluginFeatures.push(feature)
 		return this
 	}

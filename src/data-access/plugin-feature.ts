@@ -2,10 +2,10 @@ import type { JournalFolderSettings } from './journal-folder-settings.type'
 import type { Plugin, TFile } from 'obsidian'
 
 // noinspection JSUnusedLocalSymbols
-export abstract class PluginFeature<T extends Plugin> {
+export abstract class PluginFeature {
 	#settings: JournalFolderSettings | undefined
 
-	protected constructor(protected plugin: T) {
+	protected constructor(protected plugin: Plugin) {
 	}
 
 	// noinspection JSUnusedGlobalSymbols

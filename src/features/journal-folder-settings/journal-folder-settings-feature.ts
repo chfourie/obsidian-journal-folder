@@ -1,20 +1,26 @@
-import { DEFAULT_SETTINGS, PluginFeature } from '../../data-access'
-import  JournalFolderPlugin from '../../plugin/journal-folder-plugin'
+import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeature } from '../../data-access'
+import type { Plugin } from 'obsidian'
 
-export class JournalFolderSettingsFeature extends PluginFeature<JournalFolderPlugin> {
+export class JournalFolderSettingsFeature extends PluginFeature {
 
-	constructor(plugin: JournalFolderPlugin) {
+	constructor(plugin: Plugin, private propagateSettings: (settings: JournalFolderSettings) => void) {
 		super(plugin)
 		this.useSettings(DEFAULT_SETTINGS)
 	}
 
 	async load(): Promise<void> {
-		return super.load();
+		await this.updateSettingsFromStorage()
+	}
+
+
+	onExternalSettingsChange() {
+		// noinspection JSIgnoredPromiseFromCall
+		this.updateSettingsFromStorage()
 	}
 
 	readonly updateSettingsFromStorage = async (): Promise<void> => {
 		const settings = {...this.settings, ...await this.plugin.loadData()}
 		await this.plugin.saveData(settings)
-		this.plugin.useSettings(settings)
+		this.propagateSettings(settings)
 	}
 }
