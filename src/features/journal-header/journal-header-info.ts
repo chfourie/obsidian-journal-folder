@@ -48,7 +48,7 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 		return links
 	}
 
-	function createForwardLink(): Link {
+	function createForwardLink(): Link | undefined {
 		const directSibling = note.forwardInTime()
 
 		if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
@@ -57,11 +57,9 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 
 		const closestSibling = note.closestSibling('after')
 
-		if (closestSibling && closestSibling.isPast()) {
+		if (closestSibling) {
 			return closestSibling.shortLinkFrom(note)
 		}
-
-		return note.presentNote().shortLinkFrom(note)
 	}
 
 	function createBackwardLink(): Link | undefined {

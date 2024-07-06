@@ -71,7 +71,9 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 - If none of the above exist, this link is omitted.
 
 ##### Forwards link
-- Renders a link to a daily note file for the closest date after the current note's date where either the note already exists, or the note's date is in the present or future.
+- Renders a link to a daily note file for the closest date after the current note's date where either the note already exists, or the note's date is in the future.
+- If the current note represents yesterday, a link to today's daily note will be rendered regardless of whether the note exists or not.
+- If no note can be found that meet the above criteria, this link is omitted.
 
 ##### Current year link
 - If a note exists for the current note's year component, or if the current note's year component represents the current or a future year, a link to the year note is rendered.
