@@ -4,19 +4,15 @@
     "type": "split",
     "children": [
       {
-        "id": "66a134a8f6e8fd77",
+        "id": "33d3eba770cd8fd1",
         "type": "tabs",
         "children": [
           {
-            "id": "adf7c9f7c62d9141",
+            "id": "59e5009b86be4e9a",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "README.md",
-                "mode": "source",
-                "source": false
-              }
+              "type": "empty",
+              "state": {}
             }
           }
         ]
@@ -69,7 +65,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 408.500732421875
   },
   "right": {
     "id": "a98a58275bc2afaa",
@@ -85,7 +81,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +97,6 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -124,9 +118,7 @@
             "type": "leaf",
             "state": {
               "type": "outline",
-              "state": {
-                "file": "README.md"
-              }
+              "state": {}
             }
           }
         ]
@@ -146,21 +138,20 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "adf7c9f7c62d9141",
+  "active": "59e5009b86be4e9a",
   "lastOpenFiles": [
+    "README.md",
+    "documents/attachments/Pasted image 20240706165831.png",
+    "documents/attachments/Pasted image 20240706134803.png",
     "documents/attachments/Pasted image 20240706144948.png",
     "documents/attachments/Pasted image 20240706142253.png",
     "documents/attachments/Pasted image 20240706141756.png",
-    "documents/attachments/Pasted image 20240706134803.png",
     "documents/attachments/Pasted image 20240706133312.png",
     "documents/attachments/Pasted image 20240706132022.png",
     "documents/attachments/Pasted image 20240706125854.png",
     "documents/attachments/Pasted image 20240706121140.png",
     "documents/attachments/Pasted image 20240706113526.png",
-    "documents/attachments/Pasted image 20240706111931.png",
-    "documents/attachments/Pasted image 20240706104024.png",
     "ORIGINAL README.md",
-    "README.md",
     "documents/attachments",
     "documents/images",
     "documents"
