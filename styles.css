@@ -1,1 +1,60 @@
 /*No global styles to declare*/
+
+.journal-folder-header-title {
+	width: fit-content;
+	margin-inline: auto;
+	margin-bottom: 0.2rem;
+}
+
+.journal-folder-header-options {
+	font-size: .9rem;
+	padding: .3rem 0;
+	gap: .2rem;
+	border-block: solid var(--border-width) var(--hr-color);
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 1rem;
+}
+
+.journal-folder-header-links {
+	display: flex;
+	gap: .2rem .3rem;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.journal-folder-header-links > * {
+	margin: 0;
+}
+
+.journal-folder-note-link.chip {
+	border: solid thin;
+	display: block;
+	line-height: 1rem;
+	border-radius: .5rem;
+	padding-inline: .5rem;
+	height: fit-content;
+	text-decoration: none;
+
+	&:link, &:visited, &:hover, &:active {
+		text-decoration: none !important;
+	}
+
+	&:hover {
+		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
+	}
+
+	&:active {
+		color: var(--background-primary);
+		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+	}
+}
+
+.journal-folder-note-link.no-link {
+	color: var(--text-faint);
+}
+
+.journal-folder-error-message {
+	color: var(--color-red);
+}

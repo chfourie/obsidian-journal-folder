@@ -24,36 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 </script>
 
 {#if inactive}
-	<span>{title}</span>
+	<span class="journal-folder-note-link no-link">{title}</span>
 {:else}
-	<a class="internal-link" class:chip={linkStyle === 'chip'} href={url}>{title}</a>
+	<a class="internal-link journal-folder-note-link" class:chip={linkStyle === 'chip'} href={url}>{title}</a>
 {/if}
-
-<style>
-	.chip {
-		border: solid thin;
-		display: block;
-		line-height: 1rem;
-		border-radius: .5rem;
-		padding-inline: .5rem;
-		height: fit-content;
-		text-decoration: none;
-
-		&:link, &:visited, &:hover, &:active {
-			text-decoration: none !important;
-		}
-
-		&:hover {
-			background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
-		}
-
-		&:active {
-			color: var(--background-primary);
-			background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
-		}
-	}
-
-	span {
-		color: var(--text-faint)
-	}
-</style>

@@ -20,11 +20,4 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	export let error: string
 </script>
 
-<div>{error}</div>
-
-<style>
-	div {
-		font-weight: bold;
-		color: red;
-	}
-</style>
+<div class="journal-folder-error-message">{error}</div>
