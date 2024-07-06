@@ -17,7 +17,6 @@ It should be noted that, as with the initial releases of this plugin, while the 
 
 The following is a list of features that have been, or are planned to be implemented in this plugin...
 
-
 ---
 ## Feature: Journal header
 
@@ -171,3 +170,30 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ##### Month links for year
 - Renders links or plain text labels for each month that falls in the current link's year.
 - If a link exists for the month, or the month ends in the present or future, a link to the monthly note is rendered.  Otherwise a plain text label is rendered.
+
+### Configuration
+
+The _Journal Folder_ plugin includes a configuration tab that is available in Obsidian's configuration screens.  For each note type (daily, weekly, monthly, yearly), the the following is configurable....
+- **Title pattern:**  The date pattern used to render the title of the note.
+- Short title pattern:  The pattern used as labels for links to the note.
+
+
+![](documents/attachments/Pasted%20image%2020240706134803.png)
+
+### Future enhancements to the Journal Header feature
+
+#### Enhancement: Expandable header
+- It is planned to make the header expandable to reveal a calendar.
+- The scope of the calendar will include the period represented by the journal note.
+- All days, weeks, months and years depicted will be clickable links, regardless of whether the target note exists.  The styling of non existent past links will depend on whether the note exists or not.
+- Availability of the calendar as well as default state (expanded or not) will be configurable both on a global and instance level.
+
+![](documents/attachments/Pasted%20image%2020240706141756.png)
+
+![](documents/attachments/Pasted%20image%2020240706142253.png)
+
+---
+## Planned Feature: Calendar code block processor
+- It is planned to provide a code block processor that can be used to render a calendar.
+- By default the feature will handle the current note's folder as calendar folder.  However, this will be configurable within the code block to point to other folders.
+- If this feature is placed within a calendar note, by default the visible month range will be determined by the note type and date.  The user will however be able to configure a custom range and behaviour within the code block.
