@@ -33,7 +33,7 @@ export type JournalFolderSettings = {
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
 	dailyNoteTitlePattern: 'dddd, DD MMMM YYYY',
 	dailyNoteShortTitlePattern: 'ddd, D MMM',
-	weeklyNoteTitlePattern: 'YYYY [Week] w',
+	weeklyNoteTitlePattern: 'gggg [Week] w',
 	weeklyNoteShortTitlePattern: '[W]ww',
 	monthlyNoteTitlePattern: 'MMMM YYYY',
 	monthlyNoteShortTitlePattern: 'MMM',

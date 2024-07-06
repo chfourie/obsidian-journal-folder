@@ -11,7 +11,7 @@ It should be noted that, as with the initial releases of this plugin, while the 
 | **Note type** | **Filename Format** | Example filename |
 | ------------- | ------------------- | ---------------- |
 | Daily note    | YYYY-MM-DD.md       | 2024-07-23.md    |
-| Weekly note   | YYYY-[W]ww.md       | 2024-W30.md      |
+| Weekly note   | gggg-[W]ww.md       | 2024-W30.md      |
 | Monthly note  | YYYY-MM             | 2024-07.md       |
 | Yearly note   | YYYY                | 2024.md          |
 
