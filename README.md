@@ -26,18 +26,19 @@ The _journal header_ feature is a code block processor that renders an appropria
 ### Examples
 Examples of rendered headers for the different supported note types are as follows:
 
+Daily note
 ![](documents/attachments/Pasted%20image%2020240706102800.png)
-<div style='text-align: right; font-style: italic'>Daily note</div>
 
 
+Weekly note
 ![](documents/attachments/Pasted%20image%2020240706103524.png)
-<div style='text-align: right; font-style: italic'>Weekly note</div>
 
 
+Monthly note
 ![](documents/attachments/Pasted%20image%2020240706103917.png)
-<div style='text-align: right; font-style: italic'>Monthly note</div>
 
 
+Yearly note
 ![](documents/attachments/Pasted%20image%2020240706104024.png)
 <div style='text-align: right; font-style: italic'>Yearly note</div>
 
