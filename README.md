@@ -8,6 +8,10 @@ _Folder based journaling_ enables the user to maintain multiple arbitrary journa
 
 It should be noted that, as with the initial releases of this plugin, while the date format used within files (for titles, links etc.) are configurable as per the user's preference, the file name format is fixed.  
 
+> [!IMPORTANT] Please note
+> Testing a note
+> Etc 
+
 The following journal note types are supported by the plugin:
 
 | **Note type** | **Filename Format** | Example filename |
