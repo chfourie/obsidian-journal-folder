@@ -54,7 +54,6 @@ export class JournalHeaderFeature extends PluginFeature {
 				// @ts-ignore
 				mount(JournalHeader, { target: el, props: { info } })
 			} catch (error) {
-				console.error(error)
 				mount(ErrorMessage, { target: el, props: { error: `${error}` } })
 			}
 		})

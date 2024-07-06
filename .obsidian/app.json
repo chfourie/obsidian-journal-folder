@@ -2,5 +2,6 @@
   "showInlineTitle": false,
   "attachmentFolderPath": "documents/attachments",
   "useMarkdownLinks": true,
-  "newLinkFormat": "relative"
+  "newLinkFormat": "relative",
+  "alwaysUpdateLinks": false
 }
