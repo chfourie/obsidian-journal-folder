@@ -58,7 +58,7 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 
 	const WEEKLY_NOTE_STRATEGY: JournalNoteStrategy = {
 		fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
-		filePattern: 'YYYY-[W]ww',
+		filePattern: 'gggg-[W]ww',
 		titlePattern: settings.weeklyNoteTitlePattern,
 		shortTitlePattern: settings.weeklyNoteShortTitlePattern,
 		mediumTitlePattern: settings.weeklyNoteMediumTitlePattern,
