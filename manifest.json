@@ -5,7 +5,10 @@
 	"minAppVersion": "0.15.0",
 	"description": "Utilities for folder-based journaling",
 	"author": "Charl Fourie",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"authorUrl": "https://github.com/chfourie",
+	"fundingUrl": {
+		"Buy Me a Coffee": "https://buymeacoffee.com/chfourie",
+		"Github Sponsor": "https://github.com/sponsors/chfourie"
+	},
 	"isDesktopOnly": false
 }
