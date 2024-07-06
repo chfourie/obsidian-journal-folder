@@ -56,3 +56,118 @@ It is recommended to use the templating functionality provided by the __Template
 ![](documents/attachments/Pasted%20image%2020240706113526.png)
 
 Alternatively the _Obsidian_ core _Templates_ plugin can be used.
+
+### Composition of a Journal header
+#### Daily notes
+
+![](documents/attachments/Pasted%20image%2020240706121140.png)
+
+##### Title
+- Renders the date represented by the journal note, using the specified date format for the note type.
+- The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
+
+##### Backwards link
+- Renders a link to a daily note file for the closest date before the current note's date where either the note already exists, or the note's date is in the present or future.
+- If none of the above exist, this link is omitted.
+
+##### Forwards link
+- Renders a link to a daily note file for the closest date after the current note's date where either the note already exists, or the note's date is in the present or future.
+
+##### Current year link
+- If a note exists for the current note's year component, or if the current note's year component represents the current or a future year, a link to the year note is rendered.
+- If the year component falls in the past an no note exists for the year component, this link is omitted.
+
+##### Current month link
+- If a note exists for the current note's month component, or if the current note's month component represents the current or a future month, a link to the month note is rendered.
+- If the month component falls in the past an no note exists for the month component, this link is omitted.
+
+##### Current week link
+- If a note exists for the current note's week component, or if the current note's week component represents the current or a future week, a link to the week note is rendered.
+- If the week component falls in the past an no note exists for the week component, this link is omitted.
+
+##### Today link
+- Rendered if the current note represents a different date than the current date.
+
+#### Weekly notes
+
+![](documents/attachments/Pasted%20image%2020240706125854.png)
+
+##### Title
+- Renders the week represented by the journal note, using the specified date format for the note type.
+- The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
+
+##### Backwards link
+- Renders a link to a weekly note file for the closest week before the current note's week where either the note already exists, or the note's week is in the present or future.
+- If none of the above exist, this link is omitted.
+
+##### Forwards link
+- Renders a link to a weekly note file for the closest week after the current note's week where either the note already exists, or the note's week is in the present or future.
+
+##### Current year link
+- If a note exists for the current note's year component, or if the current note's year component represents the current or a future year, a link to the year note is rendered.
+- If the year component falls in the past an no note exists for the year component, this link is omitted.
+
+##### Current month link
+- If a note exists for the current note's month component, or if the current note's month component represents the current or a future month, a link to the month note is rendered.
+- If the month component falls in the past an no note exists for the month component, this link is omitted.
+- If the weekly note's week spans over 2 months, links to both months may be displayed depending on the above criteria.
+
+##### Today link
+- Links to the daily note for the current date.
+- Always rendered for weekly notes.
+
+##### Day links for week
+- Renders links or plain text labels for each day that falls in the current link's week.
+- If a link exists for the day, or the day falls in the present or future, a link to the daily note is rendered.  Otherwise a plain text label is rendered.
+
+#### Monthly notes
+
+![](documents/attachments/Pasted%20image%2020240706132022.png)
+
+##### Title
+- Renders the month represented by the journal note, using the specified date format for the note type.
+- The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
+
+##### Backwards link
+- Renders a link to a monthly note file for the closest month before the current note's month where either the note already exists, or the note's month is in the present or future.
+- If none of the above exist, this link is omitted.
+
+##### Forwards link
+- Renders a link to a monthly note file for the closest month after the current note's month where either the note already exists, or the note's month is in the present or future.
+
+##### Current year link
+- If a note exists for the current note's year component, or if the current note's year component represents the current or a future year, a link to the year note is rendered.
+- If the year component falls in the past an no note exists for the year component, this link is omitted.
+
+##### Today link
+- Links to the daily note for the current date.
+- Always rendered for monthly notes.
+
+##### Week links for month
+- Renders links or plain text labels for each week that falls in the current link's month.
+- If a link exists for the week, or the week ends in the present or future, a link to the weekly note is rendered.  Otherwise a plain text label is rendered.
+
+
+
+#### Yearly notes
+
+![](documents/attachments/Pasted%20image%2020240706133312.png)
+
+##### Title
+- Renders the year represented by the journal note, using the specified date format for the note type.
+- The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
+
+##### Backwards link
+- Renders a link to a yearly note file for the closest year before the current note's year where either the note already exists, or the note's year is in the present or future.
+- If none of the above exist, this link is omitted.
+
+##### Forwards link
+- Renders a link to a yearly note file for the closest year after the current note's year where either the note already exists, or the note's year is in the present or future.
+
+##### Today link
+- Links to the daily note for the current date.
+- Always rendered for yearly notes.
+
+##### Month links for year
+- Renders links or plain text labels for each month that falls in the current link's year.
+- If a link exists for the month, or the month ends in the present or future, a link to the monthly note is rendered.  Otherwise a plain text label is rendered.
