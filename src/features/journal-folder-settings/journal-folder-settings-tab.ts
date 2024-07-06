@@ -45,7 +45,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 			.setDesc(
 				'The pattern used to render the title of a daily note. ' +
 				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'For instance, using a pattern of \'DD-HH\' would not make sense ' +
 				'as the hour component represents a fraction of the day. ' +
 				'For help on the pattern syntax, refer to the link below.',
 			)
@@ -55,7 +55,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				'The pattern used to render links to daily notes. The user should aim to keep this pattern short ' +
 				'as multiple links may be rendered next to each other. ' +
 				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'For instance, using a pattern of \'DD-HH\' would not make sense ' +
 				'as the hour component represents a fraction of the day. ' +
 				'For help on the pattern syntax, refer to the link below.',
 			)
@@ -66,7 +66,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				'year then the current note. The user should aim to keep this pattern short ' +
 				'as multiple links may be rendered next to each other. ' +
 				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'For instance, using a pattern of \'DD-HH\' would not make sense ' +
 				'as the hour component represents a fraction of the day. ' +
 				'For help on the pattern syntax, refer to the link below.',
 			)
@@ -168,7 +168,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 	createMomentSetting(settings: JournalFolderSettings, fieldName: SettingsStringFieldName, name: string): Setting {
 		let component: MomentFormatComponent
 		const sampleValueEl = document.createElement('div')
-		sampleValueEl.setAttr('style', 'opacity: 50%')
+		sampleValueEl.addClass('journal-folder-config-sample-value')
 
 		const setting = new Setting(this.containerEl)
 			.setName(name)
@@ -197,15 +197,15 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 			})
 
 		const sampleEl = document.createElement('div')
-		sampleEl.setAttr('style', 'display: flex; gap: 1em; margin-bottom: .25em;')
+		sampleEl.addClass('journal-folder-config-hints-row')
 
 		const helpLinkEl = document.createElement('a')
 		helpLinkEl.setAttribute('href', 'https://momentjs.com/docs/#/displaying/format/')
 		helpLinkEl.innerText = 'Pattern syntax reference'
-		helpLinkEl.setAttr('style', 'margin-right: auto;')
+		helpLinkEl.addClass('journal-folder-config-syntax-reference-link')
 
 		const sampleLabelEl = document.createElement('div')
-		sampleLabelEl.setAttr('style', 'opacity: 75%')
+		sampleLabelEl.addClass('journal-folder-config-sample-label');
 		sampleLabelEl.setText('Sample value:')
 
 		sampleEl.appendChild(helpLinkEl)

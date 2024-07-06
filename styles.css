@@ -58,3 +58,21 @@
 .journal-folder-error-message {
 	color: var(--color-red);
 }
+
+.journal-folder-config-sample-label {
+	opacity: 50%;
+}
+
+.journal-folder-config-sample-value {
+	opacity: 75%;
+}
+
+.journal-folder-config-hints-row {
+	display: flex;
+	gap: 1em;
+	margin-bottom: .25em;
+}
+
+.journal-folder-config-syntax-reference-link {
+	margin-right: auto;
+}
