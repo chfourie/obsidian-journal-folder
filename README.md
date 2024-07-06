@@ -1,96 +1,57 @@
-# Obsidian Sample Plugin
+# Journal Folder Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin provides utilities for use with folder based journaling.  The term _"folder based journaling"_ implies the ability to use any arbitrary folder within an _Obsidian_ vault as a journal.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+There's no special setup that need to be performed for this folder.  Simply start creating notes using a pre-defined naming convention to indicate the journal note type and the date range represented by the note.  All notes within this folder that adheres to the aforementioned naming convention will be seen and handled as part of the journal represented by the folder.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+_Folder based journaling_ enables the user to maintain multiple arbitrary journals within the same vault as opposed to the model where only one folder within the vault is allocated for journal entries of a specific type.  This opens up a range of possibilities.  As an example, a project worked on for a client can have it's own journal which and then be used for reporting purposes for the client.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+It should be noted that, as with the initial releases of this plugin, while the date format used within files (for titles, links etc.) are fully configurable as per the user's preference, the file name format is fixed.  The following journal note types are supported by the plugin:
 
-## First time developing plugins?
+| **Note type** | **Filename Format** | Example filename |
+| ------------- | ------------------- | ---------------- |
+| Daily note    | YYYY-MM-DD.md       | 2024-07-23.md    |
+| Weekly note   | YYYY-[W]ww.md       | 2024-W30.md      |
+| Monthly note  | YYYY-MM             | 2024-07.md       |
+| Yearly note   | YYYY                | 2024.md          |
 
-Quick starting guide for new plugin devs:
+The following is a list of features that have been, or are planned to be implemented in this plugin...
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
 
-## Releasing new releases
+---
+## Feature: Journal header
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+The _journal header_ feature is a code block processor that renders an appropriate header in a journal file.  
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Examples
+Examples of rendered headers for the different supported note types are as follows:
 
-## Adding your plugin to the community plugin list
+![](documents/attachments/Pasted%20image%2020240706102800.png)
+<div style='text-align: right; font-style: italic'>Daily note</div>
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
 
-## How to use
+![](documents/attachments/Pasted%20image%2020240706103524.png)
+<div style='text-align: right; font-style: italic'>Weekly note</div>
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
 
-## Manually installing the plugin
+![](documents/attachments/Pasted%20image%2020240706103917.png)
+<div style='text-align: right; font-style: italic'>Monthly note</div>
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+![](documents/attachments/Pasted%20image%2020240706104024.png)
+<div style='text-align: right; font-style: italic'>Yearly note</div>
 
-## Funding URL
+### Using the Journal Header feature
+To render a header in your journal note, simply add the following to the top of your note...
 
-You can include funding URLs where people who use your plugin can financially support it.
+![](documents/attachments/Pasted%20image%2020240706111931.png)
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+Note that the header will render correctly without the `%%title%%` in the first line.   It is however recommended to include it for the following reason... If the `journal-header` code block is placed on the first line, whenever you open a document in edit mode, the cursor (which defaults to the first line in the file) will start off on the code block.  This results in the code block being rendered instead of the title until the user moves the cursor off it.  This behaviour can be a bit distracting.
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+By placing a comment on the first line, the cursor will fall on the comment when entering edit mode in stead of the header, providing a better user experienced.   However, when switching to _reading view_, the comment is omitted, resulting in the header being rendered right at the top of the document.
 
-If you have multiple URLs, you can also do:
+It is recommended to use the templating functionality provided by the __Templater__ plugin (available in the _Obsidian_ plugin store) to automatically add the above code block to new journal files.   _Templater_ can be configured to automatically add the code block to any new files created in the specified folders.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+![](documents/attachments/Pasted%20image%2020240706113526.png)
 
-## API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
+Alternatively the _Obsidian_ core _Templates_ plugin can be used.
