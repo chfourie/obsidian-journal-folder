@@ -40,7 +40,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
 	dailyNoteMediumTitlePattern: 'ddd, D MMM YY',
 	weeklyNoteTitlePattern: 'gggg [Week] w',
 	weeklyNoteShortTitlePattern: '[W]ww',
-	weeklyNoteMediumTitlePattern: 'gg [W]ww',
+	weeklyNoteMediumTitlePattern: '[W]ww gg',
 	monthlyNoteTitlePattern: 'MMMM YYYY',
 	monthlyNoteShortTitlePattern: 'MMM',
 	monthlyNoteMediumTitlePattern: 'MMM YY',
