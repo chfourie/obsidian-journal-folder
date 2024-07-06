@@ -21,7 +21,8 @@ import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../../data-access'
 
 type SettingsStringFieldName = 'dailyNoteTitlePattern' | 'dailyNoteShortTitlePattern' | 'weeklyNoteTitlePattern'
 	| 'weeklyNoteShortTitlePattern' | 'monthlyNoteTitlePattern' | 'monthlyNoteShortTitlePattern'
-	| 'yearlyNoteTitlePattern' | 'yearlyNoteShortTitlePattern'
+	| 'yearlyNoteTitlePattern' | 'yearlyNoteShortTitlePattern' | 'dailyNoteMediumTitlePattern'
+	| 'weeklyNoteMediumTitlePattern' | 'monthlyNoteMediumTitlePattern' | 'yearlyNoteMediumTitlePattern'
 
 /***************************************************************************************************
  ** NOTE: This class has been slapped together in order to get the plugin released into the wild. **
@@ -63,12 +64,24 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				'For help on the pattern syntax, refer to the link below.',
 			)
 
+		this.createMomentSetting(settings, 'dailyNoteMediumTitlePattern', 'Daily note medium title pattern')
+			.setDesc(
+				'The pattern used to render links to daily notes where the destination note falls in a different ' +
+				'year then the current note. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
+				'For instance, using a pattern of \'WW-HH\' would not make sense ' +
+				'as the hour component represents a fraction of the day. ' +
+				'For help on the pattern syntax, refer to the link below.',
+			)
+
 		this.createMomentSetting(settings, 'weeklyNoteTitlePattern', 'Weekly note title pattern')
 			.setDesc(
 				'The pattern used to render the title of a weekly note. ' +
 				'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
 				'For instance, using a pattern of \'WW-DD\' would not make sense ' +
 				'as the day component represents a fraction of the week. ' +
+				'PLEASE NOTE: for weekly patterns \'gg\' or \'gggg\' should be used to reflect the year' +
 				'For help on the pattern syntax, refer to the link below.',
 			)
 
@@ -79,6 +92,19 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 				'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
 				'For instance, using a pattern of \'WW-DD\' would not make sense ' +
 				'as the day component represents a fraction of the week. ' +
+				'PLEASE NOTE: for weekly patterns \'gg\' or \'gggg\' should be used to reflect the year' +
+				'For help on the pattern syntax, refer to the link below.',
+			)
+
+		this.createMomentSetting(settings, 'weeklyNoteMediumTitlePattern', 'Weekly note medium title pattern')
+			.setDesc(
+				'The pattern used to render links to weekly notes where the destination note falls in a different ' +
+				'year then the current note. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
+				'For instance, using a pattern of \'WW-DD\' would not make sense ' +
+				'as the day component represents a fraction of the week. ' +
+				'PLEASE NOTE: for weekly patterns \'gg\' or \'gggg\' should be used to reflect the year' +
 				'For help on the pattern syntax, refer to the link below.',
 			)
 
@@ -94,6 +120,17 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 		this.createMomentSetting(settings, 'monthlyNoteShortTitlePattern', 'Monthly note short title pattern')
 			.setDesc(
 				'The pattern used to render links to monthly notes. The user should aim to keep this pattern short ' +
+				'as multiple links may be rendered next to each other. ' +
+				'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
+				'For instance, using a pattern of \'MM-DD\' would not make sense ' +
+				'as the day component represents a fraction of the month. ' +
+				'For help on the pattern syntax, refer to the link below.',
+			)
+
+		this.createMomentSetting(settings, 'monthlyNoteMediumTitlePattern', 'Monthly note medium title pattern')
+			.setDesc(
+				'The pattern used to render links to monthly notes where the destination note falls in a different ' +
+				'year then the current note. The user should aim to keep this pattern short ' +
 				'as multiple links may be rendered next to each other. ' +
 				'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
 				'For instance, using a pattern of \'MM-DD\' would not make sense ' +
