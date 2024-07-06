@@ -39,7 +39,6 @@ Monthly note
 
 Yearly note
 ![](documents/attachments/Pasted%20image%2020240706104024.png)
-<div style='text-align: right; font-style: italic'>Yearly note</div>
 
 ### Using the Journal Header feature
 To render a header in your journal note, simply add the following to the top of your note...
