@@ -30,8 +30,8 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 	return {
 		title: note.getTitle(),
 		centerLinks: buildCenterLinks(),
-		backwardLink: createSiblingLink('before'),
-		forwardLink: createSiblingLink('after'),
+		backwardLink: createBackwardLink(),
+		forwardLink: createForwardLink(),
 		secondaryLinks: buildSecondaryLinks(),
 	}
 
@@ -48,14 +48,30 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 		return links
 	}
 
-	function createSiblingLink(beforeOrAfter: 'before' | 'after'): Link | undefined {
-		const directSibling = beforeOrAfter === 'before' ? note.backInTime() : note.forwardInTime()
+	function createForwardLink(): Link {
+		const directSibling = note.forwardInTime()
 
 		if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
-			return directSibling.link()
+			return directSibling.shortLinkFrom(note)
 		}
 
-		return note.closestSibling(beforeOrAfter)?.link()
+		const closestSibling = note.closestSibling('after')
+
+		if (closestSibling && closestSibling.isPast()) {
+			return closestSibling.shortLinkFrom(note)
+		}
+
+		return note.presentNote().shortLinkFrom(note)
+	}
+
+	function createBackwardLink(): Link | undefined {
+		const directSibling = note.backInTime()
+
+		if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
+			return directSibling.shortLinkFrom(note)
+		}
+
+		return note.closestSibling('before')?.shortLinkFrom(note)
 	}
 
 	function buildSecondaryLinks(): Link[] {

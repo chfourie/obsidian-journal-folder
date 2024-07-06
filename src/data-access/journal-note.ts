@@ -25,6 +25,8 @@ type JournalNoteStrategy = {
 	filePattern: string
 	titlePattern: string
 	shortTitlePattern: string
+	mediumTitlePattern: string
+	yearPattern: string
 	timeUnit: 'day' | 'week' | 'month' | 'year'
 }
 
@@ -49,6 +51,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 		filePattern: 'YYYY-MM-DD',
 		titlePattern: settings.dailyNoteTitlePattern,
 		shortTitlePattern: settings.dailyNoteShortTitlePattern,
+		mediumTitlePattern: settings.dailyNoteMediumTitlePattern,
+		yearPattern: 'YYYY',
 		timeUnit: 'day',
 	}
 
@@ -57,6 +61,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 		filePattern: 'YYYY-[W]ww',
 		titlePattern: settings.weeklyNoteTitlePattern,
 		shortTitlePattern: settings.weeklyNoteShortTitlePattern,
+		mediumTitlePattern: settings.weeklyNoteMediumTitlePattern,
+		yearPattern: 'gggg',
 		timeUnit: 'week',
 	}
 
@@ -65,6 +71,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 		filePattern: 'YYYY-MM',
 		titlePattern: settings.monthlyNoteTitlePattern,
 		shortTitlePattern: settings.monthlyNoteShortTitlePattern,
+		mediumTitlePattern: settings.monthlyNoteMediumTitlePattern,
+		yearPattern: 'YYYY',
 		timeUnit: 'month',
 	}
 
@@ -73,6 +81,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 		filePattern: 'YYYY',
 		titlePattern: settings.yearlyNoteTitlePattern,
 		shortTitlePattern: settings.yearlyNoteShortTitlePattern,
+		mediumTitlePattern: settings.yearlyNoteMediumTitlePattern,
+		yearPattern: 'YYYY',
 		timeUnit: 'year',
 	}
 
@@ -207,6 +217,11 @@ export class JournalNote {
 		return notes
 	}
 
+	shortLinkFrom(note: JournalNote, inactive = false): Link {
+		const pattern = note.formattedYear() === this.formattedYear() ? this.strategy.shortTitlePattern : this.strategy.mediumTitlePattern
+		return this.linkWithTitlePattern(pattern, inactive)
+	}
+
 	link(titlePattern: 'regular' | 'short' = 'short', inactive = false): Link {
 		const pattern = titlePattern === 'regular' ? this.strategy.titlePattern : this.strategy.shortTitlePattern
 		return this.linkWithTitlePattern(pattern, inactive)
@@ -235,6 +250,10 @@ export class JournalNote {
 				moment(adjacentFileName, this.strategy.filePattern),
 			)
 		}
+	}
+
+	private formattedYear(): string {
+		return this.fileMoment.format(this.strategy.yearPattern)
 	}
 
 	private getLowerOrderStrategy(): JournalNoteStrategy | undefined {
