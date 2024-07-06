@@ -227,7 +227,8 @@ export class JournalNote {
 	}
 
 	shortLinkFrom(note: JournalNote, inactive = false): Link {
-		const pattern = note.formattedYear() === this.formattedYear() ? this.strategy.shortTitlePattern : this.strategy.mediumTitlePattern
+		const pattern = note.formattedYear() === this.formattedYear(note.strategy.yearPattern)
+			? this.strategy.shortTitlePattern : this.strategy.mediumTitlePattern
 		return this.linkWithTitlePattern(pattern, inactive)
 	}
 
@@ -261,8 +262,8 @@ export class JournalNote {
 		}
 	}
 
-	private formattedYear(): string {
-		return this.fileMoment.format(this.strategy.yearPattern)
+	private formattedYear(yearPattern = this.strategy.yearPattern): string {
+		return this.fileMoment.format(yearPattern)
 	}
 
 	private getLowerOrderStrategy(): JournalNoteStrategy | undefined {

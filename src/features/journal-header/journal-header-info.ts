@@ -38,8 +38,8 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 	function buildCenterLinks(): Link[] {
 		const links = note
 			.getHigherOrderNotes()
-			.filter(note => note.isExistingNote() || note.isPresentOrFuture())
-			.map(note => note.shortLinkFrom(note))
+			.filter(n => n.isExistingNote() || n.isPresentOrFuture())
+			.map(n => n.shortLinkFrom(note))
 
 		if (!note.isToday()) {
 			links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
