@@ -196,3 +196,13 @@ The _Journal Folder_ plugin includes a configuration tab that is available in Ob
 - It is planned to provide a code block processor that can be used to render a calendar.
 - By default the feature will handle the current note's folder as calendar folder.  However, this will be configurable within the code block to point to other folders.
 - If this feature is placed within a calendar note, by default the visible month range will be determined by the note type and date.  The user will however be able to configure a custom range and behaviour within the code block.
+
+---
+
+## For Consideration: Journal note scoped task queries
+- While it is possible to create task queries based on the current note's date range and folder using _Templater_, this would be difficult to set up and maintain.
+- It is considered to provide a means of adding task queries that will automatically be configured based on the journal note that it is placed in.  
+- For example, the default rules applied for such a query placed within a monthly note would be **something** like the following (subject to change upon further thought):
+	- Tasks situated in any weekly or daily note that falls within the current note's month will be displayed.
+	- Tasks scheduled, or due in the current note's month will be displayed.
+	- Tasks that are already overdue and for which the due date is on or before the current note's month
