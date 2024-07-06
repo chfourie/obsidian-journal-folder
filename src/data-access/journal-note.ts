@@ -124,6 +124,7 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 
 export class JournalNote {
 	private readonly name: string
+	private readonly lastDay: moment.Moment
 
 	constructor(
 		private strategies: JournalNoteStrategies,
@@ -134,6 +135,7 @@ export class JournalNote {
 		private present: moment.Moment,
 		private today: moment.Moment) {
 		this.name = fileMoment.format(this.strategy.filePattern)
+		this.lastDay = fileMoment.clone().add(1, strategy.timeUnit).subtract(1, 'day')
 	}
 
 	getTitle(): string {
@@ -195,10 +197,17 @@ export class JournalNote {
 
 		for (const strategy of this.strategies.BY_DESCENDING_ORDER) {
 			if (this.strategy === strategy) break
-			notes.push(this.createNote(strategy))
+			const note = this.createNote(strategy)
+			notes.push(note)
+			const note2 = this.createNote(strategy, this.lastDay)
+			if (!note2.sameNoteAs(note)) notes.push(note2)
 		}
 
 		return notes
+	}
+
+	private sameNoteAs(note: JournalNote): boolean {
+		return note.strategy === this.strategy && note.fileMoment.isSame(this.fileMoment, 'day')
 	}
 
 	getLowerOrderNotes(): JournalNote[] {
