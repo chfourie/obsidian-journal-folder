@@ -39,7 +39,7 @@ export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
 		const links = note
 			.getHigherOrderNotes()
 			.filter(note => note.isExistingNote() || note.isPresentOrFuture())
-			.map(note => note.link())
+			.map(note => note.shortLinkFrom(note))
 
 		if (!note.isToday()) {
 			links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
