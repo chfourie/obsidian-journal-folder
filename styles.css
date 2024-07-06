@@ -3,7 +3,7 @@
 .journal-folder-header-title {
 	width: fit-content;
 	margin-inline: auto;
-	margin-bottom: 0.2rem;
+	margin-bottom: 0.4rem !important;
 }
 
 .journal-folder-header-options {
