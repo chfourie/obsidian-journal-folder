@@ -41,10 +41,6 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 		this.containerEl.empty()
 		const settings = { ...this.getCurrentSettings() }
 
-		const headingEl = document.createElement('h1')
-		headingEl.innerText = 'Journal Folder Settings'
-		this.containerEl.appendChild(headingEl)
-
 		this.createMomentSetting(settings, 'dailyNoteTitlePattern', 'Daily note title pattern')
 			.setDesc(
 				'The pattern used to render the title of a daily note. ' +

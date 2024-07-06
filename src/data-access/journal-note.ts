@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type TFile } from 'obsidian'
+import { normalizePath, type TFile } from 'obsidian'
 import moment from 'moment/moment'
 import type { JournalFolderSettings, Link } from './index'
 
@@ -308,6 +308,6 @@ export class JournalNote {
 	}
 
 	private fullPath(fileName: string): string {
-		return this.path ? `${this.path}/${fileName}` : fileName
+		return normalizePath(this.path ? `${this.path}/${fileName}` : fileName)
 	}
 }
