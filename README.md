@@ -8,10 +8,6 @@ _Folder based journaling_ enables the user to maintain multiple arbitrary journa
 
 It should be noted that, as with the initial releases of this plugin, while the date format used within files (for titles, links etc.) are configurable as per the user's preference, the file name format is fixed.  
 
-> [!IMPORTANT] Please note
-> Testing a note
-> Etc 
-
 The following journal note types are supported by the plugin:
 
 | **Note type** | **Filename Format** | Example filename |
@@ -177,11 +173,14 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 - If a link exists for the month, or the month ends in the present or future, a link to the monthly note is rendered.  Otherwise a plain text label is rendered.
 
 ### Configuration
-
 The _Journal Folder_ plugin includes a configuration tab that is available in Obsidian's configuration screens.  For each note type (daily, weekly, monthly, yearly), the the following is configurable....
 - **Title pattern:**  The date pattern used to render the title of the note.
 - Short title pattern:  The pattern used as labels for links to the note.
 - Medium title pattern: The pattern used as labels for links to this note where the this note falls in a different year than the note where the link is situated.  This pattern should typically be similar to the short title pattern, but should contain the year also to make the change in year explicit.
+
+> [!CAUTION]
+> As previously noted, the filename format for journal files isn't configurable in the first releases of this plugin.  The filename format used for weekly note files is `gggg-[W]ww`.  It is therefore important that, when setting up custom title patterns for weekly note titles and adding a year component, only 'gggg' or 'gg' should be used.  Any other variant used (e.g. yyyy, YYYY, GGGG, GG etc.) will result in discrepancies between the date in the filename and the date displayed to the user.
+
 
 ![](documents/attachments/Pasted%20image%2020240706165831.png)
 
