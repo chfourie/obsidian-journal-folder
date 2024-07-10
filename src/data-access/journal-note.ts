@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import { normalizePath, type TFile } from 'obsidian'
 import type { JournalFolderSettings, Link } from './index'
 
-// The following works when I build but IDE gives me a typescript warning when calling moment(...)
+// The following works when I build but IDE gives me a typescript warning when calling window.moment(...)
 // TS2349: This expression is not callable.
 // Type typeof moment has no call signatures.
 // obsidian.d.ts(9, 1): Type originates at this import. A namespace-style import cannot be called or constructed,
@@ -29,11 +29,21 @@ import type { JournalFolderSettings, Link } from './index'
 // Liam Cain seems to suggest using...
 // import { Moment } from moment
 // ... in combination with ...
-// window.moment(...)
+// window.window.moment(...)
 // refer to:
 // - https://publish.obsidian.md/tasks-contributing/Code/How+do+I+use+Moment+in+src
 // - https://liamca.in/Obsidian/API+FAQ/third-party/use+momentjs
 // For now I'm just ignoring the TS warnings
+
+// IDE suggests this is declared but not read.
+// Liam Cain seems to suggest using...
+// import { Moment } from moment
+// ... in combination with ...
+// window.window.moment(...)
+// refer to:
+// - https://publish.obsidian.md/tasks-contributing/Code/How+do+I+use+Moment+in+src
+// - https://liamca.in/Obsidian/API+FAQ/third-party/use+momentjs
+// I am not sure what I should do here
 import { moment } from 'obsidian'
 
 type JournalNoteStrategy = {
@@ -57,7 +67,7 @@ type JournalNoteStrategies = {
 export type JournalNoteFactory = (file: TFile) => JournalNote
 
 function startOfInterval(sourceMoment: moment.Moment, pattern: string): moment.Moment {
-	return moment(sourceMoment.format(pattern), pattern)
+	return window.moment(sourceMoment.format(pattern), pattern)
 }
 
 export function journalNoteFactoryWithSettings(settings: JournalFolderSettings): JournalNoteFactory {
@@ -120,7 +130,7 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 
 	return function journalNote(file: TFile): JournalNote {
 		const strategy = getNoteStrategy(file)
-		const today = moment().startOf('day')
+		const today = window.moment().startOf('day')
 		const noteNames = (file.parent?.children || [])
 			.map(f => f.name.replace(/\.md$/, ''))
 
@@ -129,7 +139,7 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 			file.parent?.path || '',
 			noteNames,
 			strategy,
-			moment(file.basename, strategy.filePattern),
+			window.moment(file.basename, strategy.filePattern),
 			startOfInterval(today, strategy.filePattern),
 			today,
 		)
@@ -273,7 +283,7 @@ export class JournalNote {
 
 		if (adjacentFileName) {
 			return this.createNoteOfSameTimeUnit(
-				moment(adjacentFileName, this.strategy.filePattern),
+				window.moment(adjacentFileName, this.strategy.filePattern),
 			)
 		}
 	}
