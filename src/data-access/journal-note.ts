@@ -17,8 +17,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { normalizePath, type TFile } from 'obsidian'
-import moment from 'moment/moment'
 import type { JournalFolderSettings, Link } from './index'
+
+// The following works when I build but IDE gives me a typescript warning when calling moment(...)
+// TS2349: This expression is not callable.
+// Type typeof moment has no call signatures.
+// obsidian.d.ts(9, 1): Type originates at this import. A namespace-style import cannot be called or constructed,
+// and will cause a failure at runtime. Consider using a default import or import require here instead.
+//
+// I could also not find an example for the above.
+// Liam Cain seems to suggest using...
+// import { Moment } from moment
+// ... in combination with ...
+// window.moment(...)
+// refer to:
+// - https://publish.obsidian.md/tasks-contributing/Code/How+do+I+use+Moment+in+src
+// - https://liamca.in/Obsidian/API+FAQ/third-party/use+momentjs
+// For now I'm just ignoring the TS warnings
+import { moment } from 'obsidian'
 
 type JournalNoteStrategy = {
 	fileRegex: RegExp
