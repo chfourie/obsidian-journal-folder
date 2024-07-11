@@ -18,16 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { normalizePath, type TFile } from 'obsidian'
 import type { JournalFolderSettings, Link } from './index'
-
-// IDE suggests this is declared but not read.
-// Liam Cain seems to suggest using...
-// import { Moment } from moment
-// ... in combination with ...
-// window.window.moment(...)
-// refer to:
-// - https://publish.obsidian.md/tasks-contributing/Code/How+do+I+use+Moment+in+src
-// - https://liamca.in/Obsidian/API+FAQ/third-party/use+momentjs
-// I am not sure what I should do here
 import { moment } from 'obsidian'
 
 type JournalNoteStrategy = {
@@ -51,7 +41,8 @@ type JournalNoteStrategies = {
 export type JournalNoteFactory = (file: TFile) => JournalNote
 
 function startOfInterval(sourceMoment: moment.Moment, pattern: string): moment.Moment {
-	return window.moment(sourceMoment.format(pattern), pattern)
+	// @ts-ignore
+	return moment(sourceMoment.format(pattern), pattern)
 }
 
 export function journalNoteFactoryWithSettings(settings: JournalFolderSettings): JournalNoteFactory {
@@ -114,7 +105,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 
 	return function journalNote(file: TFile): JournalNote {
 		const strategy = getNoteStrategy(file)
-		const today = window.moment().startOf('day')
+		// @ts-ignore
+		const today = moment().startOf('day')
 		const noteNames = (file.parent?.children || [])
 			.map(f => f.name.replace(/\.md$/, ''))
 
@@ -123,7 +115,8 @@ export function journalNoteFactoryWithSettings(settings: JournalFolderSettings):
 			file.parent?.path || '',
 			noteNames,
 			strategy,
-			window.moment(file.basename, strategy.filePattern),
+			// @ts-ignore
+			moment(file.basename, strategy.filePattern),
 			startOfInterval(today, strategy.filePattern),
 			today,
 		)
@@ -267,7 +260,8 @@ export class JournalNote {
 
 		if (adjacentFileName) {
 			return this.createNoteOfSameTimeUnit(
-				window.moment(adjacentFileName, this.strategy.filePattern),
+				// @ts-ignore
+				moment(adjacentFileName, this.strategy.filePattern),
 			)
 		}
 	}
