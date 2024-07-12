@@ -47,7 +47,7 @@ To render a header in your journal note, simply add the following to the top of 
 
 ![](documents/attachments/Pasted%20image%2020240706111931.png)
 
-Note that the header will render correctly without the `%%title%%` in the first line.   It is however recommended to include it for the following reason... If the `journal-header` code block is placed on the first line, whenever you open a document in edit mode, the cursor (which defaults to the first line in the file) will start off on the code block.  This results in the code block being rendered instead of the title until the user moves the cursor off it.  This behaviour can be a bit distracting.
+Note that the header will render correctly without the `%%title%%` in the first line.   It is however recommended to include a comment line for the following reason... If the `journal-header` code block is placed on the first line, whenever you open a document in edit mode, the cursor (which defaults to the first line in the file) will start off on the code block.  This results in the code block being rendered instead of the title until the user moves the cursor off it.  This behaviour can be a bit distracting.
 
 By placing a comment on the first line, the cursor will fall on the comment when entering edit mode in stead of the header, providing a better user experience.   However, when switching to _reading view_, the comment is omitted, resulting in the header being rendered right at the top of the document.
 
