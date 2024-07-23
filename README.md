@@ -17,6 +17,9 @@ The following journal note types are supported by the plugin:
 | Monthly note  | YYYY-MM             | 2024-07.md       |
 | Yearly note   | YYYY                | 2024.md          |
 
+> [!CAUTION]
+> Please take note that, due to the way in which link resolution is handled in Obsidian, using the vault's root folder as a journal folder is not supported by this plugin.  
+
 The following is a list of features that have been, or are planned to be implemented in this plugin...
 
 ---
