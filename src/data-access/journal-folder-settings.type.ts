@@ -29,9 +29,6 @@ export type JournalFolderSettings = {
 	yearlyNoteTitlePattern: string
 	yearlyNoteShortTitlePattern: string
 	yearlyNoteMediumTitlePattern: string
-	showWeeklyLinks: boolean
-	showMonthlyLinks: boolean
-	showYearlyLinks: boolean
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
@@ -47,7 +44,4 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
 	yearlyNoteTitlePattern: 'YYYY',
 	yearlyNoteShortTitlePattern: 'YYYY',
 	yearlyNoteMediumTitlePattern: 'YYYY',
-	showWeeklyLinks: true,
-	showMonthlyLinks: true,
-	showYearlyLinks: true,
 }

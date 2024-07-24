@@ -18,18 +18,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import type { JournalFolderSettings } from './journal-folder-settings.type'
 import type { Plugin, TFile } from 'obsidian'
+import { FolderSettingsResolver } from './folder-settings-resolver'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
-	#settings: JournalFolderSettings | undefined
+	#settingsResolver: FolderSettingsResolver
 
 	protected constructor(protected plugin: Plugin) {
+		this.#settingsResolver = new FolderSettingsResolver(plugin)
 	}
 
-	// noinspection JSUnusedGlobalSymbols
-	protected get settings() {
-		if (!this.#settings) throw new Error('Settings must be set')
-		return this.#settings
+	protected getSettings(file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
+		return this.#settingsResolver.resolve(file, embeddedConfig)
 	}
 
 	async load(): Promise<void> {
@@ -42,7 +42,7 @@ export abstract class PluginFeature {
 	}
 
 	useSettings(settings: JournalFolderSettings): void {
-		this.#settings = settings
+		this.#settingsResolver.useSettings(settings)
 	}
 
 	getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {

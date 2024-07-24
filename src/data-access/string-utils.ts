@@ -16,9 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
+export function camelCase(str: string): string {
+	return str
+		.toLowerCase()
+		.trim()
+		.split(/[ _-]/)
+		.reduce((s, c) => s + (c.charAt(0).toUpperCase()) + c.slice(1))
+}
