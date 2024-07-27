@@ -65,6 +65,11 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 ![](documents/attachments/Pasted%20image%2020240727125104.png)
 
+##### Folder title
+- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
+- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
+- See section on Configuration later in this document for more details.
+
 ##### Title
 - Renders the date represented by the journal note, using the specified date format for the note type.
 - The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
@@ -96,6 +101,11 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 #### Weekly notes
 
 ![](documents/attachments/Pasted%20image%2020240727131319.png)
+
+##### Folder title
+- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
+- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
+- See section on Configuration later in this document for more details.
 
 ##### Title
 - Renders the week represented by the journal note, using the specified date format for the note type.
@@ -129,6 +139,11 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 ![](documents/attachments/Pasted%20image%2020240727131617.png)
 
+##### Folder title
+- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
+- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
+- See section on Configuration later in this document for more details.
+
 ##### Title
 - Renders the month represented by the journal note, using the specified date format for the note type.
 - The date format used for the title can be configured in the _Journal Note_ plugin configuration tab (see topic on _Configuration_ later in this document).
@@ -155,6 +170,11 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 #### Yearly notes
 
 ![](documents/attachments/Pasted%20image%2020240727131909.png)
+
+##### Folder title
+- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
+- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
+- See section on Configuration later in this document for more details.
 
 ##### Title
 - Renders the year represented by the journal note, using the specified date format for the note type.
