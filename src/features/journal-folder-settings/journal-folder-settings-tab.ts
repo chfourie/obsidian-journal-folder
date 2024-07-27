@@ -22,6 +22,7 @@ import {
   type Plugin,
   PluginSettingTab,
   Setting,
+  TextComponent,
 } from 'obsidian'
 import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../../data-access'
 
@@ -38,6 +39,7 @@ type SettingsStringFieldName =
   | 'weeklyNoteMediumTitlePattern'
   | 'monthlyNoteMediumTitlePattern'
   | 'yearlyNoteMediumTitlePattern'
+  | 'journalFolderTitle'
 
 /***************************************************************************************************
  ** NOTE: This class has been slapped together in order to get the plugin released into the wild. **
@@ -201,6 +203,20 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'For help on the pattern syntax, refer to the link below.'
     )
 
+    this.createTextSetting(
+      settings,
+      'journalFolderTitle',
+      'Default journal folder title'
+    ).setDesc(
+      'The default title assigned to journal folders.  The journal folder title ' +
+        'is used in the rendering of journal headers as well as to identify the ' +
+        'folder in other views. The journal folder title should typically be ' +
+        'configured at folder level as it would typically be unique to that ' +
+        'folder.  The user is however provided the option to assign a default ' +
+        'value here.  For most users it would make most sense to leave the ' +
+        'default value blank.'
+    )
+
     new Setting(this.containerEl)
       .setName('Reset all to default values')
       .addButton((btn) => {
@@ -271,5 +287,39 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     sampleEl.appendChild(sampleValueEl)
     this.containerEl.appendChild(sampleEl)
     return setting
+  }
+
+  createTextSetting(
+    settings: JournalFolderSettings,
+    fieldName: SettingsStringFieldName,
+    name: string
+  ): Setting {
+    let component: TextComponent
+
+    return new Setting(this.containerEl)
+      .setName(name)
+      .addText((text) => {
+        component = text
+        const onChange = debounce(
+          (value: string) => {
+            settings[fieldName] = value
+            // noinspection JSIgnoredPromiseFromCall
+            this.saveSettings(settings)
+          },
+          250,
+          true
+        )
+
+        text.setValue(settings[fieldName]).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS[fieldName])
+            component.onChanged()
+          })
+      })
   }
 }
