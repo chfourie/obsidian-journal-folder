@@ -17,44 +17,76 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { type FrontMatterCache, type Plugin, type TFile } from 'obsidian'
-import { DEFAULT_SETTINGS, type JournalFolderSettings } from './journal-folder-settings.type'
+import { type JournalFolderSettings } from './journal-folder-settings.type'
 import { camelCase } from './string-utils'
 
 export class FolderSettingsResolver {
+  constructor(private plugin: Plugin) {}
 
-	constructor(private plugin: Plugin) {
-	}
+  resolve(
+    globalSettings: JournalFolderSettings,
+    file: TFile | null = null,
+    embeddedConfig = ''
+  ): JournalFolderSettings {
+    return {
+      ...globalSettings,
+      ...this.getFolderConfig(file),
+      ...this.getEmbeddedConfig(embeddedConfig),
+    }
+  }
 
-	resolve(globalSettings:JournalFolderSettings, file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
-		return { ...globalSettings, ...this.getFolderConfig(file), ...this.getEmbeddedConfig(embeddedConfig) }
-	}
+  private getFolderConfig(file: TFile | null): Partial<JournalFolderSettings> {
+    const config = {}
+    const frontMatter = this.getFrontMatterCache(this.getFolderConfigFile(file))
 
-	private getFolderConfig(file: TFile | null): Partial<JournalFolderSettings> {
-		const config = {}
-		const frontMatter = this.getFrontMatterCache(this.getFolderConfigFile(file))
+    Object.keys(frontMatter).forEach((key) => {
+      const configKey = camelCase(key)
+      // @ts-ignore
+      config[configKey] = frontMatter[key]
+    })
 
-		Object.keys(frontMatter).forEach(key => {
-			const configKey = camelCase(key)
-			// @ts-ignore
-			config[configKey] = frontMatter[key]
-		})
+    return config
+  }
 
-		return config
-	}
+  private getFolderConfigFile(file: TFile | null) {
+    if (!file) return null
+    const linkPath = `${file.parent?.path}/journal-folder.md`
+    return this.plugin.app.metadataCache.getFirstLinkpathDest(linkPath, '')
+  }
 
-	private getFolderConfigFile(file: TFile | null) {
-		if (!file) return null
-		const linkPath = `${file.parent?.path}/journal-folder.md`
-		return this.plugin.app.metadataCache.getFirstLinkpathDest(linkPath, '')
-	}
+  private getEmbeddedConfig(rawConfig: string): Partial<JournalFolderSettings> {
+    const config = {}
+    rawConfig = rawConfig.trim()
+    if (!rawConfig) return {}
 
-	private getEmbeddedConfig(rawConfig: string): Partial<JournalFolderSettings> {
-		if (!rawConfig.trim()) return {}
-		return {}
-	}
+    rawConfig
+      .split('\n')
+      .map((line) => this.keyValuePair(line))
+      .filter((item) => !!item)
+      .forEach((item) => {
+        // @ts-ignore
+        config[item.key] = item.value
+      })
 
-	private getFrontMatterCache(file: TFile | null): FrontMatterCache {
-		const frontMatter = (file && this.plugin.app.metadataCache.getFileCache(file)?.frontmatter)
-		return frontMatter || {}
-	}
+    return config
+  }
+
+  private getFrontMatterCache(file: TFile | null): FrontMatterCache {
+    const frontMatter =
+      file && this.plugin.app.metadataCache.getFileCache(file)?.frontmatter
+    return frontMatter || {}
+  }
+
+  private keyValuePair(
+    line: string
+  ): { key: string; value: string } | undefined {
+    line = line.trim()
+    const separatorIndex = line.indexOf(':')
+
+    if (separatorIndex > 0) {
+      const key = camelCase(line.substring(0, separatorIndex).trim())
+      const value = line.substring(separatorIndex + 1).trim()
+      return { key, value }
+    }
+  }
 }

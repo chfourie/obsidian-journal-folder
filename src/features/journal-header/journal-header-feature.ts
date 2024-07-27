@@ -18,34 +18,43 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { mount } from 'svelte'
 import {
-	type JournalFolderSettings,
-	JournalNote,
-	journalNoteFactoryWithSettings,
-	PluginFeature,
+  type JournalFolderSettings,
+  JournalNote,
+  journalNoteFactoryWithSettings,
+  PluginFeature,
 } from 'src/data-access'
 import { ErrorMessage } from 'src/ui'
 import JournalHeader from './JournalHeader.svelte'
-import { buildJournalHeaderInfo, type JournalHeaderInfo } from './journal-header-info'
+import {
+  buildJournalHeaderInfo,
+  type JournalHeaderInfo,
+} from './journal-header-info'
 import type { Plugin, TFile } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
+  constructor(plugin: Plugin) {
+    super(plugin)
+  }
 
-	constructor(plugin: Plugin) {
-		super(plugin)
-	}
-
-	async load() {
-		this.plugin.registerMarkdownCodeBlockProcessor('journal-header', (source, el, ctx) => {
-			try {
-				const currentFile: TFile = this.expectCurrentFile(ctx.sourcePath)
-				const settings: JournalFolderSettings = this.getSettings(currentFile, source)
-				const note: JournalNote = journalNoteFactoryWithSettings(settings)(currentFile)
-				const info: JournalHeaderInfo = buildJournalHeaderInfo(settings, note)
-				// @ts-ignore
-				mount(JournalHeader, { target: el, props: { info } })
-			} catch (error) {
-				mount(ErrorMessage, { target: el, props: { error: `${error}` } })
-			}
-		})
-	}
+  async load() {
+    this.plugin.registerMarkdownCodeBlockProcessor(
+      'journal-header',
+      (source, el, ctx) => {
+        try {
+          const currentFile: TFile = this.expectCurrentFile(ctx.sourcePath)
+          const settings: JournalFolderSettings = this.getSettings(
+            currentFile,
+            source
+          )
+          const note: JournalNote =
+            journalNoteFactoryWithSettings(settings)(currentFile)
+          const info: JournalHeaderInfo = buildJournalHeaderInfo(settings, note)
+          // @ts-ignore
+          mount(JournalHeader, { target: el, props: { info } })
+        } catch (error) {
+          mount(ErrorMessage, { target: el, props: { error: `${error}` } })
+        }
+      }
+    )
+  }
 }

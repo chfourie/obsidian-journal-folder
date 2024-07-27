@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 export type Link = {
-	title: string
-	url: string
-	inactive?: boolean
+  title: string
+  url: string
+  inactive?: boolean
 }

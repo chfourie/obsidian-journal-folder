@@ -16,70 +16,74 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type JournalFolderSettings, JournalNote, type Link } from '../../data-access'
+import {
+  type JournalFolderSettings,
+  JournalNote,
+  type Link,
+} from '../../data-access'
 
 export type JournalHeaderInfo = {
-	title: string
-	centerLinks: Link[]
-	backwardLink: Link | undefined
-	forwardLink: Link | undefined
-	secondaryLinks: Link[]
-	journalFolderTitle?: string
+  title: string
+  centerLinks: Link[]
+  backwardLink: Link | undefined
+  forwardLink: Link | undefined
+  secondaryLinks: Link[]
+  journalFolderTitle?: string
 }
 
-export function buildJournalHeaderInfo(settings: JournalFolderSettings, note: JournalNote): JournalHeaderInfo {
-	return {
-		title: note.getTitle(),
-		centerLinks: buildCenterLinks(),
-		backwardLink: createBackwardLink(),
-		forwardLink: createForwardLink(),
-		secondaryLinks: buildSecondaryLinks(),
-		journalFolderTitle: settings.journalFolderTitle
-	}
+export function buildJournalHeaderInfo(
+  settings: JournalFolderSettings,
+  note: JournalNote
+): JournalHeaderInfo {
+  return {
+    title: note.getTitle(),
+    centerLinks: buildCenterLinks(),
+    backwardLink: createBackwardLink(),
+    forwardLink: createForwardLink(),
+    secondaryLinks: buildSecondaryLinks(),
+    journalFolderTitle: settings.journalFolderTitle,
+  }
 
-	function buildCenterLinks(): Link[] {
-		const links = note
-			.getHigherOrderNotes()
-			.filter(n => n.isExistingNote() || n.isPresentOrFuture())
-			.map(n => n.shortLinkFrom(note))
+  function buildCenterLinks(): Link[] {
+    const links = note
+      .getHigherOrderNotes()
+      .filter((n) => n.isExistingNote() || n.isPresentOrFuture())
+      .map((n) => n.shortLinkFrom(note))
 
-		if (!note.isToday()) {
-			links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
-		}
+    if (!note.isToday()) {
+      links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
+    }
 
-		return links
-	}
+    return links
+  }
 
-	function createForwardLink(): Link | undefined {
-		const directSibling = note.forwardInTime()
+  function createForwardLink(): Link | undefined {
+    const directSibling = note.forwardInTime()
 
-		if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
-			return directSibling.shortLinkFrom(note)
-		}
+    if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
+      return directSibling.shortLinkFrom(note)
+    }
 
-		const closestSibling = note.closestSibling('after')
+    const closestSibling = note.closestSibling('after')
 
-		if (closestSibling) {
-			return closestSibling.shortLinkFrom(note)
-		}
-	}
+    if (closestSibling) {
+      return closestSibling.shortLinkFrom(note)
+    }
+  }
 
-	function createBackwardLink(): Link | undefined {
-		const directSibling = note.backInTime()
+  function createBackwardLink(): Link | undefined {
+    const directSibling = note.backInTime()
 
-		if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
-			return directSibling.shortLinkFrom(note)
-		}
+    if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
+      return directSibling.shortLinkFrom(note)
+    }
 
-		return note.closestSibling('before')?.shortLinkFrom(note)
-	}
+    return note.closestSibling('before')?.shortLinkFrom(note)
+  }
 
-	function buildSecondaryLinks(): Link[] {
-		return note
-			.getLowerOrderNotes()
-			.map(n => n.link(
-				'short',
-				n.isMissingNote() && n.isPast(),
-			))
-	}
+  function buildSecondaryLinks(): Link[] {
+    return note
+      .getLowerOrderNotes()
+      .map((n) => n.link('short', n.isMissingNote() && n.isPast()))
+  }
 }

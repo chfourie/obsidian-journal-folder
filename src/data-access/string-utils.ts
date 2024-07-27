@@ -17,9 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 export function camelCase(str: string): string {
-	return str
-		.toLowerCase()
-		.trim()
-		.split(/[ _-]/)
-		.reduce((s, c) => s + (c.charAt(0).toUpperCase()) + c.slice(1))
+  return str
+    .toLowerCase()
+    .trim()
+    .split(/[ _-]/)
+    .reduce((s, c) => s + c.charAt(0).toUpperCase() + c.slice(1))
 }

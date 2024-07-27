@@ -16,36 +16,49 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DEFAULT_SETTINGS, type JournalFolderSettings, PluginFeature } from '../../data-access'
+import {
+  DEFAULT_SETTINGS,
+  type JournalFolderSettings,
+  PluginFeature,
+} from '../../data-access'
 import type { Plugin } from 'obsidian'
 import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
 
 export class JournalFolderSettingsFeature extends PluginFeature {
+  constructor(
+    plugin: Plugin,
+    private propagateSettings: (settings: JournalFolderSettings) => void
+  ) {
+    super(plugin)
+    this.useSettings(DEFAULT_SETTINGS)
+  }
 
-	constructor(plugin: Plugin, private propagateSettings: (settings: JournalFolderSettings) => void) {
-		super(plugin)
-		this.useSettings(DEFAULT_SETTINGS)
-	}
+  async load(): Promise<void> {
+    await this.updateSettingsFromStorage()
 
-	async load(): Promise<void> {
-		await this.updateSettingsFromStorage()
+    this.plugin.addSettingTab(
+      new JournalFolderSettingsTab(
+        this.plugin,
+        () => this.globalSettings,
+        this.saveSettings
+      )
+    )
+  }
 
-		this.plugin.addSettingTab(
-			new JournalFolderSettingsTab(
-				this.plugin, () => this.globalSettings, this.saveSettings,
-			),
-		)
-	}
+  private readonly saveSettings = async (
+    settings: JournalFolderSettings
+  ): Promise<void> => {
+    await this.plugin.saveData(settings)
+    this.propagateSettings(settings)
+  }
 
-	private readonly saveSettings = async (settings: JournalFolderSettings): Promise<void> => {
-		await this.plugin.saveData(settings)
-		this.propagateSettings(settings)
-	}
+  readonly updateSettingsFromStorage = async (): Promise<void> => {
+    const settings = {
+      ...this.globalSettings,
+      ...(await this.plugin.loadData()),
+    }
+    await this.saveSettings(settings)
+  }
 
-	readonly updateSettingsFromStorage = async (): Promise<void> => {
-		const settings = { ...this.globalSettings, ...await this.plugin.loadData() }
-		await this.saveSettings(settings)
-	}
-
-	readonly onExternalSettingsChange = this.updateSettingsFromStorage
+  readonly onExternalSettingsChange = this.updateSettingsFromStorage
 }

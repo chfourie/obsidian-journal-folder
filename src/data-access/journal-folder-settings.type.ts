@@ -17,32 +17,32 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 export type JournalFolderSettings = {
-	dailyNoteTitlePattern: string
-	dailyNoteShortTitlePattern: string
-	dailyNoteMediumTitlePattern: string
-	weeklyNoteTitlePattern: string
-	weeklyNoteShortTitlePattern: string
-	weeklyNoteMediumTitlePattern: string
-	monthlyNoteTitlePattern: string
-	monthlyNoteShortTitlePattern: string
-	monthlyNoteMediumTitlePattern: string
-	yearlyNoteTitlePattern: string
-	yearlyNoteShortTitlePattern: string
-	yearlyNoteMediumTitlePattern: string
-	journalFolderTitle?: string
+  dailyNoteTitlePattern: string
+  dailyNoteShortTitlePattern: string
+  dailyNoteMediumTitlePattern: string
+  weeklyNoteTitlePattern: string
+  weeklyNoteShortTitlePattern: string
+  weeklyNoteMediumTitlePattern: string
+  monthlyNoteTitlePattern: string
+  monthlyNoteShortTitlePattern: string
+  monthlyNoteMediumTitlePattern: string
+  yearlyNoteTitlePattern: string
+  yearlyNoteShortTitlePattern: string
+  yearlyNoteMediumTitlePattern: string
+  journalFolderTitle?: string
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
-	dailyNoteTitlePattern: 'dddd, DD MMMM YYYY',
-	dailyNoteShortTitlePattern: 'ddd, D MMM',
-	dailyNoteMediumTitlePattern: 'ddd, D MMM YY',
-	weeklyNoteTitlePattern: 'gggg [Week] w',
-	weeklyNoteShortTitlePattern: '[W]ww',
-	weeklyNoteMediumTitlePattern: '[W]ww gg',
-	monthlyNoteTitlePattern: 'MMMM YYYY',
-	monthlyNoteShortTitlePattern: 'MMM',
-	monthlyNoteMediumTitlePattern: 'MMM YY',
-	yearlyNoteTitlePattern: 'YYYY',
-	yearlyNoteShortTitlePattern: 'YYYY',
-	yearlyNoteMediumTitlePattern: 'YYYY',
+  dailyNoteTitlePattern: 'dddd, DD MMMM YYYY',
+  dailyNoteShortTitlePattern: 'ddd, D MMM',
+  dailyNoteMediumTitlePattern: 'ddd, D MMM YY',
+  weeklyNoteTitlePattern: 'gggg [Week] w',
+  weeklyNoteShortTitlePattern: '[W]ww',
+  weeklyNoteMediumTitlePattern: '[W]ww gg',
+  monthlyNoteTitlePattern: 'MMMM YYYY',
+  monthlyNoteShortTitlePattern: 'MMM',
+  monthlyNoteMediumTitlePattern: 'MMM YY',
+  yearlyNoteTitlePattern: 'YYYY',
+  yearlyNoteShortTitlePattern: 'YYYY',
+  yearlyNoteMediumTitlePattern: 'YYYY',
 }

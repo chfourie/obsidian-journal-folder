@@ -16,47 +16,56 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DEFAULT_SETTINGS, type JournalFolderSettings } from './journal-folder-settings.type'
+import {
+  DEFAULT_SETTINGS,
+  type JournalFolderSettings,
+} from './journal-folder-settings.type'
 import type { Plugin, TFile } from 'obsidian'
 import { FolderSettingsResolver } from './folder-settings-resolver'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
-	#settingsResolver: FolderSettingsResolver
-	#settings = DEFAULT_SETTINGS
+  #settingsResolver: FolderSettingsResolver
+  #settings = DEFAULT_SETTINGS
 
-	protected constructor(protected plugin: Plugin) {
-		this.#settingsResolver = new FolderSettingsResolver(plugin)
-	}
+  protected constructor(protected plugin: Plugin) {
+    this.#settingsResolver = new FolderSettingsResolver(plugin)
+  }
 
-	protected get globalSettings(): JournalFolderSettings {
-		return this.#settings
-	}
+  protected get globalSettings(): JournalFolderSettings {
+    return this.#settings
+  }
 
-	protected getSettings(file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
-		return this.#settingsResolver.resolve(this.#settings, file, embeddedConfig)
-	}
+  protected getSettings(
+    file: TFile | null = null,
+    embeddedConfig = ''
+  ): JournalFolderSettings {
+    return this.#settingsResolver.resolve(this.#settings, file, embeddedConfig)
+  }
 
-	async load(): Promise<void> {
-	}
+  async load(): Promise<void> {}
 
-	unload(): void {
-	}
+  unload(): void {}
 
-	onExternalSettingsChange(): void {
-	}
+  onExternalSettingsChange(): void {}
 
-	useSettings(settings: JournalFolderSettings): void {
-		this.#settings = settings
-	}
+  useSettings(settings: JournalFolderSettings): void {
+    this.#settings = settings
+  }
 
-	getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {
-		return this.plugin.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath)
-	}
+  getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {
+    return this.plugin.app.metadataCache.getFirstLinkpathDest(
+      linkPath,
+      sourcePath
+    )
+  }
 
-	expectCurrentFile(linkPath: string, sourcePath = ''): TFile {
-		const file: TFile | null = this.getCurrentFile(linkPath, sourcePath)
-		if (!file) throw Error(`Current not found (linkPath: ${sourcePath}, sourcePath: ${sourcePath})`)
-		return file
-	}
+  expectCurrentFile(linkPath: string, sourcePath = ''): TFile {
+    const file: TFile | null = this.getCurrentFile(linkPath, sourcePath)
+    if (!file)
+      throw Error(
+        `Current not found (linkPath: ${sourcePath}, sourcePath: ${sourcePath})`
+      )
+    return file
+  }
 }
