@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { JournalNote, type Link } from '../../data-access'
+import { type JournalFolderSettings, JournalNote, type Link } from '../../data-access'
 
 export type JournalHeaderInfo = {
 	title: string
@@ -24,15 +24,17 @@ export type JournalHeaderInfo = {
 	backwardLink: Link | undefined
 	forwardLink: Link | undefined
 	secondaryLinks: Link[]
+	journalFolderTitle?: string
 }
 
-export function buildJournalHeaderInfo(note: JournalNote): JournalHeaderInfo {
+export function buildJournalHeaderInfo(settings: JournalFolderSettings, note: JournalNote): JournalHeaderInfo {
 	return {
 		title: note.getTitle(),
 		centerLinks: buildCenterLinks(),
 		backwardLink: createBackwardLink(),
 		forwardLink: createForwardLink(),
 		secondaryLinks: buildSecondaryLinks(),
+		journalFolderTitle: settings.journalFolderTitle
 	}
 
 	function buildCenterLinks(): Link[] {

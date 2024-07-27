@@ -35,10 +35,8 @@ export class FolderSettingsResolver {
 
 		Object.keys(frontMatter).forEach(key => {
 			const configKey = camelCase(key)
-			if (Object.keys(DEFAULT_SETTINGS).some(key => key === configKey)) {
-				// @ts-ignore
-				config[configKey] = frontMatter[key]
-			}
+			// @ts-ignore
+			config[configKey] = frontMatter[key]
 		})
 
 		return config

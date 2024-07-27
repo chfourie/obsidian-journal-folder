@@ -26,7 +26,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 </script>
 
 <div class="journal-folder-header">
-	<div class="journal-folder-header-folder-title">Project Havala</div>
+	{#if info.journalFolderTitle}
+		<div class="journal-folder-header-folder-title">{info.journalFolderTitle}</div>
+	{/if}
+
 	<h1 class="journal-folder-header-title">{info.title}</h1>
 
 	<div class="journal-folder-header-options">
