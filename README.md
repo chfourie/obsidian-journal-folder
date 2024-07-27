@@ -31,19 +31,19 @@ The _journal header_ feature is a code block processor that renders an appropria
 Examples of rendered headers for the different supported note types are as follows:
 
 Daily note
-![](documents/attachments/Pasted%20image%2020240706102800.png)
+![](documents/attachments/Pasted%20image%2020240727154201.png)
 
 
 Weekly note
-![](documents/attachments/Pasted%20image%2020240706103524.png)
+![](documents/attachments/Pasted%20image%2020240727154226.png)
 
 
 Monthly note
-![](documents/attachments/Pasted%20image%2020240706103917.png)
+![](documents/attachments/Pasted%20image%2020240727154258.png)
 
 
 Yearly note
-![](documents/attachments/Pasted%20image%2020240706104024.png)
+![](documents/attachments/Pasted%20image%2020240727154342.png)
 
 ### Using the Journal Header feature
 To render a header in your journal note, simply add the following to the top of your note...
