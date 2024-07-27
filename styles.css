@@ -1,9 +1,17 @@
 /*No global styles to declare*/
 
+.journal-folder-header-folder-title {
+	width: fit-content;
+	margin-inline: auto;
+	font-size: 1.2rem;
+	opacity: 35%;
+	margin-bottom: 0.4rem;
+}
+
 .journal-folder-header-title {
 	width: fit-content;
 	margin-inline: auto;
-	margin-bottom: 0.4rem !important;
+	margin-block: .4rem !important;
 }
 
 .journal-folder-header-options {

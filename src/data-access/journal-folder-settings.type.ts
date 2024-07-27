@@ -29,6 +29,7 @@ export type JournalFolderSettings = {
 	yearlyNoteTitlePattern: string
 	yearlyNoteShortTitlePattern: string
 	yearlyNoteMediumTitlePattern: string
+	journalFolderTitle?: string
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {

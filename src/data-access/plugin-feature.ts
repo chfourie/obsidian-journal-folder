@@ -16,20 +16,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { JournalFolderSettings } from './journal-folder-settings.type'
+import { DEFAULT_SETTINGS, type JournalFolderSettings } from './journal-folder-settings.type'
 import type { Plugin, TFile } from 'obsidian'
 import { FolderSettingsResolver } from './folder-settings-resolver'
 
 // noinspection JSUnusedLocalSymbols
 export abstract class PluginFeature {
 	#settingsResolver: FolderSettingsResolver
+	#settings = DEFAULT_SETTINGS
 
 	protected constructor(protected plugin: Plugin) {
 		this.#settingsResolver = new FolderSettingsResolver(plugin)
 	}
 
+	protected get globalSettings(): JournalFolderSettings {
+		return this.#settings
+	}
+
 	protected getSettings(file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
-		return this.#settingsResolver.resolve(file, embeddedConfig)
+		return this.#settingsResolver.resolve(this.#settings, file, embeddedConfig)
 	}
 
 	async load(): Promise<void> {
@@ -42,7 +47,7 @@ export abstract class PluginFeature {
 	}
 
 	useSettings(settings: JournalFolderSettings): void {
-		this.#settingsResolver.useSettings(settings)
+		this.#settings = settings
 	}
 
 	getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {

@@ -32,7 +32,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
 
 		this.plugin.addSettingTab(
 			new JournalFolderSettingsTab(
-				this.plugin, () => this.settings, this.saveSettings,
+				this.plugin, () => this.globalSettings, this.saveSettings,
 			),
 		)
 	}
@@ -43,7 +43,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
 	}
 
 	readonly updateSettingsFromStorage = async (): Promise<void> => {
-		const settings = { ...this.settings, ...await this.plugin.loadData() }
+		const settings = { ...this.globalSettings, ...await this.plugin.loadData() }
 		await this.saveSettings(settings)
 	}
 

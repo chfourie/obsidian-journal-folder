@@ -21,17 +21,12 @@ import { DEFAULT_SETTINGS, type JournalFolderSettings } from './journal-folder-s
 import { camelCase } from './string-utils'
 
 export class FolderSettingsResolver {
-	private settings: JournalFolderSettings = DEFAULT_SETTINGS
 
 	constructor(private plugin: Plugin) {
 	}
 
-	useSettings(settings: JournalFolderSettings): void {
-		this.settings = settings
-	}
-
-	resolve(file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
-		return { ...this.settings, ...this.getFolderConfig(file), ...this.getEmbeddedConfig(embeddedConfig) }
+	resolve(globalSettings:JournalFolderSettings, file: TFile | null = null, embeddedConfig = ''): JournalFolderSettings {
+		return { ...globalSettings, ...this.getFolderConfig(file), ...this.getEmbeddedConfig(embeddedConfig) }
 	}
 
 	private getFolderConfig(file: TFile | null): Partial<JournalFolderSettings> {
