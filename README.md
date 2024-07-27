@@ -63,7 +63,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ### Composition of a Journal header
 #### Daily notes
 
-![](documents/attachments/Pasted%20image%2020240706121140.png)
+![](documents/attachments/Pasted%20image%2020240727125104.png)
 
 ##### Title
 - Renders the date represented by the journal note, using the specified date format for the note type.
@@ -95,7 +95,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 #### Weekly notes
 
-![](documents/attachments/Pasted%20image%2020240706125854.png)
+![](documents/attachments/Pasted%20image%2020240727131319.png)
 
 ##### Title
 - Renders the week represented by the journal note, using the specified date format for the note type.
@@ -112,7 +112,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 - If a note exists for the current note's year component, or if the current note's year component represents the current or a future year, a link to the year note is rendered.
 - If the year component falls in the past and no note exists for the year component, this link is omitted.
 
-##### Current month link
+##### Current month(s) link
 - If a note exists for the current note's month component, or if the current note's month component represents the current or a future month, a link to the month note is rendered.
 - If the month component falls in the past and no note exists for the month component, this link is omitted.
 - If the weekly note's week spans over 2 months, links to both months may be displayed depending on the above criteria.
@@ -127,7 +127,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 #### Monthly notes
 
-![](documents/attachments/Pasted%20image%2020240706132022.png)
+![](documents/attachments/Pasted%20image%2020240727131617.png)
 
 ##### Title
 - Renders the month represented by the journal note, using the specified date format for the note type.
@@ -154,7 +154,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 #### Yearly notes
 
-![](documents/attachments/Pasted%20image%2020240706133312.png)
+![](documents/attachments/Pasted%20image%2020240727131909.png)
 
 ##### Title
 - Renders the year represented by the journal note, using the specified date format for the note type.
