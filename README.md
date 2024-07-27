@@ -194,8 +194,23 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ##### Month links for year
 - Renders links or plain text labels for each month that falls in the current link's year.
 - If a link exists for the month, or the month ends in the present or future, a link to the monthly note is rendered.  Otherwise a plain text label is rendered.
+#### Journal header options
+All configuration settings used in rendering a journal header can be overridden on an individual header.  This is accomplished by adding any config values that should be overridden as content to the code block.  As an example, the following journal-header code block...
+
+![](documents/attachments/Pasted%20image%2020240727164708.png)
+
+...would provide folder title and title...
+
+![](documents/attachments/Pasted%20image%2020240727164813.png)
+
+Setting names can be delimited by either spaces, dashes, or underscores.  Any uppercase/lowercase combination can be used.  As an example, all of the following front-matter declarations for the folder title are valid:
+- journal-folder-title: My Awesome Project
+- journal_folder_title: My Awesome Project
+- JOURNAL_FOLDER_TITLE: My Awesome Project
+- Journal folder title: My Awesome Project
 
 ### Configuration
+#### Vault level configuration
 The _Journal Folder_ plugin includes a configuration tab that is available in Obsidian's configuration screens.  For each note type (daily, weekly, monthly, yearly), the the following is configurable....
 - **Title pattern:**  The date pattern used to render the title of the note.
 - Short title pattern:  The pattern used as labels for links to the note.
@@ -206,7 +221,19 @@ The _Journal Folder_ plugin includes a configuration tab that is available in Ob
 
 
 ![](documents/attachments/Pasted%20image%2020240706165831.png)
+  
+#### Folder level configuration
+All configuration settings can be overridden at folder level.  This is accomplished by creating a note named "journal-folder" in the folder to be configured, and then adding any config values that should be overridden as front matter.
 
+![](documents/attachments/Pasted%20image%2020240727162726.png)
+
+Setting names can be delimited by either spaces, dashes, or underscores.  Any uppercase/lowercase combination can be used.  As an example, all of the following front-matter declarations for the folder title are valid:
+- journal-folder-title: My Awesome Project
+- journal_folder_title: My Awesome Project
+- JOURNAL_FOLDER_TITLE: My Awesome Project
+- Journal folder title: My Awesome Project
+
+---
 ### Future enhancements to the Journal Header feature
 
 #### Enhancement: Expandable header
