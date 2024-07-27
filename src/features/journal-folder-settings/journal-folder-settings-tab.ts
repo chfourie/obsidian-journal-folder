@@ -106,7 +106,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
         "For instance, using a pattern of 'WW-DD' would not make sense " +
         'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year" +
+        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
         'For help on the pattern syntax, refer to the link below.'
     )
 
@@ -120,7 +120,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
         "For instance, using a pattern of 'WW-DD' would not make sense " +
         'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year" +
+        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
         'For help on the pattern syntax, refer to the link below.'
     )
 
@@ -135,7 +135,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
         "For instance, using a pattern of 'WW-DD' would not make sense " +
         'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year" +
+        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
         'For help on the pattern syntax, refer to the link below.'
     )
 
