@@ -39,7 +39,7 @@ Weekly note
 
 
 Monthly note
-![](documents/attachments/Pasted%20image%2020240727154258.png)
+![](documents/attachments/Pasted%20image%2020240727154802.png)
 
 
 Yearly note
