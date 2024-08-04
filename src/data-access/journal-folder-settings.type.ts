@@ -30,6 +30,7 @@ export type JournalFolderSettings = {
   yearlyNoteShortTitlePattern: string
   yearlyNoteMediumTitlePattern: string
   journalFolderTitle: string
+  useFolderNameAsDefaultTitle: boolean
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
@@ -46,4 +47,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   yearlyNoteShortTitlePattern: 'YYYY',
   yearlyNoteMediumTitlePattern: 'YYYY',
   journalFolderTitle: '',
+  useFolderNameAsDefaultTitle: false,
 }

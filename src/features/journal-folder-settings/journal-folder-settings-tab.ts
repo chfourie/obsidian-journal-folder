@@ -23,6 +23,7 @@ import {
   PluginSettingTab,
   Setting,
   TextComponent,
+  ToggleComponent,
 } from 'obsidian'
 import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../../data-access'
 
@@ -46,6 +47,8 @@ type SettingsStringFieldName =
  ** It does the job, but will be replaced with a more refined version somewhere in the future.    **
  ** ************************************************************************************************/
 export class JournalFolderSettingsTab extends PluginSettingTab {
+  defaultJournalFolderTitleSetting: Setting | undefined
+
   constructor(
     private plugin: Plugin,
     private getCurrentSettings: () => JournalFolderSettings,
@@ -203,19 +206,11 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'For help on the pattern syntax, refer to the link below.'
     )
 
-    this.createTextSetting(
-      settings,
-      'journalFolderTitle',
-      'Default journal folder title'
-    ).setDesc(
-      'The default title assigned to journal folders.  The journal folder title ' +
-        'is used in the rendering of journal headers as well as to identify the ' +
-        'folder in other views. The journal folder title should typically be ' +
-        'configured at folder level as it would typically be unique to that ' +
-        'folder.  The user is however provided the option to assign a default ' +
-        'value here.  For most users it would make most sense to leave the ' +
-        'default value blank.'
-    )
+    this.createUseFolderNameAsDefaultTitleSetting(settings).setDesc(
+      'Hello world'
+    ) // TODO: set description
+
+    this.buildDefaultJournalFolderSetting(settings)
 
     new Setting(this.containerEl)
       .setName('Reset all to default values')
@@ -228,6 +223,35 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
             this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
           })
       })
+  }
+
+  buildDefaultJournalFolderSetting(settings: JournalFolderSettings): void {
+    if (!this.defaultJournalFolderTitleSetting) {
+      this.defaultJournalFolderTitleSetting = new Setting(this.containerEl)
+    }
+
+    this.defaultJournalFolderTitleSetting.clear()
+
+    if (settings.useFolderNameAsDefaultTitle) {
+      this.defaultJournalFolderTitleSetting.settingEl.hide()
+    } else {
+      this.defaultJournalFolderTitleSetting.settingEl.show()
+
+      this.buildTextSetting(
+        this.defaultJournalFolderTitleSetting,
+        settings,
+        'journalFolderTitle',
+        'Default journal folder title'
+      ).setDesc(
+        'The default title assigned to journal folders.  The journal folder title ' +
+          'is used in the rendering of journal headers as well as to identify the ' +
+          'folder in other views. The journal folder title should typically be ' +
+          'configured at folder level as it would typically be unique to that ' +
+          'folder.  The user is however provided the option to assign a default ' +
+          'value here.  For most users it would make most sense to leave the ' +
+          'default value blank.'
+      )
+    }
   }
 
   createMomentSetting(
@@ -289,14 +313,29 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     return setting
   }
 
+  // noinspection JSUnusedGlobalSymbols
   createTextSetting(
+    settings: JournalFolderSettings,
+    fieldName: SettingsStringFieldName,
+    name: string
+  ): Setting {
+    return this.buildTextSetting(
+      new Setting(this.containerEl),
+      settings,
+      fieldName,
+      name
+    )
+  }
+
+  buildTextSetting(
+    setting: Setting,
     settings: JournalFolderSettings,
     fieldName: SettingsStringFieldName,
     name: string
   ): Setting {
     let component: TextComponent
 
-    return new Setting(this.containerEl)
+    return setting
       .setName(name)
       .addText((text) => {
         component = text
@@ -319,6 +358,37 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS[fieldName])
             component.onChanged()
+          })
+      })
+  }
+
+  createUseFolderNameAsDefaultTitleSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    const name = 'Use folder name as default folder title'
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.useFolderNameAsDefaultTitle = value
+      if (value) settings.journalFolderTitle = ''
+      this.buildDefaultJournalFolderSetting(settings)
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName(name)
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.useFolderNameAsDefaultTitle).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.useFolderNameAsDefaultTitle)
+            onChange(DEFAULT_SETTINGS.useFolderNameAsDefaultTitle)
           })
       })
   }
