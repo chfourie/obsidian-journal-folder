@@ -204,9 +204,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'For help on the pattern syntax, refer to the link below.'
     )
 
-    this.createUseFolderNameAsDefaultTitleSetting(settings).setDesc(
-      'Hello world'
-    ) // TODO: set description
+    this.createUseFolderNameAsDefaultTitleSetting(settings)
 
     if (!settings.useFolderNameAsDefaultTitle) {
       this.createTextSetting(
@@ -219,8 +217,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           'folder in other views. The journal folder title should typically be ' +
           'configured at folder level as it would typically be unique to that ' +
           'folder.  The user is however provided the option to assign a default ' +
-          'value here.  For most users it would make most sense to leave the ' +
-          'default value blank.'
+          'value here.  For most users it would make most sense, and it is ' +
+          'highly recommended to leave this value blank.'
       )
     }
 
@@ -359,5 +357,9 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
             onChange(DEFAULT_SETTINGS.useFolderNameAsDefaultTitle)
           })
       })
+      .setDesc(
+        'If this option is checked, and a journal folder title is not configured at ' +
+          'folder level, the folder name will be used as title for the journal folder.'
+      )
   }
 }
