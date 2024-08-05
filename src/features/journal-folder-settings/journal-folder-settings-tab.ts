@@ -47,8 +47,6 @@ type SettingsStringFieldName =
  ** It does the job, but will be replaced with a more refined version somewhere in the future.    **
  ** ************************************************************************************************/
 export class JournalFolderSettingsTab extends PluginSettingTab {
-  defaultJournalFolderTitleSetting: Setting | undefined
-
   constructor(
     private plugin: Plugin,
     private getCurrentSettings: () => JournalFolderSettings,
@@ -210,35 +208,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       'Hello world'
     ) // TODO: set description
 
-    this.buildDefaultJournalFolderSetting(settings)
-
-    new Setting(this.containerEl)
-      .setName('Reset all to default values')
-      .addButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setWarning()
-          .onClick(() => {
-            // noinspection JSIgnoredPromiseFromCall
-            this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
-          })
-      })
-  }
-
-  buildDefaultJournalFolderSetting(settings: JournalFolderSettings): void {
-    if (!this.defaultJournalFolderTitleSetting) {
-      this.defaultJournalFolderTitleSetting = new Setting(this.containerEl)
-    }
-
-    this.defaultJournalFolderTitleSetting.clear()
-
-    if (settings.useFolderNameAsDefaultTitle) {
-      this.defaultJournalFolderTitleSetting.settingEl.hide()
-    } else {
-      this.defaultJournalFolderTitleSetting.settingEl.show()
-
-      this.buildTextSetting(
-        this.defaultJournalFolderTitleSetting,
+    if (!settings.useFolderNameAsDefaultTitle) {
+      this.createTextSetting(
         settings,
         'journalFolderTitle',
         'Default journal folder title'
@@ -252,6 +223,18 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           'default value blank.'
       )
     }
+
+    new Setting(this.containerEl)
+      .setName('Reset all to default values')
+      .addButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setWarning()
+          .onClick(() => {
+            // noinspection JSIgnoredPromiseFromCall
+            this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
+          })
+      })
   }
 
   createMomentSetting(
@@ -313,26 +296,12 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     return setting
   }
 
-  // noinspection JSUnusedGlobalSymbols
   createTextSetting(
     settings: JournalFolderSettings,
     fieldName: SettingsStringFieldName,
     name: string
   ): Setting {
-    return this.buildTextSetting(
-      new Setting(this.containerEl),
-      settings,
-      fieldName,
-      name
-    )
-  }
-
-  buildTextSetting(
-    setting: Setting,
-    settings: JournalFolderSettings,
-    fieldName: SettingsStringFieldName,
-    name: string
-  ): Setting {
+    const setting = new Setting(this.containerEl)
     let component: TextComponent
 
     return setting
@@ -371,9 +340,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     const onChange = (value: boolean) => {
       settings.useFolderNameAsDefaultTitle = value
       if (value) settings.journalFolderTitle = ''
-      this.buildDefaultJournalFolderSetting(settings)
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      this.saveSettings(settings).then(() => this.display())
     }
 
     return new Setting(this.containerEl)

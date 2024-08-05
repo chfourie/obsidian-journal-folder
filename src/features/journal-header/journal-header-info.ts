@@ -41,7 +41,15 @@ export function buildJournalHeaderInfo(
     backwardLink: createBackwardLink(),
     forwardLink: createForwardLink(),
     secondaryLinks: buildSecondaryLinks(),
-    journalFolderTitle: settings.journalFolderTitle,
+    journalFolderTitle: buildJournalFolderTitle(),
+  }
+
+  function buildJournalFolderTitle(): string | undefined {
+    if (settings.journalFolderTitle) {
+      return settings.journalFolderTitle
+    } else if (settings.useFolderNameAsDefaultTitle) {
+      return note.getFolderName()
+    }
   }
 
   function buildCenterLinks(): Link[] {

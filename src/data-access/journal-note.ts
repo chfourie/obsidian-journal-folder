@@ -127,6 +127,7 @@ export function journalNoteFactoryWithSettings(
 
     return new JournalNote(
       strategies,
+      file.parent?.name,
       file.parent?.path || '',
       noteNames,
       strategy,
@@ -144,6 +145,7 @@ export class JournalNote {
 
   constructor(
     private strategies: JournalNoteStrategies,
+    private folderName: string | undefined,
     private path: string,
     private noteNames: string[],
     private strategy: JournalNoteStrategy,
@@ -249,6 +251,10 @@ export class JournalNote {
     return notes
   }
 
+  getFolderName(): string | undefined {
+    return this.folderName
+  }
+
   shortLinkFrom(note: JournalNote, inactive = false): Link {
     const pattern =
       note.formattedYear() === this.formattedYear(note.strategy.yearPattern)
@@ -323,6 +329,7 @@ export class JournalNote {
   private createNoteOfSameTimeUnit(moment: moment.Moment): JournalNote {
     return new JournalNote(
       this.strategies,
+      this.folderName,
       this.path,
       this.noteNames,
       this.strategy,
@@ -338,6 +345,7 @@ export class JournalNote {
   ): JournalNote {
     return new JournalNote(
       this.strategies,
+      this.folderName,
       this.path,
       this.noteNames,
       strategy,
