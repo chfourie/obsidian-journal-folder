@@ -206,6 +206,22 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
     this.createUseFolderNameAsDefaultTitleSetting(settings)
 
+    if (!settings.useFolderNameAsDefaultTitle) {
+      this.createTextSetting(
+        settings,
+        'journalFolderTitle',
+        'Default journal folder title'
+      ).setDesc(
+        'The default title assigned to journal folders.  The journal folder title ' +
+          'is used in the rendering of journal headers as well as to identify the ' +
+          'folder in other views. The journal folder title should typically be ' +
+          'configured at folder level as it would typically be unique to that ' +
+          'folder.  The user is however provided the option to assign a default ' +
+          'value here.  For most users it would make most sense, and it is ' +
+          'highly recommended to leave this value blank.'
+      )
+    }
+
     new Setting(this.containerEl)
       .setName('Reset all to default values')
       .addButton((btn) => {
@@ -323,7 +339,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       settings.useFolderNameAsDefaultTitle = value
       if (value) settings.journalFolderTitle = ''
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      this.saveSettings(settings).then(() => this.display())
     }
 
     return new Setting(this.containerEl)
