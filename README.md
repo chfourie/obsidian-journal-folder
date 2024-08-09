@@ -48,11 +48,13 @@ Yearly note
 ### Using the Journal Header feature
 To render a header in your journal note, simply add the following to the top of your note...
 
-![](documents/attachments/Pasted%20image%2020240706111931.png)
+![](documents/attachments/Pasted%20image%2020240808152226.png)
 
-Note that the header will render correctly without the `%%title%%` in the first line.   It is however recommended to include a comment line for the following reason... If the `journal-header` code block is placed on the first line, whenever you open a document in edit mode, the cursor (which defaults to the first line in the file) will start off on the code block.  This results in the code block being rendered instead of the title until the user moves the cursor off it.  This behaviour can be a bit distracting.
+Note that the header will render correctly without the `%% EDITING %%` in the first line.   It is however recommended to include a comment line for the following reason... If the `journal-header` code block is placed on the first line, whenever you open a document in edit mode, the cursor (which defaults to the first line in the file) will start off on the code block.  This results in the code block being rendered instead of the title until the user moves the cursor off it.  This behaviour can be a bit distracting.  
 
 By placing a comment on the first line, the cursor will fall on the comment when entering edit mode in stead of the header, providing a better user experience.   However, when switching to _reading view_, the comment is omitted, resulting in the header being rendered right at the top of the document.
+
+As a personal preference, I like adding the word "EDITING" to the above comment as it also serves as an additional queue that the page is currently displayed in edit mode.
 
 It is recommended to use the templating functionality provided by the __Templater__ plugin (available in the _Obsidian_ plugin store) to automatically add the above code block to new journal files.   _Templater_ can be configured to automatically add the code block to any new files created in the specified folders.
 
@@ -66,9 +68,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ![](documents/attachments/Pasted%20image%2020240727125104.png)
 
 ##### Folder title
-- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
-- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
-- See section on Configuration later in this document for more details.
+- Renders the folder title assigned to the current folder.  If no title is assigned, this line is omitted.
 
 ##### Title
 - Renders the date represented by the journal note, using the specified date format for the note type.
@@ -103,9 +103,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ![](documents/attachments/Pasted%20image%2020240727131319.png)
 
 ##### Folder title
-- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
-- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
-- See section on Configuration later in this document for more details.
+- Renders the folder title assigned to the current folder.  If no title is assigned, this line is omitted.
 
 ##### Title
 - Renders the week represented by the journal note, using the specified date format for the note type.
@@ -140,9 +138,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ![](documents/attachments/Pasted%20image%2020240727131617.png)
 
 ##### Folder title
-- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
-- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
-- See section on Configuration later in this document for more details.
+- Renders the folder title assigned to the current folder.  If no title is assigned, this line is omitted.
 
 ##### Title
 - Renders the month represented by the journal note, using the specified date format for the note type.
@@ -172,9 +168,7 @@ Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 ![](documents/attachments/Pasted%20image%2020240727131909.png)
 
 ##### Folder title
-- Renders the folder title assigned to the current folder.  If there is no folder title configured, or if the configured title is empty, no folder title will be rendered.
-- The folder title would typically be configured either on folder level or within the journal-header code block.  A default value can however be configured in the global Journal Folder configuration.
-- See section on Configuration later in this document for more details.
+- Renders the folder title assigned to the current folder.  If no title is assigned, this line is omitted.
 
 ##### Title
 - Renders the year represented by the journal note, using the specified date format for the note type.
@@ -199,7 +193,7 @@ All configuration settings used in rendering a journal header can be overridden 
 
 ![](documents/attachments/Pasted%20image%2020240727164708.png)
 
-...would provide folder title and title...
+...would render folder title and title...
 
 ![](documents/attachments/Pasted%20image%2020240727164813.png)
 
@@ -209,7 +203,10 @@ Setting names can be delimited by either spaces, dashes, or underscores.  Any up
 - JOURNAL_FOLDER_TITLE: My Awesome Project
 - Journal folder title: My Awesome Project
 
-For a list of settings that can be configured, please refer to the section configurable settings later in this document.
+For a list of settings that can be configured, please refer to the section on configurable settings later in this document.
+
+> [!CAUTION]
+> It should be noted that any settings configured in the code block will only apply to that code block.  If for example the journal-folder-title property is configured within the code block, it will only effect the title rendered for that header and will not determine/override the actual title assigned to the folder.
 
 ---
 ### Configuration
@@ -240,12 +237,12 @@ For a list of settings that can be configured, please refer to the section confi
 
 #### Configurable Settings
 
-| Setting                           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|-----------------------------------| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setting                           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | daily-note-title-pattern          | The pattern used to render the title of a daily note. This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). For instance, using a pattern of 'DD-HH' would not make sense as the hour component represents a fraction of the day. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                                                                                                                                                                                               |
 | daily-noteShort-title-pattern     | The pattern used to render links to daily notes. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). For instance, using a pattern of 'DD-HH' would not make sense as the hour component represents a fraction of the day. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                                                                                               |
 | daily-noteMedium-title-pattern    | The pattern used to render links to daily notes where the destination note falls in a different year then the current note. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). For instance, using a pattern of 'DD-HH' would not make sense as the hour component represents a fraction of the day. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                    |
-| weekly-note-title-pattern         | The pattern used to render the title of a weekly note. This pattern should not render any date/time elements shorter than a week (e.g. day or hour). For instance, using a pattern of 'WW-DD' would not make sense as the day component represents a fraction of the week. PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='BLANK'>pattern syntax</a>]                                                                                                                                                                            |
+| weekly-note-title-pattern         | The pattern used to render the title of a weekly note. This pattern should not render any date/time elements shorter than a week (e.g. day or hour). For instance, using a pattern of 'WW-DD' would not make sense as the day component represents a fraction of the week. PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='BLANK'>pattern syntax</a>]                                                                                                                                                                             |
 | weekly-note-short-title-pattern   | The pattern used to render links to weekly notes. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a week (e.g. day or hour). For instance, using a pattern of 'WW-DD' would not make sense as the day component represents a fraction of the week. PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                            |
 | weekly-note-medium-title-pattern  | The pattern used to render links to weekly notes where the destination note falls in a different year then the current note. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a week (e.g. day or hour). For instance, using a pattern of 'WW-DD' would not make sense as the day component represents a fraction of the week. PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>] |
 | monthly-note-title-pattern        | The pattern used to render the title of a monthly note. This pattern should not render any date/time elements shorter than a month (e.g. week or day). For instance, using a pattern of 'MM-DD' would not make sense as the day component represents a fraction of the month. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                                                                                                                                                                                             |
@@ -253,7 +250,16 @@ For a list of settings that can be configured, please refer to the section confi
 | monthly-note-medium-title-pattern | The pattern used to render links to monthly notes where the destination note falls in a different year then the current note. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a month (e.g. week or day). For instance, using a pattern of 'MM-DD' would not make sense as the day component represents a fraction of the month. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                  |
 | yearly-note-title-pattern         | The pattern used to render the title of a yearly note. This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). For instance, using a pattern of 'YYYY-MM' would not make sense as the month component represents a fraction of the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                                                                                                                                                                                     |
 | yearly-note-short-title-pattern   | The pattern used to render links to yearly notes. The user should aim to keep this pattern short as multiple links may be rendered next to each other. This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). For instance, using a pattern of 'YYYY-MM' would not make sense as the month component represents a fraction of the year. [<a href='https://momentjs.com/docs/#/displaying/format/' target='_blank'>pattern syntax</a>]                                                                                                                                                     |
-| journal-folder-title              | The journal folder title is used in the rendering of journal headers as well as to identify the folder in other views. The journal folder title should typically be configured at folder level as it would typically be unique to that folder.                                                                                                                                                                                                                                                                                                                                                                                         |
+| user-folder-name-as-default-title | Indicates whether the folder name should be used as default title for the journal folder.  Value can be either true or false.  If true, and no journal-folder-title is configured at folder level, the folder name will be used as title.                                                                                                                                                                                                                                                                                                                                                                                               |
+| journal-folder-title              | The journal folder title is used in the rendering of journal headers as well as to identify the folder in other views. The journal folder title should typically be configured at folder level (i.e. as a front-matter property in the `journal-folder` note in the applicable folder).                                                                                                                                                                                                                                                                                                                                                 |
+
+#### Journal folder title configuration
+A title can be assigned to a journal folder.  This title will be displayed in the header, and will also be used as label for the folder in various other views.  The title for a folder will be determined as follows:
+- If the title is configured at folder level (as described earlier in this document), that title will be used for the folder.
+- Otherwise, if the `user-folder-name-as-default-title` property is set to `true` ("Use folder name as default title" in global configuration), the folder name will be used as title.
+- Otherwise the value will be seen as `empty`.
+
+![](documents/attachments/Pasted%20image%2020240809094217.png)
 
 ---
 ### Future enhancements to the Journal Header feature
