@@ -69,7 +69,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 318.500732421875
+    "width": 514.5026054382324
   },
   "right": {
     "id": "a98a58275bc2afaa",
@@ -133,8 +133,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -149,17 +148,17 @@
   "active": "59e5009b86be4e9a",
   "lastOpenFiles": [
     "documents/attachments/Pasted image 20240809094217.png",
-    "README.md",
     "documents/attachments/Pasted image 20240808152226.png",
     "documents/attachments/Pasted image 20240727164813.png",
     "documents/attachments/Pasted image 20240727164708.png",
     "documents/attachments/Pasted image 20240727162726.png",
     "documents/attachments/Pasted image 20240727154802.png",
     "documents/attachments/Pasted image 20240727154342.png",
-    "documents/attachments/Pasted image 20240727154258.png",
     "documents/attachments/Pasted image 20240727154226.png",
+    "documents/attachments/Pasted image 20240727154258.png",
     "documents/attachments/Pasted image 20240727154201.png",
     "documents/attachments/Pasted image 20240727131909.png",
+    "README.md",
     "ORIGINAL README.md",
     "documents/attachments",
     "documents/images",

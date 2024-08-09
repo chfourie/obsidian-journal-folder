@@ -262,26 +262,12 @@ A title can be assigned to a journal folder.  This title will be displayed in th
 ![](documents/attachments/Pasted%20image%2020240809094217.png)
 
 ---
-### Future enhancements to the Journal Header feature
-
-#### Enhancement: Expandable header
-- It is planned to make the header expandable to reveal a calendar.
-- The scope of the calendar will include the period represented by the journal note.
-- All days, weeks, months and years depicted will be clickable links, regardless of whether the target note exists.  The styling of non existent past links will depend on whether the note exists or not.
-- Availability of the calendar as well as default state (expanded or not) will be configurable both on a global and instance level.
-
-![](documents/attachments/Pasted%20image%2020240706141756.png)
-
-![](documents/attachments/Pasted%20image%2020240706142253.png)
-
----
 ## Planned Feature: Calendar code block processor
 - It is planned to provide a code block processor that can be used to render a calendar.
 - By default the feature will handle the current note's folder as calendar folder.  However, this will be configurable within the code block to point to other folders.
 - If this feature is placed within a calendar note, by default the visible month range will be determined by the note type and date.  The user will however be able to configure a custom range and behaviour within the code block.
 
 ---
-
 ## For Consideration: Journal note scoped task queries
 - While it is possible to create task queries based on the current note's date range and folder using _Templater_, this would be difficult to set up and maintain.
 - It is considered to provide a means of adding task queries that will automatically be configured based on the journal note that it is placed in.  
