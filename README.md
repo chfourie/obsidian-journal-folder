@@ -274,5 +274,5 @@ This plugin view will provide a view context sensitive the note currently active
 	- Tasks will be limited to those defined in the folder of the currently active note.
 	- The date range depicted by the note (year, month, week, day or n/a) will determine which tasks are rendered and how/where the individual task are rendered.
 
-![](documents/attachments/Pasted%20image%2020240809114226.png)
+![](documents/attachments/Pasted%20image%2020240809123010.png)
 (Please note that the above image is just a rough estimate and by no means accurate reflection of the final artefact)
