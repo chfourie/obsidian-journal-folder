@@ -56,7 +56,9 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     const settings = {
       ...this.globalSettings,
       ...(await this.plugin.loadData()),
+      journalFolderTitle: '',
     }
+
     await this.saveSettings(settings)
   }
 
