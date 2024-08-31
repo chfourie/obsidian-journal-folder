@@ -6,12 +6,14 @@
 	font-size: 1.2rem;
 	opacity: 50%;
 	margin-bottom: 0.4rem;
+	cursor: default;
 }
 
 .journal-folder-header-title {
 	width: fit-content;
 	margin-inline: auto;
 	margin-block: .4rem !important;
+	cursor: default;
 }
 
 .journal-folder-header-options {
