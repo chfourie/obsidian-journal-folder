@@ -52,7 +52,7 @@ export function journalNoteFactoryWithSettings(
   settings: JournalFolderSettings
 ): JournalNoteFactory {
   const DAILY_NOTE_STRATEGY: JournalNoteStrategy = {
-    fileRegex: /^20\d{2}-((0[1-9])|(1[12]))-(([0-2][0-9])|(3[01]))$/,
+    fileRegex: /^[12]\d{3}-((0[1-9])|(1[012]))-(([0-2][0-9])|(3[01]))$/,
     filePattern: 'YYYY-MM-DD',
     titlePattern: settings.dailyNoteTitlePattern,
     shortTitlePattern: settings.dailyNoteShortTitlePattern,
@@ -62,7 +62,7 @@ export function journalNoteFactoryWithSettings(
   }
 
   const WEEKLY_NOTE_STRATEGY: JournalNoteStrategy = {
-    fileRegex: /^\d{4}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
+    fileRegex: /^[12]\d{3}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
     filePattern: 'gggg-[W]ww',
     titlePattern: settings.weeklyNoteTitlePattern,
     shortTitlePattern: settings.weeklyNoteShortTitlePattern,
@@ -72,7 +72,7 @@ export function journalNoteFactoryWithSettings(
   }
 
   const MONTHLY_NOTE_STRATEGY: JournalNoteStrategy = {
-    fileRegex: /^20\d{2}-((0[1-9])|(1[12]))$/,
+    fileRegex: /^[12]\d{3}-((0[1-9])|(1[012]))$/,
     filePattern: 'YYYY-MM',
     titlePattern: settings.monthlyNoteTitlePattern,
     shortTitlePattern: settings.monthlyNoteShortTitlePattern,
@@ -82,7 +82,7 @@ export function journalNoteFactoryWithSettings(
   }
 
   const YEARLY_NOTE_STRATEGY: JournalNoteStrategy = {
-    fileRegex: /^20\d{2}$/,
+    fileRegex: /^[12]\d{3}$/,
     filePattern: 'YYYY',
     titlePattern: settings.yearlyNoteTitlePattern,
     shortTitlePattern: settings.yearlyNoteShortTitlePattern,

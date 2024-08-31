@@ -1,5 +1,13 @@
 /*No global styles to declare*/
 
+.journal-folder-header {
+	position: sticky;
+	top: 0;
+	z-index: 10000000;
+	align-self: start;
+	justify-self: start;
+}
+
 .journal-folder-header-folder-title {
 	width: fit-content;
 	margin-inline: auto;
