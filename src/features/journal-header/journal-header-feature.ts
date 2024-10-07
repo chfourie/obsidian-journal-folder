@@ -29,7 +29,7 @@ import {
   buildJournalHeaderInfo,
   type JournalHeaderInfo,
 } from './journal-header-info'
-import type { Plugin, TFile } from 'obsidian'
+import { TFile, type Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -41,20 +41,34 @@ export class JournalHeaderFeature extends PluginFeature {
       'journal-header',
       (source, el, ctx) => {
         try {
-          const currentFile: TFile = this.expectCurrentFile(ctx.sourcePath)
-          const settings: JournalFolderSettings = this.getSettings(
-            currentFile,
-            source
+          const currentFile = this.plugin.app.vault.getAbstractFileByPath(
+            ctx.sourcePath
           )
-          const note: JournalNote =
-            journalNoteFactoryWithSettings(settings)(currentFile)
-          const info: JournalHeaderInfo = buildJournalHeaderInfo(settings, note)
-          // @ts-ignore
-          mount(JournalHeader, { target: el, props: { info } })
+
+          if (currentFile instanceof TFile) {
+            const settings: JournalFolderSettings = this.getSettings(
+              currentFile,
+              source
+            )
+            const note: JournalNote =
+              journalNoteFactoryWithSettings(settings)(currentFile)
+            const info: JournalHeaderInfo = buildJournalHeaderInfo(
+              settings,
+              note
+            )
+            // @ts-ignore
+            mount(JournalHeader, { target: el, props: { info } })
+          } else {
+            this.mountError(el, `No current file present (${ctx.sourcePath})`)
+          }
         } catch (error) {
-          mount(ErrorMessage, { target: el, props: { error: `${error}` } })
+          this.mountError(el, `${error}`)
         }
       }
     )
+  }
+
+  private mountError(el: HTMLElement, error: string): void {
+    mount(ErrorMessage, { target: el, props: { error: `${error}` } })
   }
 }

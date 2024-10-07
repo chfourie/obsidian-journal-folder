@@ -3,6 +3,6 @@
   "attachmentFolderPath": "documents/attachments",
   "useMarkdownLinks": true,
   "newLinkFormat": "relative",
-  "alwaysUpdateLinks": false,
+  "alwaysUpdateLinks": true,
   "promptDelete": false
 }

@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type FrontMatterCache, type Plugin, type TFile } from 'obsidian'
+import { TFile, type FrontMatterCache, type Plugin } from 'obsidian'
 import { type JournalFolderSettings } from './journal-folder-settings.type'
 import { camelCase } from './string-utils'
 
@@ -50,8 +50,10 @@ export class FolderSettingsResolver {
 
   private getFolderConfigFile(file: TFile | null) {
     if (!file) return null
-    const linkPath = `${file.parent?.path}/journal-folder.md`
-    return this.plugin.app.metadataCache.getFirstLinkpathDest(linkPath, '')
+    const dest = this.plugin.app.vault.getAbstractFileByPath(
+      `${file.parent?.path}/journal-folder.md`
+    )
+    return dest instanceof TFile ? dest : null
   }
 
   private getEmbeddedConfig(rawConfig: string): Partial<JournalFolderSettings> {

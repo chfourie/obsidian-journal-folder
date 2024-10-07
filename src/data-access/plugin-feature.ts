@@ -52,20 +52,4 @@ export abstract class PluginFeature {
   useSettings(settings: JournalFolderSettings): void {
     this.#settings = settings
   }
-
-  getCurrentFile(linkPath: string, sourcePath = ''): TFile | null {
-    return this.plugin.app.metadataCache.getFirstLinkpathDest(
-      linkPath,
-      sourcePath
-    )
-  }
-
-  expectCurrentFile(linkPath: string, sourcePath = ''): TFile {
-    const file: TFile | null = this.getCurrentFile(linkPath, sourcePath)
-    if (!file)
-      throw Error(
-        `Current not found (linkPath: ${sourcePath}, sourcePath: ${sourcePath})`
-      )
-    return file
-  }
 }
