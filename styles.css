@@ -6,6 +6,7 @@
 	z-index: 10000000;
 	align-self: start;
 	justify-self: start;
+	width: 100%
 }
 
 .journal-folder-header-folder-title {
