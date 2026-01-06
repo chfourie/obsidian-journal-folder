@@ -6,7 +6,7 @@ There's no special setup that need to be performed for this folder.  Simply star
 
 _Folder based journaling_ enables the user to maintain multiple arbitrary journals within the same vault as opposed to the model where only one folder within the vault is allocated for journal entries of a specific type.  This opens up a range of possibilities.  As an example, a project worked on for a client can have it's own journal which can then be used for reporting to the client.
 
-It should be noted that, as with the initial releases of this plugin, while the date format used within files (for titles, links etc.) are configurable as per the user's preference, the file name format is fixed.  
+It should be noted that, while the date format used within files (for titles, links etc.) are configurable as per the user's preference, the file name format is fixed.  
 
 The following journal note types are supported by the plugin:
 
@@ -20,10 +20,7 @@ The following journal note types are supported by the plugin:
 > [!CAUTION]
 > Please take note that, due to the way in which link resolution is handled in Obsidian, using the vault's root folder as a journal folder is not supported by this plugin.  
 
->[!note]
-> The usage of sub-folders is not currently supported by this plugin, nor are there plans to add support for it in the foreseeable future.
-
-The following is a list of features that have been, or are planned to be implemented in this plugin...
+The following is a list of features that have been implemented in this plugin...
 
 ---
 ## Feature: Journal header
@@ -263,16 +260,3 @@ A title can be assigned to a journal folder.  This title will be displayed in th
 - Otherwise the value will be seen as `empty`.
 
 ![](documents/attachments/Pasted%20image%2020240809094217.png)
-
----
-## Planned Feature: Journal Folder view
-This plugin view will provide a view context sensitive the note currently active in the editor.  The following components will be provided by the view...
-- The calendar folder title assigned to the folder where the currently active note resides.  If no title has been assigned, the folder path will be displayed in stead.
-- A calendar similar to the [calendar plugin](https://github.com/liamcain/obsidian-calendar-plugin) written by __Liam Cain__.  The biggest difference from Liam's plugin will be that the folder of the currently active note will be used for rendering the calendar.
-- An option to configure the folder level settings for the folder of the currently active note.  Selecting this feature will open a dialog where these settings can be update.  Folder level settings are retrieved from and stored as front matter in a note named `journal-folder` within the folder of the currently active note.  If the `journal-folder` note does not exist yet, it will be created on submission of the updated folder level settings.
-- A task view that will be rendered based on the currently active note.  
-	- Tasks will be limited to those defined in the folder of the currently active note.
-	- The date range depicted by the note (year, month, week, day or n/a) will determine which tasks are rendered and how/where the individual task are rendered.
-
-![](documents/attachments/Pasted%20image%2020240809123010.png)
-(Please note that the above image is just a rough estimate and by no means accurate reflection of the final artefact)
