@@ -75,7 +75,7 @@ describe('buildJournalHeaderInfo', () => {
   })
 
   describe('section labels', () => {
-    it('uses a static "Jump to" label for the higher-order chips', () => {
+    it('uses a generic "View" label for the higher-order chips section (it also hosts the calendar toggle)', () => {
       const { files } = buildApp('Journal', ['2026-05-03'])
       const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
         files['2026-05-03']
@@ -83,7 +83,7 @@ describe('buildJournalHeaderInfo', () => {
 
       const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
-      expect(info.moreLinksLabel).toBe('Jump to')
+      expect(info.moreLinksLabel).toBe('View')
     })
 
     it('labels the secondary list "Month" on a yearly note', () => {

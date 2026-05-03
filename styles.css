@@ -125,6 +125,163 @@
 	word-break: keep-all;
 }
 
+.journal-folder-header-more-panel-section-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .5rem;
+}
+
+.journal-folder-calendar-toggle {
+	font-size: .75rem;
+	color: var(--text-accent);
+	cursor: pointer;
+	user-select: none;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+
+	&:hover {
+		color: var(--text-accent-hover, var(--text-accent));
+		text-decoration: underline;
+	}
+
+	&.active {
+		color: var(--text-accent-hover, var(--text-accent));
+	}
+}
+
+.journal-folder-calendar {
+	display: flex;
+	align-items: stretch;
+	gap: .25rem;
+	margin-top: .35rem;
+	padding-bottom: .35rem;
+	background: var(--background-primary);
+}
+
+/* Built on top of Obsidian's `.clickable-icon` so arrow buttons inherit the
+   active theme's hover/active states. We only add sizing here. */
+.journal-folder-calendar-arrow {
+	flex: 0 0 auto;
+	width: 1.6rem;
+	min-height: 1.6rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.1rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.journal-folder-calendar-months {
+	flex: 1 1 auto;
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: .6rem;
+	min-width: 0;
+}
+
+.journal-folder-calendar-month {
+	display: flex;
+	flex-direction: column;
+	gap: .2rem;
+	min-width: 0;
+}
+
+.journal-folder-calendar-month-title {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	gap: .35rem;
+	font-size: .85rem;
+	font-weight: 600;
+	margin-bottom: .15rem;
+}
+
+.journal-folder-calendar-grid {
+	display: grid;
+	grid-template-columns: 1.4rem repeat(7, minmax(0, 1fr));
+	row-gap: 1px;
+	column-gap: 1px;
+	font-size: .75rem;
+}
+
+.journal-folder-calendar-weekday {
+	text-align: center;
+	color: var(--text-muted);
+	font-size: .65rem;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	padding-bottom: .15rem;
+}
+
+/* Calendar cells override Obsidian's `.internal-link` styling so every cell
+   renders consistently regardless of resolved/unresolved state. The
+   `!important` suffixes are intentional — Obsidian's link colors otherwise
+   leak through depending on theme and viewport. */
+.journal-folder-calendar-cell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.5rem;
+	padding: .05rem .15rem;
+	border-radius: var(--radius-s, .25rem);
+	color: var(--text-normal) !important;
+	text-decoration: none !important;
+	cursor: pointer;
+	box-sizing: border-box;
+	border: solid 1px transparent;
+	user-select: none;
+	background: transparent;
+}
+
+.journal-folder-calendar-cell:hover {
+	background: var(--background-modifier-hover);
+}
+
+.journal-folder-calendar-cell.empty {
+	cursor: default;
+	background: transparent !important;
+	border-color: transparent !important;
+}
+
+.journal-folder-calendar-cell.week {
+	color: var(--text-muted) !important;
+	font-size: .65rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.journal-folder-calendar-cell.day {
+	font-variant-numeric: tabular-nums;
+}
+
+.journal-folder-calendar-cell.exists {
+	font-weight: 600;
+	color: var(--text-normal) !important;
+}
+
+.journal-folder-calendar-cell.missing {
+	color: var(--text-muted) !important;
+}
+
+.journal-folder-calendar-cell.past-missing {
+	color: var(--text-faint) !important;
+	font-style: italic;
+}
+
+.journal-folder-calendar-cell.is-today {
+	border-color: var(--interactive-accent);
+}
+
+.journal-folder-calendar-cell.is-current,
+.journal-folder-calendar-cell.is-current:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent) !important;
+	font-weight: 600;
+	border-color: var(--interactive-accent);
+}
+
 .journal-folder-error-message {
 	color: var(--color-red);
 }

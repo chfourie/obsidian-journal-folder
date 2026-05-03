@@ -29,6 +29,7 @@ import {
   buildJournalHeaderInfo,
   type JournalHeaderInfo,
 } from './journal-header-info'
+import { confirmCreateNote } from './confirm-create-modal'
 import { TFile, type Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
@@ -56,8 +57,18 @@ export class JournalHeaderFeature extends PluginFeature {
               settings,
               note
             )
+            const app = this.plugin.app
+            const sourcePath = ctx.sourcePath
+            const confirmCreate = (basename: string) =>
+              confirmCreateNote(app, basename)
+            const navigate = (linktext: string) => {
+              app.workspace.openLinkText(linktext, sourcePath, false)
+            }
             // @ts-ignore
-            mount(JournalHeader, { target: el, props: { info } })
+            mount(JournalHeader, {
+              target: el,
+              props: { info, note, confirmCreate, navigate },
+            })
           } else {
             this.mountError(el, `No current file present (${ctx.sourcePath})`)
           }

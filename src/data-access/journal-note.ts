@@ -168,6 +168,32 @@ export class JournalNote {
     return this.strategy.timeUnit
   }
 
+  getMoment(): moment.Moment {
+    return this.fileMoment.clone()
+  }
+
+  noteFor(
+    unit: 'day' | 'week' | 'month' | 'year',
+    m: moment.Moment
+  ): JournalNote {
+    return this.createNote(this.strategyFor(unit), m)
+  }
+
+  private strategyFor(
+    unit: 'day' | 'week' | 'month' | 'year'
+  ): JournalNoteStrategy {
+    switch (unit) {
+      case 'day':
+        return this.strategies.DAILY_NOTE_STRATEGY
+      case 'week':
+        return this.strategies.WEEKLY_NOTE_STRATEGY
+      case 'month':
+        return this.strategies.MONTHLY_NOTE_STRATEGY
+      case 'year':
+        return this.strategies.YEARLY_NOTE_STRATEGY
+    }
+  }
+
   forwardInTime(): JournalNote {
     const moment = this.fileMoment.clone().add(1, this.strategy.timeUnit)
     return this.createNoteOfSameTimeUnit(moment)

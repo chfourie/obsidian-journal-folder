@@ -1,0 +1,173 @@
+<!--
+Obsidian Journal Folder - Utilities for folder-based journaling in Obsidian
+Copyright (C) 2024  Charl Fourie
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<script lang="ts">
+	import type { JournalNote } from '../../data-access'
+	import {
+		buildCalendarInfo,
+		type CalendarCell,
+	} from './journal-calendar-info'
+
+	type Props = {
+		note: JournalNote
+		confirmCreate: (basename: string) => Promise<boolean>
+		navigate: (linktext: string) => void
+	}
+	let { note, confirmCreate, navigate }: Props = $props()
+
+	const MAX_MONTHS = 5
+	const MIN_MONTH_PX = 180
+	const ARROW_PX = 28
+
+	let containerEl: HTMLElement | undefined = $state()
+	let measuredWidth = $state(0)
+	let offsetMonths = $state(0)
+
+	let visibleMonthCount = $derived.by(() => {
+		if (measuredWidth <= 0) return 1
+		const available = Math.max(0, measuredWidth - ARROW_PX * 2)
+		const fits = Math.floor(available / MIN_MONTH_PX)
+		return Math.max(1, Math.min(MAX_MONTHS, fits))
+	})
+
+	let info = $derived(
+		buildCalendarInfo(note, { visibleMonthCount, offsetMonths })
+	)
+
+	$effect(() => {
+		if (!containerEl) return
+		const update = () => {
+			measuredWidth = containerEl!.clientWidth
+		}
+		update()
+		const observer = new ResizeObserver(update)
+		observer.observe(containerEl)
+		return () => observer.disconnect()
+	})
+
+	// Navigating to a different file remounts this component (new `note`),
+	// so resetting offset isn't needed across notes — only when the visible
+	// count changes, snap back to centre so the current month stays in view.
+	let lastCount = $state(0)
+	$effect(() => {
+		if (visibleMonthCount !== lastCount) {
+			lastCount = visibleMonthCount
+			offsetMonths = 0
+		}
+	})
+
+	function scrollBack() {
+		offsetMonths -= 1
+	}
+
+	function scrollForward() {
+		offsetMonths += 1
+	}
+
+	async function handleCellClick(cell: CalendarCell, event: MouseEvent) {
+		if (!cell.needsConfirmation) return
+		// Always block the default internal-link navigation; the modal is
+		// async, so we navigate manually after the user confirms.
+		event.preventDefault()
+		event.stopPropagation()
+		const basename = cell.url.split('/').pop() ?? cell.url
+		if (await confirmCreate(basename)) navigate(cell.url)
+	}
+
+	function classesFor(cell: CalendarCell): string {
+		const classes = ['journal-folder-calendar-cell']
+		if (cell.isCurrent) classes.push('is-current')
+		if (cell.isToday) classes.push('is-today')
+		classes.push(cell.exists ? 'exists' : 'missing')
+		if (cell.needsConfirmation) classes.push('past-missing')
+		return classes.join(' ')
+	}
+</script>
+
+<div class="journal-folder-calendar" bind:this={containerEl}>
+	<button
+		type="button"
+		class="clickable-icon journal-folder-calendar-arrow"
+		aria-label="Show earlier months"
+		onclick={scrollBack}
+	>
+		‹
+	</button>
+
+	<div class="journal-folder-calendar-months">
+		{#each info.months as month (month.monthIso)}
+			<div class="journal-folder-calendar-month">
+				<div class="journal-folder-calendar-month-title">
+					<a
+						class="internal-link {classesFor(month.monthCell)}"
+						href={month.monthCell.url}
+						onclick={(e) => handleCellClick(month.monthCell, e)}
+					>
+						{month.monthCell.label}
+					</a>
+					<a
+						class="internal-link {classesFor(month.yearCell)}"
+						href={month.yearCell.url}
+						onclick={(e) => handleCellClick(month.yearCell, e)}
+					>
+						{month.yearCell.label}
+					</a>
+				</div>
+
+				<div class="journal-folder-calendar-grid">
+					<div class="journal-folder-calendar-weekday-corner"></div>
+					{#each month.weekdayHeaders as label}
+						<div class="journal-folder-calendar-weekday">{label}</div>
+					{/each}
+
+					{#each month.weeks as week}
+						<a
+							class="internal-link {classesFor(week.weekCell)} week"
+							href={week.weekCell.url}
+							onclick={(e) => handleCellClick(week.weekCell, e)}
+						>
+							{week.weekCell.label}
+						</a>
+						{#each week.days as day}
+							{#if day.isOutsideMonth}
+								<div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
+							{:else}
+								<a
+									class="internal-link {classesFor(day)} day"
+									href={day.url}
+									onclick={(e) => handleCellClick(day, e)}
+								>
+									{day.label}
+								</a>
+							{/if}
+						{/each}
+					{/each}
+				</div>
+			</div>
+		{/each}
+	</div>
+
+	<button
+		type="button"
+		class="clickable-icon journal-folder-calendar-arrow"
+		aria-label="Show later months"
+		onclick={scrollForward}
+	>
+		›
+	</button>
+</div>

@@ -44,7 +44,7 @@ export function buildJournalHeaderInfo(
   return {
     title: note.getTitle(),
     moreLinks: buildMoreLinks(),
-    moreLinksLabel: 'Jump to',
+    moreLinksLabel: 'View',
     todayLink: buildTodayLink(),
     backwardLink: createBackwardLink(),
     forwardLink: createForwardLink(),

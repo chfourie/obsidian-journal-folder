@@ -19,10 +19,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <script lang="ts">
 	import { NoteLink } from '../../ui'
 	import type { JournalHeaderInfo } from './journal-header-info'
+	import type { JournalNote } from '../../data-access'
+	import JournalCalendar from './JournalCalendar.svelte'
+	import { calendarVisible, toggleCalendar } from './calendar-visibility'
 
-	type Props = { info: JournalHeaderInfo }
+	type Props = {
+		info: JournalHeaderInfo
+		note: JournalNote
+		confirmCreate: (basename: string) => Promise<boolean>
+		navigate: (linktext: string) => void
+	}
 
-	let { info }: Props = $props()
+	let { info, note, confirmCreate, navigate }: Props = $props()
 
 	let moreOpen = $state(false)
 	let moreWrapper: HTMLElement | undefined = $state()
@@ -83,6 +91,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		if (moreOpen) updatePanelPosition()
 	}
 
+	function handleToggleCalendar() {
+		toggleCalendar()
+	}
+
+	function handleToggleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault()
+			handleToggleCalendar()
+		}
+	}
+
 	$effect(() => {
 		if (!moreOpen) return
 		// Capture-phase scroll catches scrolling on any ancestor (the editor
@@ -113,22 +132,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<div>&lt;--</div>
 			{/if}
 
-			{#if info.moreLinks.length > 0 || info.secondaryLinks.length > 0}
-				<div class="journal-folder-header-more" bind:this={moreWrapper}>
-					<span
-						class="internal-link journal-folder-note-link chip"
-						class:open={moreOpen}
-						role="button"
-						tabindex="0"
-						aria-haspopup="true"
-						aria-expanded={moreOpen}
-						onclick={toggleMore}
-						onkeydown={handleMoreKeydown}
-					>
-						More...
-					</span>
-				</div>
-			{/if}
+			<div class="journal-folder-header-more" bind:this={moreWrapper}>
+				<span
+					class="internal-link journal-folder-note-link chip"
+					class:open={moreOpen}
+					role="button"
+					tabindex="0"
+					aria-haspopup="true"
+					aria-expanded={moreOpen}
+					onclick={toggleMore}
+					onkeydown={handleMoreKeydown}
+				>
+					More...
+				</span>
+			</div>
 
 			{#if info.todayLink}
 				<NoteLink {...info.todayLink} linkStyle="chip" />
@@ -140,6 +157,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			{/if}
 		</div>
 	</div>
+
+	{#if $calendarVisible}
+		<JournalCalendar {note} {confirmCreate} {navigate} />
+	{/if}
 </div>
 
 {#if moreOpen}
@@ -150,19 +171,32 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		style={panelStyle}
 		role="menu"
 	>
-		{#if info.moreLinks.length > 0}
-			<div class="journal-folder-header-more-panel-section">
+		<div class="journal-folder-header-more-panel-section">
+			<div class="journal-folder-header-more-panel-section-header">
 				<div class="journal-folder-header-more-panel-section-label">
 					{info.moreLinksLabel}
 				</div>
-				<div class="journal-folder-header-more-panel-section-rule"></div>
+				<span
+					class="journal-folder-calendar-toggle"
+					class:active={$calendarVisible}
+					role="button"
+					tabindex="0"
+					aria-pressed={$calendarVisible}
+					onclick={handleToggleCalendar}
+					onkeydown={handleToggleKeydown}
+				>
+					{$calendarVisible ? 'Hide calendar' : 'Show calendar'}
+				</span>
+			</div>
+			<div class="journal-folder-header-more-panel-section-rule"></div>
+			{#if info.moreLinks.length > 0}
 				<div class="journal-folder-header-more-panel-list">
 					{#each info.moreLinks as link}
 						<NoteLink {...link} />
 					{/each}
 				</div>
-			</div>
-		{/if}
+			{/if}
+		</div>
 
 		{#if info.secondaryLinks.length > 0}
 			<div class="journal-folder-header-more-panel-section">
