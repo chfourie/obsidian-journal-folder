@@ -6,7 +6,9 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"keywords": [],
 	"author": "",
@@ -19,11 +21,13 @@
 		"builtin-modules": "^5.1.0",
 		"esbuild": "^0.28.0",
 		"esbuild-svelte": "^0.9.4",
+		"jsdom": "^29.1.1",
 		"obsidian": "latest",
 		"prettier": "^3.8.3",
 		"svelte": "^5.55.5",
 		"svelte-preprocess": "^6.0.3",
 		"tslib": "^2.8.1",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.5"
 	}
 }
