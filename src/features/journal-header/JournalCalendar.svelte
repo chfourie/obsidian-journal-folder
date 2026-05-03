@@ -136,26 +136,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					{/each}
 
 					{#each month.weeks as week}
-						<a
-							class="internal-link {classesFor(week.weekCell)} week"
-							href={week.weekCell.url}
-							onclick={(e) => handleCellClick(week.weekCell, e)}
-						>
-							{week.weekCell.label}
-						</a>
-						{#each week.days as day}
-							{#if day.isOutsideMonth}
-								<div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
-							{:else}
-								<a
-									class="internal-link {classesFor(day)} day"
-									href={day.url}
-									onclick={(e) => handleCellClick(day, e)}
-								>
-									{day.label}
-								</a>
-							{/if}
-						{/each}
+						{#if !week.days.every((d) => d.isOutsideMonth)}
+							<a
+								class="internal-link {classesFor(week.weekCell)} week"
+								href={week.weekCell.url}
+								onclick={(e) => handleCellClick(week.weekCell, e)}
+							>
+								{week.weekCell.label}
+							</a>
+							{#each week.days as day}
+								{#if day.isOutsideMonth}
+									<div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
+								{:else}
+									<a
+										class="internal-link {classesFor(day)} day"
+										href={day.url}
+										onclick={(e) => handleCellClick(day, e)}
+									>
+										{day.label}
+									</a>
+								{/if}
+							{/each}
+						{/if}
 					{/each}
 				</div>
 			</div>

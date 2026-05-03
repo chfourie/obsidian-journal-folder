@@ -247,7 +247,6 @@
 }
 
 .journal-folder-calendar-cell.week {
-	color: var(--text-muted) !important;
 	font-size: .65rem;
 	font-variant-numeric: tabular-nums;
 }
@@ -256,13 +255,24 @@
 	font-variant-numeric: tabular-nums;
 }
 
-.journal-folder-calendar-cell.exists {
-	font-weight: 600;
-	color: var(--text-normal) !important;
+/* Cells whose period hasn't concluded yet, OR whose note exists, render in
+   the theme's emphasis colour. Past-missing cells are demoted to text-faint
+   italic (rule below overrides this one by source order). */
+.journal-folder-calendar-cell.exists,
+.journal-folder-calendar-cell.missing {
+	color: var(--text-accent) !important;
 }
 
-.journal-folder-calendar-cell.missing {
-	color: var(--text-muted) !important;
+.journal-folder-calendar-cell.exists {
+	font-weight: 600;
+}
+
+/* Existing cells get an underline on top of the emphasis colour so the user
+   can spot at a glance which periods already have notes — applies uniformly
+   to days, weeks, months, and years. */
+.journal-folder-calendar-cell.exists {
+	text-decoration: underline !important;
+	text-underline-offset: 2px;
 }
 
 .journal-folder-calendar-cell.past-missing {
