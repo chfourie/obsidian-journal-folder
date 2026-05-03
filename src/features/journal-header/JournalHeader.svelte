@@ -23,7 +23,38 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	type Props = { info: JournalHeaderInfo }
 
 	let { info }: Props = $props()
+
+	let moreOpen = $state(false)
+	let moreWrapper: HTMLElement | undefined = $state()
+
+	function toggleMore() {
+		moreOpen = !moreOpen
+	}
+
+	function closeMore() {
+		moreOpen = false
+	}
+
+	function handleDocumentClick(event: MouseEvent) {
+		if (!moreOpen) return
+		const target = event.target as Node | null
+		if (target && moreWrapper && moreWrapper.contains(target)) return
+		closeMore()
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (moreOpen && event.key === 'Escape') closeMore()
+	}
+
+	function handleMoreKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault()
+			toggleMore()
+		}
+	}
 </script>
+
+<svelte:window onclick={handleDocumentClick} onkeydown={handleKeydown} />
 
 <div class="journal-folder-header">
 	{#if info.journalFolderTitle}
@@ -38,24 +69,64 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<NoteLink {...info.backwardLink} linkStyle="chip" />
 				<div>&lt;--</div>
 			{/if}
-			{#each info.centerLinks as link}
-				<NoteLink {...link} linkStyle="chip" />
-			{/each}
+
+			{#if info.moreLinks.length > 0 || info.secondaryLinks.length > 0}
+				<div class="journal-folder-header-more" bind:this={moreWrapper}>
+					<span
+						class="internal-link journal-folder-note-link chip"
+						class:open={moreOpen}
+						role="button"
+						tabindex="0"
+						aria-haspopup="true"
+						aria-expanded={moreOpen}
+						onclick={toggleMore}
+						onkeydown={handleMoreKeydown}
+					>
+						More...
+					</span>
+
+					{#if moreOpen}
+						<div class="journal-folder-header-more-panel" role="menu">
+							{#if info.moreLinks.length > 0}
+								<div class="journal-folder-header-more-panel-section">
+									<div class="journal-folder-header-more-panel-section-label">
+										{info.moreLinksLabel}
+									</div>
+									<div class="journal-folder-header-more-panel-section-rule"></div>
+									<div class="journal-folder-header-more-panel-list">
+										{#each info.moreLinks as link}
+											<NoteLink {...link} />
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							{#if info.secondaryLinks.length > 0}
+								<div class="journal-folder-header-more-panel-section">
+									<div class="journal-folder-header-more-panel-section-label">
+										{info.secondaryLinksLabel}
+									</div>
+									<div class="journal-folder-header-more-panel-section-rule"></div>
+									<div class="journal-folder-header-more-panel-list">
+										{#each info.secondaryLinks as link}
+											<NoteLink {...link} />
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			{#if info.todayLink}
+				<NoteLink {...info.todayLink} linkStyle="chip" />
+			{/if}
+
 			{#if info.forwardLink}
 				<div>--&gt;</div>
 				<NoteLink {...info.forwardLink} linkStyle="chip" />
 			{/if}
 		</div>
-
-		{#if info.secondaryLinks.length > 0}
-			<div class="journal-folder-header-links">
-				{#each info.secondaryLinks as link, i}
-					{#if i > 0}
-						<div>|</div>
-					{/if}
-					<NoteLink {...link} />
-				{/each}
-			</div>
-		{/if}
 	</div>
 </div>

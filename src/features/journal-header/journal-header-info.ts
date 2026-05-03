@@ -24,10 +24,13 @@ import {
 
 export type JournalHeaderInfo = {
   title: string
-  centerLinks: Link[]
+  moreLinks: Link[]
+  moreLinksLabel: string
+  todayLink: Link | undefined
   backwardLink: Link | undefined
   forwardLink: Link | undefined
   secondaryLinks: Link[]
+  secondaryLinksLabel: string
   journalFolderTitle?: string
 }
 
@@ -35,12 +38,18 @@ export function buildJournalHeaderInfo(
   settings: JournalFolderSettings,
   note: JournalNote
 ): JournalHeaderInfo {
+  const lowerOrderNotes = note.getLowerOrderNotes()
+  const lowerOrderUnit = lowerOrderNotes[0]?.getTimeUnit()
+
   return {
     title: note.getTitle(),
-    centerLinks: buildCenterLinks(),
+    moreLinks: buildMoreLinks(),
+    moreLinksLabel: 'Jump to',
+    todayLink: buildTodayLink(),
     backwardLink: createBackwardLink(),
     forwardLink: createForwardLink(),
     secondaryLinks: buildSecondaryLinks(),
+    secondaryLinksLabel: lowerOrderUnit ? labelFor(lowerOrderUnit) : '',
     journalFolderTitle: buildJournalFolderTitle(),
   }
 
@@ -52,17 +61,16 @@ export function buildJournalHeaderInfo(
     }
   }
 
-  function buildCenterLinks(): Link[] {
-    const links = note
+  function buildMoreLinks(): Link[] {
+    return note
       .getHigherOrderNotes()
       .filter((n) => n.isExistingNote() || n.isPresentOrFuture())
-      .map((n) => n.shortLinkFrom(note))
+      .map((n) => n.link('regular'))
+  }
 
-    if (!note.isToday()) {
-      links.push(note.dailyNoteToday().linkWithTitlePattern('[Today]'))
-    }
-
-    return links
+  function buildTodayLink(): Link | undefined {
+    if (note.isToday()) return undefined
+    return note.dailyNoteToday().linkWithTitlePattern('[Today]')
   }
 
   function createForwardLink(): Link | undefined {
@@ -90,8 +98,40 @@ export function buildJournalHeaderInfo(
   }
 
   function buildSecondaryLinks(): Link[] {
-    return note
-      .getLowerOrderNotes()
-      .map((n) => n.link('short', n.isMissingNote() && n.isPast()))
+    if (!lowerOrderUnit) return []
+    const pattern = secondaryTitlePatternFor(lowerOrderUnit)
+    return lowerOrderNotes.map((n) =>
+      n.linkWithTitlePattern(pattern, n.isMissingNote() && n.isPast())
+    )
+  }
+}
+
+function secondaryTitlePatternFor(
+  unit: 'day' | 'week' | 'month' | 'year'
+): string {
+  // The header already shows the year, so secondary patterns drop it.
+  // Non-breaking spaces (U+00A0) keep each label on a single line in the grid.
+  switch (unit) {
+    case 'day':
+      return 'ddd, DD MMMM'
+    case 'week':
+      return '[Week] w'
+    case 'month':
+      return 'MMMM'
+    case 'year':
+      return 'YYYY'
+  }
+}
+
+function labelFor(unit: 'day' | 'week' | 'month' | 'year'): string {
+  switch (unit) {
+    case 'day':
+      return 'Day'
+    case 'week':
+      return 'Week'
+    case 'month':
+      return 'Month'
+    case 'year':
+      return 'Year'
   }
 }

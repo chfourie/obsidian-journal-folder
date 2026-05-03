@@ -164,6 +164,10 @@ export class JournalNote {
     return this.fileMoment.format(this.strategy.titlePattern)
   }
 
+  getTimeUnit(): 'day' | 'week' | 'month' | 'year' {
+    return this.strategy.timeUnit
+  }
+
   forwardInTime(): JournalNote {
     const moment = this.fileMoment.clone().add(1, this.strategy.timeUnit)
     return this.createNoteOfSameTimeUnit(moment)

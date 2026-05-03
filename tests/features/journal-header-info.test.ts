@@ -25,14 +25,19 @@ describe('buildJournalHeaderInfo', () => {
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
     expect(info.title).toBe('Sunday, 03 May 2026')
-    // Higher-order present-time chips are always shown. Sun 2026-05-03 sits
-    // in US-locale week 19 (weeks start on Sunday).
-    expect(info.centerLinks.map((l) => l.title)).toEqual(['2026', 'May', 'W19'])
-    // No "Today" chip because we ARE on today.
+    // Higher-order present-time chips live in moreLinks and use the regular
+    // (long) title pattern. Sun 2026-05-03 sits in US-locale week 19.
+    expect(info.moreLinks.map((l) => l.title)).toEqual([
+      '2026',
+      'May 2026',
+      '2026 Week 19',
+    ])
+    // No "Today" link because we ARE on today.
+    expect(info.todayLink).toBeUndefined()
     expect(info.secondaryLinks).toEqual([])
   })
 
-  it('appends a [Today] chip to centerLinks when the current note is not today', () => {
+  it('exposes a [Today] link when the current note is not today', () => {
     const { files } = buildApp('Journal', ['2026-05-02'])
     const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
       files['2026-05-02']
@@ -40,10 +45,89 @@ describe('buildJournalHeaderInfo', () => {
 
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
-    expect(info.centerLinks.at(-1)).toEqual({
+    expect(info.todayLink).toEqual({
       title: 'Today',
       url: 'Journal/2026-05-03',
       inactive: false,
+    })
+  })
+
+  it('keeps the Today link out of moreLinks so it stays in the primary row', () => {
+    const { files } = buildApp('Journal', ['2026-05-02'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026-05-02']
+    )
+
+    const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+    expect(info.moreLinks.some((l) => l.title === 'Today')).toBe(false)
+  })
+
+  it('returns an empty moreLinks array for yearly notes (no higher-order periods)', () => {
+    const { files } = buildApp('Journal', ['2026'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026']
+    )
+
+    const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+    expect(info.moreLinks).toEqual([])
+  })
+
+  describe('section labels', () => {
+    it('uses a static "Jump to" label for the higher-order chips', () => {
+      const { files } = buildApp('Journal', ['2026-05-03'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05-03']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.moreLinksLabel).toBe('Jump to')
+    })
+
+    it('labels the secondary list "Month" on a yearly note', () => {
+      const { files } = buildApp('Journal', ['2026'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.secondaryLinksLabel).toBe('Month')
+    })
+
+    it('labels the secondary list "Week" on a monthly note', () => {
+      const { files } = buildApp('Journal', ['2026-05'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.secondaryLinksLabel).toBe('Week')
+    })
+
+    it('labels the secondary list "Day" on a weekly note', () => {
+      const { files } = buildApp('Journal', ['2026-W19'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-W19']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.secondaryLinksLabel).toBe('Day')
+    })
+
+    it('returns an empty secondary label for daily notes (no lower-order period)', () => {
+      const { files } = buildApp('Journal', ['2026-05-03'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05-03']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.secondaryLinksLabel).toBe('')
     })
   })
 

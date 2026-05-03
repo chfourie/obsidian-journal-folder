@@ -33,6 +33,7 @@
 	display: flex;
 	flex-direction: column;
 	margin-bottom: 1rem;
+	position: relative;
 }
 
 .journal-folder-header-links {
@@ -64,7 +65,7 @@
 		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
 	}
 
-	&:active {
+	&:active, &.open {
 		color: var(--background-primary);
 		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 	}
@@ -72,6 +73,60 @@
 
 .journal-folder-note-link.no-link {
 	color: var(--text-faint);
+}
+
+.journal-folder-header-more {
+	display: inline-flex;
+}
+
+.journal-folder-header-more-panel {
+	position: absolute;
+	top: calc(100% + .35rem);
+	left: 0;
+	right: 0;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .8rem;
+	padding: .7rem .8rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	box-sizing: border-box;
+}
+
+.journal-folder-header-more-panel-section {
+	display: flex;
+	flex-direction: column;
+	gap: .4rem;
+}
+
+.journal-folder-header-more-panel-section-label {
+	font-size: .7rem;
+	font-weight: 600;
+	letter-spacing: .08em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+}
+
+.journal-folder-header-more-panel-section-rule {
+	height: 1px;
+	background: var(--hr-color);
+	margin-top: -.25rem;
+}
+
+.journal-folder-header-more-panel-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .35rem 1.2rem;
+	align-items: center;
+}
+
+.journal-folder-header-more-panel-list .journal-folder-note-link {
+	white-space: nowrap;
+	overflow-wrap: normal;
+	word-break: keep-all;
 }
 
 .journal-folder-error-message {
