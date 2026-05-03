@@ -63,6 +63,10 @@ It is recommended to use the templating functionality provided by the __Template
 Alternatively the _Obsidian_ core _Templates_ plugin can be used.
 
 ### Composition of a Journal header
+
+> [!NOTE]
+> The primary navigation row shows only the backward link, a `More...` button, the `Today` link (when applicable), and the forward link. Higher-order period links (year/month/week containing the current note) and lower-order period links (e.g. days inside a week, weeks inside a month, months inside a year) are grouped inside the `More...` popover under labeled sections. The screenshots in this section predate this layout, but the link types and the rules describing when each is rendered are unchanged.
+
 #### Daily notes
 
 ![](documents/attachments/Pasted%20image%2020240727125104.png)

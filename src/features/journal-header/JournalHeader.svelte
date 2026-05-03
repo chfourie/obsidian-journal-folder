@@ -26,9 +26,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 	let moreOpen = $state(false)
 	let moreWrapper: HTMLElement | undefined = $state()
+	let panelEl: HTMLElement | undefined = $state()
+	let panelStyle = $state('')
+
+	// Move the panel to <body> so it isn't clipped by CodeMirror widget
+	// containers in live-preview mode.
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node)
+		return {
+			destroy() {
+				node.remove()
+			},
+		}
+	}
+
+	function updatePanelPosition() {
+		if (!moreWrapper) return
+		const optionsEl = moreWrapper.closest(
+			'.journal-folder-header-options'
+		) as HTMLElement | null
+		if (!optionsEl) return
+		const rect = optionsEl.getBoundingClientRect()
+		const gap = 6
+		panelStyle = `top: ${rect.bottom + gap}px; left: ${rect.left}px; width: ${rect.width}px;`
+	}
 
 	function toggleMore() {
 		moreOpen = !moreOpen
+		if (moreOpen) requestAnimationFrame(updatePanelPosition)
 	}
 
 	function closeMore() {
@@ -39,6 +64,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		if (!moreOpen) return
 		const target = event.target as Node | null
 		if (target && moreWrapper && moreWrapper.contains(target)) return
+		if (target && panelEl && panelEl.contains(target)) return
 		closeMore()
 	}
 
@@ -52,9 +78,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			toggleMore()
 		}
 	}
+
+	function handleViewportChange() {
+		if (moreOpen) updatePanelPosition()
+	}
+
+	$effect(() => {
+		if (!moreOpen) return
+		// Capture-phase scroll catches scrolling on any ancestor (the editor
+		// pane scrolls, not window).
+		document.addEventListener('scroll', handleViewportChange, true)
+		return () =>
+			document.removeEventListener('scroll', handleViewportChange, true)
+	})
 </script>
 
-<svelte:window onclick={handleDocumentClick} onkeydown={handleKeydown} />
+<svelte:window
+	onclick={handleDocumentClick}
+	onkeydown={handleKeydown}
+	onresize={handleViewportChange}
+/>
 
 <div class="journal-folder-header">
 	{#if info.journalFolderTitle}
@@ -84,38 +127,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					>
 						More...
 					</span>
-
-					{#if moreOpen}
-						<div class="journal-folder-header-more-panel" role="menu">
-							{#if info.moreLinks.length > 0}
-								<div class="journal-folder-header-more-panel-section">
-									<div class="journal-folder-header-more-panel-section-label">
-										{info.moreLinksLabel}
-									</div>
-									<div class="journal-folder-header-more-panel-section-rule"></div>
-									<div class="journal-folder-header-more-panel-list">
-										{#each info.moreLinks as link}
-											<NoteLink {...link} />
-										{/each}
-									</div>
-								</div>
-							{/if}
-
-							{#if info.secondaryLinks.length > 0}
-								<div class="journal-folder-header-more-panel-section">
-									<div class="journal-folder-header-more-panel-section-label">
-										{info.secondaryLinksLabel}
-									</div>
-									<div class="journal-folder-header-more-panel-section-rule"></div>
-									<div class="journal-folder-header-more-panel-list">
-										{#each info.secondaryLinks as link}
-											<NoteLink {...link} />
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/if}
 				</div>
 			{/if}
 
@@ -130,3 +141,41 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		</div>
 	</div>
 </div>
+
+{#if moreOpen}
+	<div
+		use:portal
+		bind:this={panelEl}
+		class="journal-folder-header-more-panel"
+		style={panelStyle}
+		role="menu"
+	>
+		{#if info.moreLinks.length > 0}
+			<div class="journal-folder-header-more-panel-section">
+				<div class="journal-folder-header-more-panel-section-label">
+					{info.moreLinksLabel}
+				</div>
+				<div class="journal-folder-header-more-panel-section-rule"></div>
+				<div class="journal-folder-header-more-panel-list">
+					{#each info.moreLinks as link}
+						<NoteLink {...link} />
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if info.secondaryLinks.length > 0}
+			<div class="journal-folder-header-more-panel-section">
+				<div class="journal-folder-header-more-panel-section-label">
+					{info.secondaryLinksLabel}
+				</div>
+				<div class="journal-folder-header-more-panel-section-rule"></div>
+				<div class="journal-folder-header-more-panel-list">
+					{#each info.secondaryLinks as link}
+						<NoteLink {...link} />
+					{/each}
+				</div>
+			</div>
+		{/if}
+	</div>
+{/if}

@@ -11,12 +11,14 @@ The plugin is built with TypeScript + Svelte 5 (runes API, `$props`, etc.) and b
 ## Commands
 
 ```bash
-npm run dev      # esbuild in watch mode → main.js (inline sourcemap)
-npm run build    # tsc --noEmit type check, then production esbuild
-npm run version  # bump manifest.json + versions.json from package.json version
+npm run dev        # esbuild in watch mode → main.js (inline sourcemap)
+npm run build      # tsc --noEmit type check, then production esbuild
+npm test           # Vitest run (one-shot)
+npm run test:watch # Vitest in watch mode
+npm run version    # bump manifest.json + versions.json from package.json version
 ```
 
-There are no tests and no lint script wired into npm. ESLint and Prettier configs exist but must be run manually if desired.
+Tests live in `tests/` and mirror the `src/` layout. ESLint and Prettier configs exist but must be run manually if desired.
 
 ## Architecture
 
@@ -50,7 +52,7 @@ Note: `FolderSettingsResolver.getFolderConfigFile` looks up `journal-folder.md` 
 - `titlePattern` / `shortTitlePattern` / `mediumTitlePattern` — user-configurable display patterns. *Medium* is used when a link points to a note in a different year than the source.
 - `timeUnit` — `'day' | 'week' | 'month' | 'year'`
 
-`JournalNote` exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `dailyNoteToday`) plus state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`). Higher/lower order notes drive the chip navigation in the header. **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
+`JournalNote` exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `dailyNoteToday`) plus state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`) and `getTimeUnit()`. Higher-order notes (year/month/week containing the current note) and lower-order notes (e.g. months within a year) feed the More popover in the header. **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
 
 For weekly note patterns, only `gg`/`gggg` reflect the year correctly (the filename uses `gggg-[W]ww`). Using `YYYY`/`GG` in title patterns will desync the displayed year from the filename.
 
@@ -60,10 +62,14 @@ For weekly note patterns, only `gg`/`gggg` reflect the year correctly (the filen
 
 1. Resolve settings for the current file (with the code block body as embedded config).
 2. Build a `JournalNote` via the factory.
-3. `buildJournalHeaderInfo(settings, note)` produces a plain `JournalHeaderInfo` (title + four sets of links).
+3. `buildJournalHeaderInfo(settings, note)` produces a plain `JournalHeaderInfo` containing the title, `backwardLink` / `forwardLink` / `todayLink` chips for the primary row, plus `moreLinks` (higher-order period chips) and `secondaryLinks` (lower-order period entries) with their respective labels (`moreLinksLabel`, `secondaryLinksLabel`).
 4. `mount(JournalHeader, { target: el, props: { info } })` — Svelte 5 `mount` API, components use runes (`$props()`).
 
 Errors are caught and rendered via the `ErrorMessage.svelte` component instead of being thrown.
+
+The primary row shows only `back ‹‹ More... · Today · ›› forward`. Everything else lives in the **More popover** — two labeled sections ("Jump to" for higher-order, "Day"/"Week"/"Month"/"Year" for lower-order). The popover is **portaled to `document.body`** when open and positioned with `getBoundingClientRect()` on the options bar; this is intentional — in live-preview mode the CodeMirror widget wrapping the code block clips absolutely-positioned descendants, so the panel has to escape the widget's containing block. Repositioning runs on window resize and on capture-phase `scroll` events (the editor pane scrolls separately from the window).
+
+Secondary list date patterns are derived from the lower-order `timeUnit` and use non-breaking spaces; they intentionally drop the year because the H1 already shows it. Don't reach for the user-configured `titlePattern`/`shortTitlePattern` for these — see `secondaryTitlePatternFor` in `journal-header-info.ts`.
 
 esbuild bundles `.svelte` files via `esbuild-svelte` with `css: 'injected'` — `styles.css` is the only CSS shipped separately (Obsidian loads it alongside `main.js`).
 
