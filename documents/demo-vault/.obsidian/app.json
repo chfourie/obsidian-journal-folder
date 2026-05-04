@@ -1,0 +1,9 @@
+{
+  "alwaysUpdateLinks": true,
+  "promptDelete": false,
+  "showLineNumber": false,
+  "useTab": false,
+  "tabSize": 2,
+  "newFileLocation": "current",
+  "attachmentFolderPath": "."
+}

@@ -1,0 +1,94 @@
+/*
+ * Minimal Obsidian-light theme stand-in. The plugin's own styles
+ * (../../styles.css) reference these CSS custom properties; the values
+ * below mirror the defaults Obsidian's "Default" theme uses in light mode.
+ * Tweak only if you've verified against a real Obsidian light-theme install.
+ */
+:root,
+body {
+  /* Layout & color */
+  --background-primary: #ffffff;
+  --background-primary-alt: #f5f6f8;
+  --background-secondary: #f8f9fb;
+  --background-modifier-hover: rgba(0, 0, 0, 0.045);
+  --background-modifier-active: rgba(0, 0, 0, 0.08);
+
+  /* Text */
+  --text-normal: #1f2329;
+  --text-muted: #65676d;
+  --text-faint: #a4a6ab;
+  --text-on-accent: #ffffff;
+
+  /* Accent (Obsidian default purple) */
+  --accent-h: 254;
+  --accent-s: 80%;
+  --accent-l: 68%;
+  --interactive-accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --interactive-accent-hover: hsl(var(--accent-h), var(--accent-s), 60%);
+  --text-accent: hsl(var(--accent-h), var(--accent-s), 60%);
+  --text-accent-hover: hsl(var(--accent-h), var(--accent-s), 50%);
+
+  /* Misc */
+  --hr-color: #e1e3e8;
+  --border-width: 1px;
+  --radius-s: 4px;
+  --color-red: #c53030;
+
+  --font-text: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Stage = the area we'll screenshot. The Chrome screenshot crops to the
+ * element's bounding box via --window-size + body padding, so the stage
+ * controls the visible width of the plugin output. */
+.stage {
+  width: 760px;
+  padding: 28px 32px;
+  background: var(--background-primary);
+  box-sizing: border-box;
+}
+
+.stage--narrow {
+  width: 560px;
+}
+
+.stage--mobile {
+  width: 420px;
+}
+
+/* The plugin renders its links via Obsidian's `internal-link` class. In a
+ * real vault Obsidian colors these based on whether the target file exists.
+ * The header component's `chip` style overrides text-decoration; we just
+ * provide a neutral default so non-chip links render as accent text. */
+a.internal-link {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+/* Obsidian's H1 default — keep titles consistent with what the user sees. */
+.journal-folder-header-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--text-normal);
+}
+
+/* Tighten up so the header sits flush at the top of the screenshot. */
+.stage .journal-folder-header {
+  position: static;
+}
+
