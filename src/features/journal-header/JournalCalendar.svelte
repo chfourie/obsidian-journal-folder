@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		buildCalendarInfo,
 		type CalendarCell,
 	} from './journal-calendar-info'
+	import { calendarCellClasses } from './calendar-cell-classes'
 	import { pickVisibleMonthCount } from './visible-month-count'
 
 	type Props = {
@@ -83,15 +84,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		const basename = cell.url.split('/').pop() ?? cell.url
 		if (await confirmCreate(basename)) navigate(cell.url)
 	}
-
-	function classesFor(cell: CalendarCell): string {
-		const classes = ['journal-folder-calendar-cell']
-		if (cell.isCurrent) classes.push('is-current')
-		if (cell.isToday) classes.push('is-today')
-		classes.push(cell.exists ? 'exists' : 'missing')
-		if (cell.needsConfirmation) classes.push('past-missing')
-		return classes.join(' ')
-	}
 </script>
 
 <div
@@ -110,17 +102,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 	<div class="journal-folder-calendar-months">
 		{#each info.months as month (month.monthIso)}
+			{@const renderedWeekCount = month.weeks.filter(
+				(w) => !w.days.every((d) => d.isOutsideMonth)
+			).length}
 			<div class="journal-folder-calendar-month">
 				<div class="journal-folder-calendar-month-title">
 					<a
-						class="internal-link {classesFor(month.monthCell)}"
+						class="internal-link {calendarCellClasses(month.monthCell)}"
 						href={month.monthCell.url}
 						onclick={(e) => handleCellClick(month.monthCell, e)}
 					>
 						{month.monthCell.label}
 					</a>
 					<a
-						class="internal-link {classesFor(month.yearCell)}"
+						class="internal-link {calendarCellClasses(month.yearCell)}"
 						href={month.yearCell.url}
 						onclick={(e) => handleCellClick(month.yearCell, e)}
 					>
@@ -128,8 +123,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					</a>
 				</div>
 
-				<div class="journal-folder-calendar-grid">
-					<div class="journal-folder-calendar-weekday-corner"></div>
+				<div
+					class="journal-folder-calendar-grid"
+					style="grid-template-rows: repeat({renderedWeekCount + 1}, auto)"
+				>
+					<div class="journal-folder-calendar-divider" aria-hidden="true"></div>
+					<div class="journal-folder-calendar-weekday">W</div>
 					{#each month.weekdayHeaders as label}
 						<div class="journal-folder-calendar-weekday">{label}</div>
 					{/each}
@@ -137,7 +136,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					{#each month.weeks as week}
 						{#if !week.days.every((d) => d.isOutsideMonth)}
 							<a
-								class="internal-link {classesFor(week.weekCell)} week"
+								class="internal-link {calendarCellClasses(week.weekCell)} week"
 								href={week.weekCell.url}
 								onclick={(e) => handleCellClick(week.weekCell, e)}
 							>
@@ -148,7 +147,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 									<div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
 								{:else}
 									<a
-										class="internal-link {classesFor(day)} day"
+										class="internal-link {calendarCellClasses(day)} day"
 										href={day.url}
 										onclick={(e) => handleCellClick(day, e)}
 									>

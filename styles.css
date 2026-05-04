@@ -181,10 +181,9 @@
 
 .journal-folder-calendar-months {
 	flex: 1 1 auto;
-	display: grid;
-	grid-auto-flow: column;
-	grid-auto-columns: 1fr;
-	gap: .6rem;
+	display: flex;
+	justify-content: center;
+	gap: 1.2rem;
 	min-width: 0;
 }
 
@@ -207,10 +206,25 @@
 
 .journal-folder-calendar-grid {
 	display: grid;
-	grid-template-columns: 1.4rem repeat(7, minmax(0, 1fr));
+	grid-template-columns: 1.4rem .35rem repeat(7, 1.32rem);
 	row-gap: 1px;
-	column-gap: 1px;
+	column-gap: 1.25px;
 	font-size: .75rem;
+	justify-content: center;
+}
+
+/* Vertical divider between the week-number column and the weekday columns.
+   Sits as a 1px line centred in a dedicated grid track so spacing on either
+   side stays uniform regardless of how much horizontal room each month
+   gets. Spans every grid row via `grid-row: 1 / -1` so the line runs the
+   full height of the grid (header row + all week rows). */
+.journal-folder-calendar-divider {
+	grid-column: 2;
+	grid-row: 1 / -1;
+	width: 1px;
+	background: var(--hr-color);
+	justify-self: center;
+	opacity: .5;
 }
 
 .journal-folder-calendar-weekday {
@@ -222,10 +236,15 @@
 	padding-bottom: .15rem;
 }
 
-/* Calendar cells override Obsidian's `.internal-link` styling so every cell
-   renders consistently regardless of resolved/unresolved state. The
-   `!important` suffixes are intentional — Obsidian's link colors otherwise
-   leak through depending on theme and viewport. */
+/* Calendar cells override Obsidian's default `.internal-link` color so every
+   cell renders in the theme accent regardless of the link's resolved state.
+   Missing cells additionally get the `is-unresolved` class added by the
+   plugin (see `calendarCellClasses` in `calendar-cell-classes.ts`) so the
+   active theme's unresolved-link opacity applies and visually demotes them
+   uniformly across all months — including months the calendar inserts after
+   the markdown post-processor returns, which Obsidian's own link-resolution
+   pass would otherwise miss. The `!important` color suffixes keep the accent
+   hue from being overridden by the theme's `--link-unresolved-color`. */
 .journal-folder-calendar-cell {
 	display: flex;
 	align-items: center;
@@ -311,9 +330,9 @@
 }
 
 .journal-folder-calendar.is-mobile .journal-folder-calendar-grid {
-	grid-template-columns: 2rem repeat(7, minmax(0, 1fr));
+	grid-template-columns: 2rem .5rem repeat(7, 1.8rem);
 	row-gap: 4px;
-	column-gap: 4px;
+	column-gap: 5px;
 	font-size: .95rem;
 }
 
