@@ -30,7 +30,7 @@ import {
   type JournalHeaderInfo,
 } from './journal-header-info'
 import { confirmCreateNote } from './confirm-create-modal'
-import { TFile, type Plugin } from 'obsidian'
+import { Platform, TFile, type Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -67,6 +67,7 @@ export class JournalHeaderFeature extends PluginFeature {
             const defaultCalendarVisible = isTruthy(
               settings.defaultCalendarVisible
             )
+            const isMobile = Platform.isMobile
             // @ts-ignore
             mount(JournalHeader, {
               target: el,
@@ -76,6 +77,7 @@ export class JournalHeaderFeature extends PluginFeature {
                 confirmCreate,
                 navigate,
                 defaultCalendarVisible,
+                isMobile,
               },
             })
           } else {

@@ -292,6 +292,45 @@
 	border-color: var(--interactive-accent);
 }
 
+/* Mobile: enlarge cells so they're comfortable to tap. Desktop is left
+   untouched (the user explicitly preferred its tighter spacing). */
+.journal-folder-calendar.is-mobile {
+	gap: .35rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-arrow {
+	width: 2.4rem;
+	min-height: 2.4rem;
+	font-size: 1.4rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-grid {
+	grid-template-columns: 2rem repeat(7, minmax(0, 1fr));
+	row-gap: 4px;
+	column-gap: 4px;
+	font-size: .95rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-month-title {
+	font-size: 1rem;
+	gap: .5rem;
+	margin-bottom: .35rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-weekday {
+	font-size: .75rem;
+	padding-bottom: .3rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-cell {
+	min-height: 2.5rem;
+	padding: .25rem .35rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-cell.week {
+	font-size: .8rem;
+}
+
 .journal-folder-error-message {
 	color: var(--color-red);
 }

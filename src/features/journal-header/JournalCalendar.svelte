@@ -22,28 +22,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		buildCalendarInfo,
 		type CalendarCell,
 	} from './journal-calendar-info'
+	import { pickVisibleMonthCount } from './visible-month-count'
 
 	type Props = {
 		note: JournalNote
 		confirmCreate: (basename: string) => Promise<boolean>
 		navigate: (linktext: string) => void
+		isMobile: boolean
 	}
-	let { note, confirmCreate, navigate }: Props = $props()
-
-	const MAX_MONTHS = 5
-	const MIN_MONTH_PX = 180
-	const ARROW_PX = 28
+	let { note, confirmCreate, navigate, isMobile }: Props = $props()
 
 	let containerEl: HTMLElement | undefined = $state()
 	let measuredWidth = $state(0)
 	let offsetMonths = $state(0)
 
-	let visibleMonthCount = $derived.by(() => {
-		if (measuredWidth <= 0) return 1
-		const available = Math.max(0, measuredWidth - ARROW_PX * 2)
-		const fits = Math.floor(available / MIN_MONTH_PX)
-		return Math.max(1, Math.min(MAX_MONTHS, fits))
-	})
+	let visibleMonthCount = $derived(
+		pickVisibleMonthCount(measuredWidth, { isMobile })
+	)
 
 	let info = $derived(
 		buildCalendarInfo(note, { visibleMonthCount, offsetMonths })
@@ -99,7 +94,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	}
 </script>
 
-<div class="journal-folder-calendar" bind:this={containerEl}>
+<div
+	class="journal-folder-calendar"
+	class:is-mobile={isMobile}
+	bind:this={containerEl}
+>
 	<button
 		type="button"
 		class="clickable-icon journal-folder-calendar-arrow"

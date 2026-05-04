@@ -35,6 +35,15 @@ export class TFolder extends TAbstractFile {
   }
 }
 
+// Real Obsidian exposes a Platform constant with `isMobile`/`isPhone`/etc.
+// Tests assume desktop unless they explicitly toggle this.
+export const Platform = {
+  isDesktop: true,
+  isMobile: false,
+  isPhone: false,
+  isTablet: false,
+}
+
 export function normalizePath(path: string): string {
   // Obsidian's normalizePath collapses repeated slashes and trims trailing
   // slashes — close enough for the journal-note tests.

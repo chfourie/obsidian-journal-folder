@@ -34,10 +34,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		confirmCreate: (basename: string) => Promise<boolean>
 		navigate: (linktext: string) => void
 		defaultCalendarVisible: boolean
+		isMobile: boolean
 	}
 
-	let { info, note, confirmCreate, navigate, defaultCalendarVisible }: Props =
-		$props()
+	let {
+		info,
+		note,
+		confirmCreate,
+		navigate,
+		defaultCalendarVisible,
+		isMobile,
+	}: Props = $props()
 
 	// Apply the resolved default once per header mount. The helper is a
 	// no-op once the user has manually toggled this session, so navigating
@@ -185,7 +192,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	</div>
 
 	{#if $calendarVisible}
-		<JournalCalendar {note} {confirmCreate} {navigate} />
+		<JournalCalendar {note} {confirmCreate} {navigate} {isMobile} />
 	{/if}
 </div>
 
