@@ -26,6 +26,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		calendarVisible,
 		toggleCalendar,
 	} from './calendar-visibility'
+	import { findInternalLinkHref } from './internal-link-target'
 
 	type Props = {
 		info: JournalHeaderInfo
@@ -109,6 +110,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		toggleCalendar()
 	}
 
+	// The panel is portaled to <body>, so Obsidian's `.internal-link` click
+	// handler (scoped to the markdown render container) doesn't fire on its
+	// links. Intercept clicks here and route through the injected navigate.
+	function handlePanelClick(event: MouseEvent) {
+		const href = findInternalLinkHref(event.target)
+		if (href === null) return
+		event.preventDefault()
+		closeMore()
+		navigate(href)
+	}
+
 	function handleToggleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault()
@@ -178,12 +190,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 </div>
 
 {#if moreOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_interactive_supports_focus -->
 	<div
 		use:portal
 		bind:this={panelEl}
 		class="journal-folder-header-more-panel"
 		style={panelStyle}
 		role="menu"
+		onclick={handlePanelClick}
 	>
 		<div class="journal-folder-header-more-panel-section">
 			<div class="journal-folder-header-more-panel-section-header">
