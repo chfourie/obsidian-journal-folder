@@ -162,7 +162,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<div class="journal-folder-header-links">
 			{#if info.backwardLink}
 				<NoteLink {...info.backwardLink} linkStyle="chip" />
-				<div>&lt;--</div>
+				<div class="journal-folder-header-arrow">«</div>
 			{/if}
 
 			<div class="journal-folder-header-more" bind:this={moreWrapper}>
@@ -185,7 +185,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			{/if}
 
 			{#if info.forwardLink}
-				<div>--&gt;</div>
+				<div class="journal-folder-header-arrow">»</div>
 				<NoteLink {...info.forwardLink} linkStyle="chip" />
 			{/if}
 		</div>
