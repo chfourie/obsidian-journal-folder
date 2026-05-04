@@ -23,12 +23,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // inter-month gap so `floor(available / minMonthPx)` slightly over-counts the
 // space each month needs and never returns a count whose grids would overflow
 // their containers (with cells now fixed-width, an under-count would let
-// adjacent months visually overlap).
+// adjacent months visually overlap). The values are tuned so that 3 desktop
+// months fit in Obsidian's default readable-line-length content area
+// (~696px) without slop — natural desktop month width is ~194px and the
+// inter-month gap is ~19px, so 213 ≈ month + gap is the smallest value that
+// still keeps the simple `floor(avail / x)` formula safe for any N up to
+// `MAX_MONTHS`.
 
 export const MAX_MONTHS = 5
 export const ARROW_PX = 28
-export const DESKTOP_MIN_MONTH_PX = 220
-export const MOBILE_MIN_MONTH_PX = 340
+export const DESKTOP_MIN_MONTH_PX = 213
+export const MOBILE_MIN_MONTH_PX = 333
 
 export type VisibleMonthCountOpts = {
   isMobile: boolean
