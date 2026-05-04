@@ -26,14 +26,13 @@ describe('pickVisibleMonthCount', () => {
     expect(pickVisibleMonthCount(10_000, mobile)).toBe(MAX_MONTHS)
   })
 
-  it('uses 180px per month on desktop', () => {
-    // Three months fit when the available width is >= 540px.
+  it('uses DESKTOP_MIN_MONTH_PX per month on desktop', () => {
     const justEnough = ARROW_PX * 2 + DESKTOP_MIN_MONTH_PX * 3
     expect(pickVisibleMonthCount(justEnough, desktop)).toBe(3)
     expect(pickVisibleMonthCount(justEnough - 1, desktop)).toBe(2)
   })
 
-  it('uses 280px per month on mobile so cells have room for tap targets', () => {
+  it('uses MOBILE_MIN_MONTH_PX per month on mobile so cells have room for tap targets', () => {
     const justEnough = ARROW_PX * 2 + MOBILE_MIN_MONTH_PX * 2
     expect(pickVisibleMonthCount(justEnough, mobile)).toBe(2)
     expect(pickVisibleMonthCount(justEnough - 1, mobile)).toBe(1)

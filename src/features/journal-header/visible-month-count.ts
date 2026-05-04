@@ -19,12 +19,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // Picks how many month panels fit in `measuredWidth`, after subtracting room
 // for the two arrow buttons. Mobile uses a larger per-month minimum so the
 // enlarged tap-target cells have room to breathe — desktop keeps the tighter
-// spacing the user explicitly preferred.
+// spacing the user explicitly preferred. The per-month constants include the
+// inter-month gap so `floor(available / minMonthPx)` slightly over-counts the
+// space each month needs and never returns a count whose grids would overflow
+// their containers (with cells now fixed-width, an under-count would let
+// adjacent months visually overlap).
 
 export const MAX_MONTHS = 5
 export const ARROW_PX = 28
-export const DESKTOP_MIN_MONTH_PX = 180
-export const MOBILE_MIN_MONTH_PX = 280
+export const DESKTOP_MIN_MONTH_PX = 220
+export const MOBILE_MIN_MONTH_PX = 340
 
 export type VisibleMonthCountOpts = {
   isMobile: boolean
