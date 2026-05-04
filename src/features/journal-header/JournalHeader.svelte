@@ -21,16 +21,30 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	import type { JournalHeaderInfo } from './journal-header-info'
 	import type { JournalNote } from '../../data-access'
 	import JournalCalendar from './JournalCalendar.svelte'
-	import { calendarVisible, toggleCalendar } from './calendar-visibility'
+	import {
+		applyCalendarDefault,
+		calendarVisible,
+		toggleCalendar,
+	} from './calendar-visibility'
 
 	type Props = {
 		info: JournalHeaderInfo
 		note: JournalNote
 		confirmCreate: (basename: string) => Promise<boolean>
 		navigate: (linktext: string) => void
+		defaultCalendarVisible: boolean
 	}
 
-	let { info, note, confirmCreate, navigate }: Props = $props()
+	let { info, note, confirmCreate, navigate, defaultCalendarVisible }: Props =
+		$props()
+
+	// Apply the resolved default once per header mount. The helper is a
+	// no-op once the user has manually toggled this session, so navigating
+	// between folders with different defaults won't override an explicit
+	// user choice.
+	$effect(() => {
+		applyCalendarDefault(defaultCalendarVisible)
+	})
 
 	let moreOpen = $state(false)
 	let moreWrapper: HTMLElement | undefined = $state()

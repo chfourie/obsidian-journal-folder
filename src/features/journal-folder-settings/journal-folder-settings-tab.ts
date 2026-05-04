@@ -206,6 +206,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
     this.createUseFolderNameAsDefaultTitleSetting(settings)
 
+    this.createDefaultCalendarVisibleSetting(settings)
+
     if (!settings.useFolderNameAsDefaultTitle) {
       this.createTextSetting(
         settings,
@@ -360,6 +362,42 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       .setDesc(
         'If this option is checked, and a journal folder title is not configured at ' +
           'folder level, the folder name will be used as title for the journal folder.'
+      )
+  }
+
+  createDefaultCalendarVisibleSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.defaultCalendarVisible = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Show calendar by default')
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.defaultCalendarVisible).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.defaultCalendarVisible)
+            onChange(DEFAULT_SETTINGS.defaultCalendarVisible)
+          })
+      })
+      .setDesc(
+        'If checked, the calendar picker is visible when Obsidian starts. ' +
+          'Override per-folder by setting "default-calendar-visible: true" or ' +
+          '"default-calendar-visible: false" in that folder\'s journal-folder.md ' +
+          'front matter. The user can still toggle the calendar from the More ' +
+          'popover at any time, and that manual choice persists for the rest ' +
+          'of the running Obsidian session.'
       )
   }
 }

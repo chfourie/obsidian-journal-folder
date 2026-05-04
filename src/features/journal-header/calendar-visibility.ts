@@ -22,6 +22,21 @@ import { writable } from 'svelte/store'
 // journal-header instance so toggling in one header propagates to all.
 export const calendarVisible = writable(false)
 
+// Once the user has explicitly toggled, the configured per-folder/global
+// default no longer overrides their choice for the remainder of the session.
+let userHasToggled = false
+
 export function toggleCalendar(): void {
+  userHasToggled = true
   calendarVisible.update((v) => !v)
+}
+
+export function applyCalendarDefault(value: boolean): void {
+  if (userHasToggled) return
+  calendarVisible.set(value)
+}
+
+export function __resetCalendarVisibilityForTests(): void {
+  userHasToggled = false
+  calendarVisible.set(false)
 }
