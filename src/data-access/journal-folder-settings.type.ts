@@ -49,5 +49,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   yearlyNoteMediumTitlePattern: 'YYYY',
   journalFolderTitle: '',
   useFolderNameAsDefaultTitle: false,
-  defaultCalendarVisible: false,
+  defaultCalendarVisible: true,
 }
