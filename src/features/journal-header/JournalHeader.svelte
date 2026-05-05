@@ -196,6 +196,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	{/if}
 </div>
 
+{#snippet calendarToggle()}
+	<span
+		class="journal-folder-calendar-toggle"
+		class:active={$calendarVisible}
+		role="button"
+		tabindex="0"
+		aria-pressed={$calendarVisible}
+		onclick={handleToggleCalendar}
+		onkeydown={handleToggleKeydown}
+	>
+		{$calendarVisible ? 'Hide calendar' : 'Show calendar'}
+	</span>
+{/snippet}
+
+{#snippet section(label: string, links: typeof info.moreLinks, withToggle: boolean)}
+	<div class="journal-folder-header-more-panel-section">
+		<div class="journal-folder-header-more-panel-section-header">
+			<div class="journal-folder-header-more-panel-section-label">{label}</div>
+			{#if withToggle}{@render calendarToggle()}{/if}
+		</div>
+		<div class="journal-folder-header-more-panel-section-rule"></div>
+		<div class="journal-folder-header-more-panel-list">
+			{#each links as link}
+				<NoteLink {...link} />
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
 {#if moreOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_interactive_supports_focus -->
@@ -207,45 +236,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		role="menu"
 		onclick={handlePanelClick}
 	>
-		<div class="journal-folder-header-more-panel-section">
-			<div class="journal-folder-header-more-panel-section-header">
-				<div class="journal-folder-header-more-panel-section-label">
-					{info.moreLinksLabel}
-				</div>
-				<span
-					class="journal-folder-calendar-toggle"
-					class:active={$calendarVisible}
-					role="button"
-					tabindex="0"
-					aria-pressed={$calendarVisible}
-					onclick={handleToggleCalendar}
-					onkeydown={handleToggleKeydown}
-				>
-					{$calendarVisible ? 'Hide calendar' : 'Show calendar'}
-				</span>
-			</div>
-			<div class="journal-folder-header-more-panel-section-rule"></div>
-			{#if info.moreLinks.length > 0}
-				<div class="journal-folder-header-more-panel-list">
-					{#each info.moreLinks as link}
-						<NoteLink {...link} />
-					{/each}
-				</div>
-			{/if}
-		</div>
+		{#if info.moreLinks.length > 0}
+			{@render section(info.moreLinksLabel, info.moreLinks, true)}
+		{/if}
 
 		{#if info.secondaryLinks.length > 0}
-			<div class="journal-folder-header-more-panel-section">
-				<div class="journal-folder-header-more-panel-section-label">
-					{info.secondaryLinksLabel}
-				</div>
-				<div class="journal-folder-header-more-panel-section-rule"></div>
-				<div class="journal-folder-header-more-panel-list">
-					{#each info.secondaryLinks as link}
-						<NoteLink {...link} />
-					{/each}
-				</div>
-			</div>
+			{@render section(
+				info.secondaryLinksLabel,
+				info.secondaryLinks,
+				info.moreLinks.length === 0
+			)}
+		{/if}
+
+		{#if info.extraLinks.length > 0}
+			{@render section(
+				info.extraLinksLabel,
+				info.extraLinks,
+				info.moreLinks.length === 0 && info.secondaryLinks.length === 0
+			)}
 		{/if}
 	</div>
 {/if}

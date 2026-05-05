@@ -20,6 +20,8 @@ import { normalizePath, type TFile } from 'obsidian'
 import type { JournalFolderSettings, Link } from './index'
 import { moment } from 'obsidian'
 
+export type JournalTimeUnit = 'day' | 'week' | 'month' | 'quarter' | 'year'
+
 type JournalNoteStrategy = {
   fileRegex: RegExp
   filePattern: string
@@ -27,13 +29,14 @@ type JournalNoteStrategy = {
   shortTitlePattern: string
   mediumTitlePattern: string
   yearPattern: string
-  timeUnit: 'day' | 'week' | 'month' | 'year'
+  timeUnit: JournalTimeUnit
 }
 
 type JournalNoteStrategies = {
   DAILY_NOTE_STRATEGY: JournalNoteStrategy
   WEEKLY_NOTE_STRATEGY: JournalNoteStrategy
   MONTHLY_NOTE_STRATEGY: JournalNoteStrategy
+  QUARTERLY_NOTE_STRATEGY: JournalNoteStrategy
   YEARLY_NOTE_STRATEGY: JournalNoteStrategy
   BY_DESCENDING_ORDER: JournalNoteStrategy[]
 }
@@ -46,6 +49,16 @@ function startOfInterval(
 ): moment.Moment {
   // @ts-ignore
   return moment(sourceMoment.format(pattern), pattern)
+}
+
+// Folder front-matter and embedded code-block configs arrive as raw values,
+// so a boolean setting can show up as a real boolean (YAML), the string
+// "true"/"false" (embedded `key: value`), or anything else a user typed.
+// Match the convention in resolve-default-calendar-visible: only the literal
+// string "false" is falsy on the string path; otherwise defer to JS truthiness.
+function isTruthySetting(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().toLowerCase() !== 'false'
+  return Boolean(value)
 }
 
 export function journalNoteFactoryWithSettings(
@@ -81,6 +94,16 @@ export function journalNoteFactoryWithSettings(
     timeUnit: 'month',
   }
 
+  const QUARTERLY_NOTE_STRATEGY: JournalNoteStrategy = {
+    fileRegex: /^[12]\d{3}-Q[1-4]$/,
+    filePattern: 'YYYY-[Q]Q',
+    titlePattern: settings.quarterlyNoteTitlePattern,
+    shortTitlePattern: settings.quarterlyNoteShortTitlePattern,
+    mediumTitlePattern: settings.quarterlyNoteMediumTitlePattern,
+    yearPattern: 'YYYY',
+    timeUnit: 'quarter',
+  }
+
   const YEARLY_NOTE_STRATEGY: JournalNoteStrategy = {
     fileRegex: /^[12]\d{3}$/,
     filePattern: 'YYYY',
@@ -91,17 +114,32 @@ export function journalNoteFactoryWithSettings(
     timeUnit: 'year',
   }
 
+  // Quarters are an opt-in tier — when disabled they're absent from the
+  // descending-order chain so quarter files don't get picked up as journal
+  // notes and don't show up in higher/lower-order traversals.
+  const quartersEnabled = isTruthySetting(settings.quartersEnabled)
+  const BY_DESCENDING_ORDER: JournalNoteStrategy[] = quartersEnabled
+    ? [
+        YEARLY_NOTE_STRATEGY,
+        QUARTERLY_NOTE_STRATEGY,
+        MONTHLY_NOTE_STRATEGY,
+        WEEKLY_NOTE_STRATEGY,
+        DAILY_NOTE_STRATEGY,
+      ]
+    : [
+        YEARLY_NOTE_STRATEGY,
+        MONTHLY_NOTE_STRATEGY,
+        WEEKLY_NOTE_STRATEGY,
+        DAILY_NOTE_STRATEGY,
+      ]
+
   const strategies: JournalNoteStrategies = {
     DAILY_NOTE_STRATEGY,
     WEEKLY_NOTE_STRATEGY,
     MONTHLY_NOTE_STRATEGY,
+    QUARTERLY_NOTE_STRATEGY,
     YEARLY_NOTE_STRATEGY,
-    BY_DESCENDING_ORDER: [
-      YEARLY_NOTE_STRATEGY,
-      MONTHLY_NOTE_STRATEGY,
-      WEEKLY_NOTE_STRATEGY,
-      DAILY_NOTE_STRATEGY,
-    ],
+    BY_DESCENDING_ORDER,
   }
 
   function getNoteStrategy(file: TFile): JournalNoteStrategy {
@@ -164,7 +202,7 @@ export class JournalNote {
     return this.fileMoment.format(this.strategy.titlePattern)
   }
 
-  getTimeUnit(): 'day' | 'week' | 'month' | 'year' {
+  getTimeUnit(): JournalTimeUnit {
     return this.strategy.timeUnit
   }
 
@@ -172,16 +210,18 @@ export class JournalNote {
     return this.fileMoment.clone()
   }
 
-  noteFor(
-    unit: 'day' | 'week' | 'month' | 'year',
-    m: moment.Moment
-  ): JournalNote {
+  // True when the given time unit has a strategy registered in the
+  // descending-order chain. Used by the calendar to decide whether to render
+  // the quarter suffix without threading an extra prop down from settings.
+  hasUnit(unit: JournalTimeUnit): boolean {
+    return this.strategies.BY_DESCENDING_ORDER.includes(this.strategyFor(unit))
+  }
+
+  noteFor(unit: JournalTimeUnit, m: moment.Moment): JournalNote {
     return this.createNote(this.strategyFor(unit), m)
   }
 
-  private strategyFor(
-    unit: 'day' | 'week' | 'month' | 'year'
-  ): JournalNoteStrategy {
+  private strategyFor(unit: JournalTimeUnit): JournalNoteStrategy {
     switch (unit) {
       case 'day':
         return this.strategies.DAILY_NOTE_STRATEGY
@@ -189,6 +229,8 @@ export class JournalNote {
         return this.strategies.WEEKLY_NOTE_STRATEGY
       case 'month':
         return this.strategies.MONTHLY_NOTE_STRATEGY
+      case 'quarter':
+        return this.strategies.QUARTERLY_NOTE_STRATEGY
       case 'year':
         return this.strategies.YEARLY_NOTE_STRATEGY
     }
@@ -266,19 +308,39 @@ export class JournalNote {
   }
 
   getLowerOrderNotes(): JournalNote[] {
-    const notes: JournalNote[] = []
     const lowerOrderStrategy = this.getLowerOrderStrategy()
+    return lowerOrderStrategy ? this.notesInPeriodFor(lowerOrderStrategy) : []
+  }
 
-    if (lowerOrderStrategy) {
-      const moment = this.fileMoment.clone()
-
-      while (this.name === moment.format(this.strategy.filePattern)) {
-        notes.push(this.createNote(lowerOrderStrategy, moment))
-        moment.add(1, lowerOrderStrategy.timeUnit)
-      }
+  // Returns the list of notes for the requested unit that fall within this
+  // note's interval. Used to surface a separate "Quarter" section on yearly
+  // notes (4 quarters) without disturbing the existing primary lower-order
+  // list (12 months). Returns [] when the requested unit is not active in
+  // the descending-order chain — e.g. asking for 'quarter' when quarters
+  // are disabled — or when the unit is the same as or higher than the
+  // current note's tier.
+  getNotesInPeriod(unit: JournalTimeUnit): JournalNote[] {
+    const strategy = this.strategyFor(unit)
+    if (!this.strategies.BY_DESCENDING_ORDER.includes(strategy)) return []
+    if (strategy === this.strategy) return []
+    if (this.strategyIndex(strategy) <= this.strategyIndex(this.strategy)) {
+      return []
     }
+    return this.notesInPeriodFor(strategy)
+  }
 
+  private notesInPeriodFor(strategy: JournalNoteStrategy): JournalNote[] {
+    const notes: JournalNote[] = []
+    const m = this.fileMoment.clone()
+    while (this.name === m.format(this.strategy.filePattern)) {
+      notes.push(this.createNote(strategy, m))
+      m.add(1, strategy.timeUnit)
+    }
     return notes
+  }
+
+  private strategyIndex(strategy: JournalNoteStrategy): number {
+    return this.strategies.BY_DESCENDING_ORDER.indexOf(strategy)
   }
 
   getFolderName(): string | undefined {
@@ -338,7 +400,19 @@ export class JournalNote {
     let currentStrategyFound = false
 
     for (const strategy of this.strategies.BY_DESCENDING_ORDER) {
-      if (currentStrategyFound) return strategy
+      if (currentStrategyFound) {
+        // Yearly notes should keep months as their primary lower-order
+        // list when quarters are enabled — quarters get their own
+        // dedicated section in the More panel rather than replacing the
+        // 12-month list.
+        if (
+          this.strategy === this.strategies.YEARLY_NOTE_STRATEGY &&
+          strategy === this.strategies.QUARTERLY_NOTE_STRATEGY
+        ) {
+          continue
+        }
+        return strategy
+      }
       currentStrategyFound = this.strategy === strategy
     }
   }

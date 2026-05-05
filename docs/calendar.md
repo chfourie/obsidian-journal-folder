@@ -1,6 +1,6 @@
 # Calendar picker
 
-`JournalCalendar.svelte` renders below the options bar inside the same sticky header when `calendarVisible` is true. The pure model lives in `journal-calendar-info.ts` (`buildCalendarInfo(note, { visibleMonthCount, offsetMonths })`) and is fully unit-tested — it owns no DOM or IO. Per month: clickable `MMM` + `YYYY` title, weekday header row, locale week-number column on the left, and a 6×7 day grid (rows that are entirely outside-month are skipped, and individual outside-month days inside otherwise-populated rows are rendered as empty placeholders). Default month-window placement is right-biased: `monthsBefore = floor(N/2)`.
+`JournalCalendar.svelte` renders below the options bar inside the same sticky header when `calendarVisible` is true. The pure model lives in `journal-calendar-info.ts` (`buildCalendarInfo(note, { visibleMonthCount, offsetMonths })`) and is fully unit-tested — it owns no DOM or IO. Per month: clickable `MMM` + `YYYY` title (plus a `(Q1)`–`(Q4)` quarter chip when `note.hasUnit('quarter')`, linking to the corresponding `YYYY-Q[1-4]` note), weekday header row, locale week-number column on the left, and a 6×7 day grid (rows that are entirely outside-month are skipped, and individual outside-month days inside otherwise-populated rows are rendered as empty placeholders). Default month-window placement is right-biased: `monthsBefore = floor(N/2)`.
 
 ## Visible month count
 

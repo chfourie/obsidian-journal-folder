@@ -20,14 +20,17 @@ The vault root is **not** supported as a journal folder — Obsidian's link reso
 
 ## Recognised file names
 
-| Note type | Filename format | Example |
-| --- | --- | --- |
-| Daily   | `YYYY-MM-DD` | `2026-05-04.md` |
-| Weekly  | `gggg-[W]ww` | `2026-W19.md`   |
-| Monthly | `YYYY-MM`    | `2026-05.md`    |
-| Yearly  | `YYYY`       | `2026.md`       |
+| Note type | Filename format | Example | Notes |
+| --- | --- | --- | --- |
+| Daily     | `YYYY-MM-DD` | `2026-05-04.md` |   |
+| Weekly    | `gggg-[W]ww` | `2026-W19.md`   |   |
+| Monthly   | `YYYY-MM`    | `2026-05.md`    |   |
+| Quarterly | `YYYY-Q[1-4]`| `2026-Q2.md`    | Opt-in; enable *Quarterly notes* in settings or set `quarters-enabled: true` in `journal-folder.md`. |
+| Yearly    | `YYYY`       | `2026.md`       |   |
 
 The weekly format uses ISO week-year (`gggg`/`gg`). If you customise weekly title patterns, use `gg`/`gggg` for the year — `YYYY` or `GGGG` will desync the displayed year from the filename around year boundaries.
+
+When quarterly notes are enabled, the calendar's month titles also annotate each month with the containing quarter (e.g. `May 2026 (Q2)`), and the More popover gains a *Quarter* section listing the 4 quarters of the year on yearly notes.
 
 ## Install
 
@@ -104,7 +107,7 @@ The chips on the primary row are deliberately minimal. Higher-order period jumps
 
 ![More popover, daily note](docs/screenshots/more-popover-daily.png)
 
-The **View** section lists higher-order periods that contain the current note: year (`2026`), month (`May`), week (`W19`). Each link is rendered only if a note exists for that period or if the period is current/future. The **Show calendar** / **Hide calendar** toggle on the right opens or closes the inline calendar picker (see next section).
+The **Jump to** section lists higher-order periods that contain the current note: year (`2026`), month (`May`), week (`W19`). For unspanning periods each link is shown only if a note exists for that period or if the period is current/future; when the current note straddles a tier boundary (e.g. a week that crosses `Q1`/`Q2` or March/April) all overlapping periods are listed, with past+missing entries rendered inactive. The **Show calendar** / **Hide calendar** toggle on the right opens or closes the inline calendar picker (see next section).
 
 #### From a weekly note
 
@@ -116,7 +119,7 @@ A weekly note also exposes a **Day** section listing each day in the week, with 
 
 ![More popover, monthly note (calendar visible)](docs/screenshots/more-popover-monthly.png)
 
-A monthly note's lower-order section is **Week**. A yearly note's is **Month** (not shown — you've seen the pattern). The toggle on the right reads *Hide calendar* here because the calendar is currently visible.
+A monthly note's lower-order section is **Week**. A yearly note's is **Month**, and — when quarterly notes are enabled — yearly notes also gain a trailing **Quarter** section with `Q1`–`Q4` (a quarterly note's lower-order section is the three months it contains). On yearly notes the *Jump to* section is empty (no higher-order periods exist), so the calendar toggle moves to the *Month* header on the right. The toggle on the right reads *Hide calendar* here because the calendar is currently visible.
 
 ### The calendar picker
 
@@ -208,6 +211,10 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `monthly-note-title-pattern`         | H1 title pattern for monthly notes. Don't include sub-month units. |
 | `monthly-note-short-title-pattern`   | Chip/link pattern for monthly notes. |
 | `monthly-note-medium-title-pattern`  | Cross-year monthly link pattern. |
+| `quarters-enabled`                   | If true, `YYYY-Q[1-4]` notes are recognised as quarterly journal notes (slotting between yearly and monthly), the calendar annotates month titles with the containing quarter, and yearly notes show an additional *Quarter* section in the More popover. Off by default. |
+| `quarterly-note-title-pattern`       | H1 title pattern for quarterly notes (only used when `quarters-enabled` is on). Don't include sub-quarter units. |
+| `quarterly-note-short-title-pattern` | Chip/link pattern for quarterly notes. |
+| `quarterly-note-medium-title-pattern`| Cross-year quarterly link pattern. |
 | `yearly-note-title-pattern`          | H1 title pattern for yearly notes. Don't include sub-year units. |
 | `yearly-note-short-title-pattern`    | Chip/link pattern for yearly notes. |
 | `yearly-note-medium-title-pattern`   | Cross-year yearly link pattern (rare; usually identical to short). |

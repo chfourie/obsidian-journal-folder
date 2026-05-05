@@ -327,3 +327,76 @@ describe('buildCalendarInfo - cell metadata', () => {
     expect(may.yearCell.url).toBe('Journal/2026')
   })
 })
+
+describe('buildCalendarInfo - quarter cell', () => {
+  it('omits quarterCell when quarters are not enabled', () => {
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026-05-03']
+    )
+    const info = buildCalendarInfo(note, { visibleMonthCount: 3 })
+    for (const month of info.months) {
+      expect(month.quarterCell).toBeUndefined()
+    }
+  })
+
+  it('emits a quarterCell labelled "Q1"…"Q4" for each month when quarters are enabled', () => {
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings({
+      ...DEFAULT_SETTINGS,
+      quartersEnabled: true,
+    })(files['2026-05-03'])
+    const info = buildCalendarInfo(note, { visibleMonthCount: 5 })
+    // Default placement: months Mar..Jul → Q1, Q2, Q2, Q2, Q3.
+    expect(info.months.map((m) => m.quarterCell!.label)).toEqual([
+      'Q1',
+      'Q2',
+      'Q2',
+      'Q2',
+      'Q3',
+    ])
+    expect(info.months[2].quarterCell!.url).toBe('Journal/2026-Q2')
+  })
+
+  it('flags the current quarter cell when the note is quarterly', () => {
+    const { files } = buildApp('Journal', ['2026-Q2'])
+    const note = journalNoteFactoryWithSettings({
+      ...DEFAULT_SETTINGS,
+      quartersEnabled: true,
+    })(files['2026-Q2'])
+    // 7 visible → before = 3, so window is Jan..Jul covering all of Q1, Q2, Q3.
+    const info = buildCalendarInfo(note, { visibleMonthCount: 7 })
+    const currentByIso = Object.fromEntries(
+      info.months.map((m) => [m.monthIso, m.quarterCell!.isCurrent])
+    )
+    expect(currentByIso['2026-03']).toBe(false)
+    expect(currentByIso['2026-04']).toBe(true)
+    expect(currentByIso['2026-05']).toBe(true)
+    expect(currentByIso['2026-06']).toBe(true)
+    expect(currentByIso['2026-07']).toBe(false)
+  })
+
+  it('marks past missing quarter cells as needsConfirmation', () => {
+    // Q1 of 2026 is past relative to TODAY (2026-05-03) and not on disk.
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings({
+      ...DEFAULT_SETTINGS,
+      quartersEnabled: true,
+    })(files['2026-05-03'])
+    const info = buildCalendarInfo(note, { visibleMonthCount: 5 })
+    const march = info.months.find((m) => m.monthIso === '2026-03')!
+    expect(march.quarterCell!.exists).toBe(false)
+    expect(march.quarterCell!.isPast).toBe(true)
+    expect(march.quarterCell!.needsConfirmation).toBe(true)
+  })
+
+  it('reflects existence when the matching quarterly note is in the folder', () => {
+    const { files } = buildApp('Journal', ['2026-05-03', '2026-Q2'])
+    const note = journalNoteFactoryWithSettings({
+      ...DEFAULT_SETTINGS,
+      quartersEnabled: true,
+    })(files['2026-05-03'])
+    const info = buildCalendarInfo(note, { visibleMonthCount: 1 })
+    expect(info.months[0].quarterCell!.exists).toBe(true)
+  })
+})

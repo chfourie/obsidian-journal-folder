@@ -34,6 +34,9 @@ type SettingsStringFieldName =
   | 'weeklyNoteShortTitlePattern'
   | 'monthlyNoteTitlePattern'
   | 'monthlyNoteShortTitlePattern'
+  | 'quarterlyNoteTitlePattern'
+  | 'quarterlyNoteShortTitlePattern'
+  | 'quarterlyNoteMediumTitlePattern'
   | 'yearlyNoteTitlePattern'
   | 'yearlyNoteShortTitlePattern'
   | 'dailyNoteMediumTitlePattern'
@@ -178,6 +181,41 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         'as the day component represents a fraction of the month. ' +
         'For help on the pattern syntax, refer to the link below.'
     )
+
+    this.createQuartersEnabledSetting(settings)
+
+    if (settings.quartersEnabled) {
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteTitlePattern',
+        'Quarterly note title pattern'
+      ).setDesc(
+        'The pattern used to render the title of a quarterly note. ' +
+          'This pattern should not render any date/time elements shorter than a quarter (e.g. month, week or day). ' +
+          'For help on the pattern syntax, refer to the link below.'
+      )
+
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteShortTitlePattern',
+        'Quarterly note short title pattern'
+      ).setDesc(
+        'The pattern used to render links to quarterly notes. ' +
+          'The user should aim to keep this pattern short ' +
+          'as multiple links may be rendered next to each other. ' +
+          'For help on the pattern syntax, refer to the link below.'
+      )
+
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteMediumTitlePattern',
+        'Quarterly note medium title pattern'
+      ).setDesc(
+        'The pattern used to render links to quarterly notes where the destination note falls in a different ' +
+          'year then the current note. ' +
+          'For help on the pattern syntax, refer to the link below.'
+      )
+    }
 
     this.createMomentSetting(
       settings,
@@ -339,6 +377,40 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
             component.onChanged()
           })
       })
+  }
+
+  createQuartersEnabledSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.quartersEnabled = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings).then(() => this.display())
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Enable quarterly notes')
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.quartersEnabled).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.quartersEnabled)
+            onChange(DEFAULT_SETTINGS.quartersEnabled)
+          })
+      })
+      .setDesc(
+        'When enabled, notes named "YYYY-Q[1-4]" are recognised as quarterly ' +
+          'journal notes and slot in between yearly and monthly tiers in ' +
+          'navigation. The calendar picker also annotates each month title ' +
+          'with the quarter (e.g. "January 2026 (Q1)"). Override per-folder ' +
+          'by setting "quarters-enabled: true" or "quarters-enabled: false" ' +
+          "in that folder's journal-folder.md front matter."
+      )
   }
 
   createUseFolderNameAsDefaultTitleSetting(

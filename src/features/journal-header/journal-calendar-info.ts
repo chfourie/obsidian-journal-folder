@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { moment } from 'obsidian'
-import type { JournalNote } from '../../data-access'
+import type { JournalNote, JournalTimeUnit } from '../../data-access'
 
 export type CalendarCell = {
   label: string
@@ -48,6 +48,10 @@ export type CalendarMonth = {
   monthIso: string
   monthCell: CalendarCell
   yearCell: CalendarCell
+  // Present only when the journal note's strategy chain includes the quarter
+  // tier. The Svelte view appends "(Q1)" / "(Q2)" / etc next to the
+  // month/year title when this is set, and links to the YYYY-Q[1-4] note.
+  quarterCell?: CalendarCell
   weekdayHeaders: WeekdayHeader[]
   weeks: CalendarWeek[]
 }
@@ -111,6 +115,9 @@ function buildMonth(note: JournalNote, monthMoment: moment.Moment): CalendarMont
     monthIso: monthStart.format('YYYY-MM'),
     monthCell: buildMonthCell(note, monthStart),
     yearCell: buildYearCell(note, monthStart),
+    quarterCell: note.hasUnit('quarter')
+      ? buildQuarterCell(note, monthStart)
+      : undefined,
     weekdayHeaders,
     weeks,
   }
@@ -197,9 +204,29 @@ function buildYearCell(note: JournalNote, monthStart: moment.Moment): CalendarCe
   }
 }
 
+function buildQuarterCell(
+  note: JournalNote,
+  monthStart: moment.Moment
+): CalendarCell {
+  const quarterNote = note.noteFor('quarter', monthStart)
+  const exists = quarterNote.isExistingNote()
+  const isPast = quarterNote.isPast()
+  return {
+    label: monthStart.format('[Q]Q'),
+    url: quarterNote.linkWithTitlePattern('YYYY-[Q]Q').url,
+    exists,
+    isCurrent: isCurrentForUnit(note, 'quarter', monthStart),
+    isToday: false,
+    isPast,
+    needsConfirmation: isPast && !exists,
+    isOutsideMonth: false,
+    isSunday: false,
+  }
+}
+
 function isCurrentForUnit(
   note: JournalNote,
-  unit: 'day' | 'week' | 'month' | 'year',
+  unit: JournalTimeUnit,
   m: moment.Moment
 ): boolean {
   if (note.getTimeUnit() !== unit) return false

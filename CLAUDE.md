@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Obsidian community plugin (`id: journal-folder`) that adds folder-based journaling utilities. Any folder in a vault can act as a journal — notes named `YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, or `YYYY` are recognized as daily/weekly/monthly/yearly entries. The vault root is *not* supported as a journal folder due to Obsidian link-resolution behavior.
+Obsidian community plugin (`id: journal-folder`) that adds folder-based journaling utilities. Any folder in a vault can act as a journal — notes named `YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, or `YYYY` are recognized as daily/weekly/monthly/yearly entries. Quarterly notes (`YYYY-Q[1-4]`) are an **opt-in** fifth tier gated by the `quartersEnabled` setting; they slot between yearly and monthly when on. The vault root is *not* supported as a journal folder due to Obsidian link-resolution behavior.
 
 The plugin is built with TypeScript + Svelte 5 (runes API, `$props`, etc.) and bundled with esbuild into a single `main.js`.
 
@@ -39,7 +39,7 @@ See [docs/settings-resolution.md](docs/settings-resolution.md) for the per-folde
 
 ### Journal note model
 
-`src/data-access/journal-note.ts` picks one of four `JournalNoteStrategy` records (daily/weekly/monthly/yearly) by regex-matching a `TFile`'s basename, then exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `dailyNoteToday`) and state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`). **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
+`src/data-access/journal-note.ts` picks one of up to five `JournalNoteStrategy` records (daily/weekly/monthly/quarterly/yearly — quarterly only when `settings.quartersEnabled` is truthy) by regex-matching a `TFile`'s basename, then exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `getNotesInPeriod`, `dailyNoteToday`), state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`), and `hasUnit(unit)` for callers that need to know whether a tier is currently active. **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
 
 See [docs/journal-note.md](docs/journal-note.md) for strategy fields, *medium* title-pattern semantics, and weekly-pattern caveats (`gggg` vs `YYYY`).
 

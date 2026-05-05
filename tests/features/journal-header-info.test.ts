@@ -75,7 +75,7 @@ describe('buildJournalHeaderInfo', () => {
   })
 
   describe('section labels', () => {
-    it('uses a generic "View" label for the higher-order chips section (it also hosts the calendar toggle)', () => {
+    it('uses a generic "Jump to" label for the higher-order chips section (it also hosts the calendar toggle)', () => {
       const { files } = buildApp('Journal', ['2026-05-03'])
       const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
         files['2026-05-03']
@@ -83,7 +83,7 @@ describe('buildJournalHeaderInfo', () => {
 
       const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
-      expect(info.moreLinksLabel).toBe('View')
+      expect(info.moreLinksLabel).toBe('Jump to')
     })
 
     it('labels the secondary list "Month" on a yearly note', () => {
@@ -246,6 +246,144 @@ describe('buildJournalHeaderInfo', () => {
 
       // 2026-05-02 is missing AND past → no fallback either.
       expect(info.backwardLink).toBeUndefined()
+    })
+  })
+
+  describe('quartersEnabled', () => {
+    const QUARTER_SETTINGS = { ...DEFAULT_SETTINGS, quartersEnabled: true }
+
+    it('lists the overlapping quarter in moreLinks for a daily note', () => {
+      const { files } = buildApp('Journal', ['2026-05-03'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-05-03']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+
+      expect(info.moreLinks.map((l) => l.title)).toEqual([
+        '2026',
+        '2026 Q2',
+        'May 2026',
+        '2026 Week 19',
+      ])
+    })
+
+    it('lists year + quarter in moreLinks for a monthly note', () => {
+      const { files } = buildApp('Journal', ['2026-05'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-05']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      expect(info.moreLinks.map((l) => l.title)).toEqual(['2026', '2026 Q2'])
+    })
+
+    it('lists the months contained by a quarterly note as secondary links', () => {
+      const { files } = buildApp('Journal', ['2026-Q2'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-Q2']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      expect(info.secondaryLinks.map((l) => l.url)).toEqual([
+        'Journal/2026-04',
+        'Journal/2026-05',
+        'Journal/2026-06',
+      ])
+      expect(info.secondaryLinksLabel).toBe('Month')
+    })
+
+    it('keeps the 12 months as the primary secondary list for a yearly note', () => {
+      const { files } = buildApp('Journal', ['2026'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      expect(info.secondaryLinks).toHaveLength(12)
+      expect(info.secondaryLinks[0].url).toBe('Journal/2026-01')
+      expect(info.secondaryLinks[11].url).toBe('Journal/2026-12')
+      expect(info.secondaryLinksLabel).toBe('Month')
+    })
+
+    it('exposes the four overlapping quarters as extraLinks for a yearly note', () => {
+      const { files } = buildApp('Journal', ['2026'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      expect(info.extraLinks.map((l) => l.url)).toEqual([
+        'Journal/2026-Q1',
+        'Journal/2026-Q2',
+        'Journal/2026-Q3',
+        'Journal/2026-Q4',
+      ])
+      expect(info.extraLinksLabel).toBe('Quarter')
+    })
+
+    it('does not populate extraLinks for non-yearly note types', () => {
+      const { files } = buildApp('Journal', ['2026-05', '2026-Q2', '2026-W19', '2026-05-03'])
+      for (const basename of ['2026-05', '2026-Q2', '2026-W19', '2026-05-03']) {
+        const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+          files[basename]
+        )
+        const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+        expect(info.extraLinks, `extraLinks for ${basename}`).toEqual([])
+        expect(info.extraLinksLabel, `extraLinksLabel for ${basename}`).toBe('')
+      }
+    })
+
+    it('does not populate extraLinks for a yearly note when quarters are disabled', () => {
+      const { files } = buildApp('Journal', ['2026'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026']
+      )
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+      expect(info.extraLinks).toEqual([])
+      expect(info.extraLinksLabel).toBe('')
+    })
+
+    it('uses the quarterly note title for the heading', () => {
+      const { files } = buildApp('Journal', ['2026-Q2'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-Q2']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      expect(info.title).toBe('2026 Q2')
+    })
+
+    it('lists BOTH overlapping quarters in moreLinks for a weekly note that crosses the Q1/Q2 boundary', () => {
+      // US-locale week 14 of 2026 runs Sun 2026-03-29 → Sat 2026-04-04 and
+      // straddles the Q1/Q2 boundary. Both quarters must appear in the More
+      // panel even though Q1 is past and missing on disk.
+      const { files } = buildApp('Journal', ['2026-W14'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-W14']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      const titles = info.moreLinks.map((l) => l.title)
+      expect(titles).toContain('2026 Q1')
+      expect(titles).toContain('2026 Q2')
+      // Both spanning months must also appear.
+      expect(titles).toContain('March 2026')
+      expect(titles).toContain('April 2026')
+    })
+
+    it('marks past+missing entries from a spanning tier as inactive', () => {
+      const { files } = buildApp('Journal', ['2026-W14'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026-W14']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      const q1 = info.moreLinks.find((l) => l.title === '2026 Q1')!
+      const q2 = info.moreLinks.find((l) => l.title === '2026 Q2')!
+      expect(q1.inactive).toBe(true)
+      expect(q2.inactive).toBe(false)
+    })
+
+    it('does not surface the quarter in moreLinks when quarters are disabled', () => {
+      const { files } = buildApp('Journal', ['2026-05-03'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05-03']
+      )
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+      expect(info.moreLinks.some((l) => /Q\d/.test(l.title))).toBe(false)
     })
   })
 

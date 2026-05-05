@@ -26,6 +26,9 @@ export type JournalFolderSettings = {
   monthlyNoteTitlePattern: string
   monthlyNoteShortTitlePattern: string
   monthlyNoteMediumTitlePattern: string
+  quarterlyNoteTitlePattern: string
+  quarterlyNoteShortTitlePattern: string
+  quarterlyNoteMediumTitlePattern: string
   yearlyNoteTitlePattern: string
   yearlyNoteShortTitlePattern: string
   yearlyNoteMediumTitlePattern: string
@@ -33,6 +36,11 @@ export type JournalFolderSettings = {
   useFolderNameAsDefaultTitle: boolean
   defaultCalendarVisibleDesktop: boolean
   defaultCalendarVisibleMobile: boolean
+  // Quarterly notes are off by default — turning them on activates the
+  // YYYY-Q[1-4] file pattern and inserts quarters between year and month in
+  // the higher/lower-order navigation. Folder-level override goes through
+  // the front-matter key `quarters-enabled`.
+  quartersEnabled: boolean
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
@@ -45,6 +53,9 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   monthlyNoteTitlePattern: 'MMMM YYYY',
   monthlyNoteShortTitlePattern: 'MMM',
   monthlyNoteMediumTitlePattern: 'MMM YY',
+  quarterlyNoteTitlePattern: 'YYYY [Q]Q',
+  quarterlyNoteShortTitlePattern: '[Q]Q',
+  quarterlyNoteMediumTitlePattern: '[Q]Q YY',
   yearlyNoteTitlePattern: 'YYYY',
   yearlyNoteShortTitlePattern: 'YYYY',
   yearlyNoteMediumTitlePattern: 'YYYY',
@@ -52,4 +63,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   useFolderNameAsDefaultTitle: false,
   defaultCalendarVisibleDesktop: true,
   defaultCalendarVisibleMobile: false,
+  quartersEnabled: false,
 }

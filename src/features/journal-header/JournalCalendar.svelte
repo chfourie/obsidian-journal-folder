@@ -275,6 +275,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					>
 						{month.yearCell.label}
 					</a>
+					{#if month.quarterCell}
+						<a
+							class="internal-link {calendarCellClasses(month.quarterCell)} quarter-suffix"
+							href={month.quarterCell.url}
+							onclick={(e) => handleCellClick(month.quarterCell!, e)}
+						>
+							({month.quarterCell.label})
+						</a>
+					{/if}
 				</div>
 
 				<div
