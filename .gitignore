@@ -22,7 +22,7 @@ data.json
 .DS_Store
 
 # Screenshot harness — pages and Chromium profile are regenerated every run.
-documents/screenshot-harness/_pages/
+docs/screenshot-harness/_pages/
 
 # Demo vault — Obsidian writes workspace state every close.
-documents/demo-vault/.obsidian/workspace.json
+docs/demo-vault/.obsidian/workspace.json

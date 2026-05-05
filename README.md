@@ -4,7 +4,7 @@ An Obsidian community plugin that turns *any* folder in your vault into a journa
 
 You can run as many independent journals as you like in the same vault. A folder per project, a folder for personal notes, a folder per client — each gets its own settings, its own sequence of notes, and its own header.
 
-![Daily note header rendered by the plugin](documents/screenshots/header-daily.png)
+![Daily note header rendered by the plugin](docs/screenshots/header-daily.png)
 
 ---
 
@@ -63,7 +63,7 @@ That's it. The plugin replaces the code block with a rendered header keyed off t
 
 #### Daily note
 
-![Daily note header](documents/screenshots/header-daily.png)
+![Daily note header](docs/screenshots/header-daily.png)
 
 The primary row shows: backward chip, **More…** button, *Today* (only if the note isn't today), forward chip. The folder title at the top is optional (see *Folder title* below).
 
@@ -74,19 +74,19 @@ The primary row shows: backward chip, **More…** button, *Today* (only if the n
 
 #### Weekly note
 
-![Weekly note header](documents/screenshots/header-weekly.png)
+![Weekly note header](docs/screenshots/header-weekly.png)
 
 Backward/forward chips become weeks; *Today* always renders.
 
 #### Monthly note
 
-![Monthly note header](documents/screenshots/header-monthly.png)
+![Monthly note header](docs/screenshots/header-monthly.png)
 
 Backward/forward chips become months; *Today* always renders.
 
 #### Yearly note
 
-![Yearly note header](documents/screenshots/header-yearly.png)
+![Yearly note header](docs/screenshots/header-yearly.png)
 
 Backward/forward chips become years; *Today* always renders.
 
@@ -94,7 +94,7 @@ Backward/forward chips become years; *Today* always renders.
 
 If no folder title is configured, the row above the H1 is simply omitted:
 
-![Header with no folder title](documents/screenshots/header-no-folder-title.png)
+![Header with no folder title](docs/screenshots/header-no-folder-title.png)
 
 ### The More popover
 
@@ -102,19 +102,19 @@ The chips on the primary row are deliberately minimal. Higher-order period jumps
 
 #### From a daily note
 
-![More popover, daily note](documents/screenshots/more-popover-daily.png)
+![More popover, daily note](docs/screenshots/more-popover-daily.png)
 
 The **View** section lists higher-order periods that contain the current note: year (`2026`), month (`May`), week (`W19`). Each link is rendered only if a note exists for that period or if the period is current/future. The **Show calendar** / **Hide calendar** toggle on the right opens or closes the inline calendar picker (see next section).
 
 #### From a weekly note
 
-![More popover, weekly note](documents/screenshots/more-popover-weekly.png)
+![More popover, weekly note](docs/screenshots/more-popover-weekly.png)
 
 A weekly note also exposes a **Day** section listing each day in the week, with the same exists/present/future filter applied to each link.
 
 #### From a monthly note
 
-![More popover, monthly note (calendar visible)](documents/screenshots/more-popover-monthly.png)
+![More popover, monthly note (calendar visible)](docs/screenshots/more-popover-monthly.png)
 
 A monthly note's lower-order section is **Week**. A yearly note's is **Month** (not shown — you've seen the pattern). The toggle on the right reads *Hide calendar* here because the calendar is currently visible.
 
@@ -122,7 +122,7 @@ A monthly note's lower-order section is **Week**. A yearly note's is **Month** (
 
 Toggle the calendar from the More popover and the inline picker appears below the header. It reflects the same exists/missing/today/current state the rest of the plugin uses, so you can see your whole journal at a glance:
 
-![Calendar with three months visible](documents/screenshots/calendar-3-months.png)
+![Calendar with three months visible](docs/screenshots/calendar-3-months.png)
 
 Cell rules (apply uniformly across day/week/month/year cells):
 
@@ -132,13 +132,13 @@ Cell rules (apply uniformly across day/week/month/year cells):
 - **Today** — accent ring around the cell.
 - **Current note** — filled accent background. Travels with the note's time unit, so opening a monthly note paints the *month* cell, not the day:
 
-![Calendar viewed from a monthly note](documents/screenshots/calendar-from-monthly.png)
+![Calendar viewed from a monthly note](docs/screenshots/calendar-from-monthly.png)
 
 Clicking a date that doesn't yet have a note creates it (with a confirm prompt for past dates). Arrows on the sides slide the visible month window by one month at a time.
 
 The number of visible months is chosen automatically based on the available width, capped at 5. On mobile the cells enlarge for easier tapping and the picker drops to a single month:
 
-![Mobile calendar layout](documents/screenshots/calendar-mobile.png)
+![Mobile calendar layout](docs/screenshots/calendar-mobile.png)
 
 You can have the calendar open by default for new sessions — see `default-calendar-visible-desktop` and `default-calendar-visible-mobile` under *Configuration*. The two platforms have independent defaults (calendar on for desktop, off for mobile) because the multi-month layout isn't useful at phone widths. A manual toggle from the More popover wins over any default for the rest of the running Obsidian session, so navigating between folders with different defaults won't override an explicit choice.
 
@@ -244,13 +244,13 @@ npm run test:watch # vitest watch
 
 ### Regenerating the screenshots
 
-Every screenshot in this README is produced by a Playwright harness in `documents/screenshot-harness/`. If you change the plugin's HTML or CSS, regenerate them with:
+Every screenshot in this README is produced by a Playwright harness in `docs/screenshot-harness/`. If you change the plugin's HTML or CSS, regenerate them with:
 
 ```bash
-node documents/screenshot-harness/render.mjs
+node docs/screenshot-harness/render.mjs
 ```
 
-See `documents/screenshot-harness/README.md` for the why, the trade-offs, and how to add new scenarios.
+See `docs/screenshot-harness/README.md` for the why, the trade-offs, and how to add new scenarios.
 
 ## License
 
