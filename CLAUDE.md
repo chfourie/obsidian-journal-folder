@@ -63,7 +63,7 @@ src/
   data-access/    # settings types, FolderSettingsResolver, JournalNote, PluginFeature base
   features/       # one folder per feature; each owns its own *-feature.ts and any Svelte components
   ui/             # shared Svelte components (NoteLink, ErrorMessage)
-docs/             # architecture deep-dives, screenshots, demo vault, screenshot harness
+docs/             # architecture deep-dives, screenshots, demo vault, developer notes
 ```
 
 Within `data-access`, every module is re-exported from `index.ts`; features import from `'src/data-access'` (path alias via `tsconfig` `baseUrl: '.'`) or relative paths. esbuild bundles `.svelte` files via `esbuild-svelte` with `css: 'injected'`; `styles.css` is the only CSS shipped separately (Obsidian loads it alongside `main.js`).

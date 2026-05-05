@@ -21,9 +21,6 @@ data.json
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 
-# Screenshot harness — pages and Chromium profile are regenerated every run.
-docs/screenshot-harness/_pages/
-
 # Demo vault — Obsidian writes workspace state every close.
 docs/demo-vault/.obsidian/workspace.json
 docs/demo-vault/.obsidian/workspace-mobile.json

@@ -229,7 +229,6 @@ The header's folder-title row is resolved as:
 ## Tips
 
 - **Templater** with the *Folder Templates* feature is the cleanest way to ensure every new note in a journal folder starts with the `journal-header` code block. The core *Templates* plugin works too.
-- **Hot-reload during development** — if you're iterating on a custom build, the [Hot Reload](https://github.com/pjeby/hot-reload) plugin will reload `journal-folder` whenever its `main.js` rebuilds.
 - **Filename format is fixed.** If you have an existing journal in a different format, rename the files to one of the four supported patterns. The display patterns are entirely up to you; only the filename is rigid.
 
 ## License
