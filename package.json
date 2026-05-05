@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
-	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"name": "journal-folder",
+	"version": "1.4.0",
+	"description": "Utilities for folder-based journaling",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -11,8 +11,8 @@
 		"test:watch": "vitest"
 	},
 	"keywords": [],
-	"author": "",
-	"license": "MIT",
+	"author": "Charl Fourie",
+	"license": "GPL-3.0",
 	"devDependencies": {
 		"@tsconfig/svelte": "^5.0.8",
 		"@types/node": "^25.6.0",
