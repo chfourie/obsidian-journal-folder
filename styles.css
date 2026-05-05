@@ -35,6 +35,15 @@
 	margin-bottom: 1rem;
 }
 
+/* When the calendar is visible it follows the options bar directly. The
+   default 1rem margin leaves too much air between the More-row and the
+   Today/Month-Year link strip; halve the collapsed margin in that case
+   only (when the calendar is hidden, the 1rem still spaces the options
+   bar from the markdown content below). */
+.journal-folder-header-options:has(+ .journal-folder-calendar) {
+	margin-bottom: .5rem;
+}
+
 .journal-folder-header-links {
 	display: flex;
 	gap: .2rem .3rem;
@@ -179,8 +188,42 @@
 	padding: 0;
 }
 
-.journal-folder-calendar-months {
+.journal-folder-calendar-body {
 	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	gap: .35rem;
+	min-width: 0;
+}
+
+/* Quick-navigation row: Today link, "Month Year" picker trigger. Rendered
+   as <span role="button"> rather than <button> because Obsidian's
+   stylesheet repaints native buttons with a filled chip background — using
+   spans bypasses that entirely so we get plain underlined accent text. */
+.journal-folder-calendar-controls {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	gap: .8rem;
+	flex-wrap: wrap;
+}
+
+.journal-folder-calendar-link {
+	font-size: .8rem;
+	line-height: 1.2;
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-calendar-link:hover,
+.journal-folder-calendar-link.open {
+	color: var(--text-accent-hover, var(--text-accent));
+}
+
+.journal-folder-calendar-months {
 	display: flex;
 	justify-content: center;
 	gap: 1.2rem;
@@ -382,8 +425,129 @@
 	padding: .25rem .35rem;
 }
 
+/* Mobile: enlarge the Today / Month-Year link tap targets to ~44px per
+   Apple HIG and Material's 48dp guideline. Padding alone (no border or
+   background) expands the click region while preserving the underlined
+   link look — `inline-flex` is needed so `min-height` actually applies to
+   what would otherwise be an inline span. The controls row also gets a
+   wider gap so the two links are well-separated for finger taps. */
+.journal-folder-calendar.is-mobile .journal-folder-calendar-controls {
+	gap: 1.5rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-link {
+	font-size: 1rem;
+	padding: .55rem .6rem;
+	min-height: 2.75rem;
+	display: inline-flex;
+	align-items: center;
+}
+
 .journal-folder-calendar.is-mobile .journal-folder-calendar-cell.week {
 	font-size: .8rem;
+}
+
+/* Date-picker popover — portaled to <body> like the More popover so it
+   isn't clipped by CodeMirror live-preview widgets. A year row with
+   chevrons on either side of the year label, and a 4×3 month grid below.
+   Months render as link-styled spans (accent text on hover) and the
+   centred month is bolded so the user can see what's currently selected
+   without committing. Desktop uses ~1/3 the padding/gap of mobile (the
+   user explicitly walked back the chunky mobile-equivalent desktop
+   spacing) — the `.is-mobile` overrides further down restore the roomier
+   ~44px-target spacing for touch. Tap-target dimensions (arrow size,
+   month min-height, font sizes) stay at their mobile values on desktop
+   too so the panel keeps the same shape — only the air around the
+   elements shrinks. */
+.journal-folder-calendar-picker {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .27rem;
+	padding: .33rem .4rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.journal-folder-calendar-picker-year {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: .2rem;
+}
+
+.journal-folder-calendar-picker-year-arrow {
+	width: 2.75rem;
+	min-height: 2.75rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.4rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.journal-folder-calendar-picker-year-label {
+	font-size: 1.1rem;
+	font-weight: 600;
+	min-width: 4.5rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.journal-folder-calendar-picker-months {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: .12rem .4rem;
+	justify-items: center;
+}
+
+.journal-folder-calendar-picker-month {
+	font-size: 1rem;
+	line-height: 1.2;
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+	user-select: none;
+	text-align: center;
+	padding: .22rem .27rem;
+	min-height: 2.75rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.journal-folder-calendar-picker-month:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+}
+
+.journal-folder-calendar-picker-month.active {
+	color: var(--text-accent-hover, var(--text-accent));
+	font-weight: 700;
+}
+
+/* Mobile: restore the roomier padding/gap (3× the desktop values) so
+   adjacent tap targets don't share an edge. Tap-target dimensions
+   themselves are already set on the base rules above. */
+.journal-folder-calendar-picker.is-mobile {
+	gap: .8rem;
+	padding: 1rem 1.2rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-year {
+	gap: .6rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-months {
+	gap: .35rem 1.2rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-month {
+	padding: .65rem .8rem;
 }
 
 .journal-folder-error-message {

@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
+	import { moment } from 'obsidian'
 	import type { JournalNote } from '../../data-access'
 	import {
 		buildCalendarInfo,
@@ -24,6 +25,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	} from './journal-calendar-info'
 	import { calendarCellClasses } from './calendar-cell-classes'
 	import { pickVisibleMonthCount } from './visible-month-count'
+	import {
+		anchorMonth,
+		monthOptions,
+		offsetForTarget,
+	} from './calendar-navigation'
 
 	type Props = {
 		note: JournalNote
@@ -44,6 +50,86 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	let info = $derived(
 		buildCalendarInfo(note, { visibleMonthCount, offsetMonths })
 	)
+
+	const months = monthOptions()
+	let centeredAnchor = $derived(anchorMonth(note.getMoment(), offsetMonths))
+	let centeredMonthLabel = $derived(months[centeredAnchor.month].label)
+
+	// Date-picker popover state. The picker is portaled to <body> for the
+	// same reason the More popover is — CodeMirror live-preview widgets clip
+	// absolutely-positioned descendants.
+	let pickerOpen = $state(false)
+	let pickerTriggerEl: HTMLElement | undefined = $state()
+	let pickerEl: HTMLElement | undefined = $state()
+	let pickerStyle = $state('')
+
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node)
+		return {
+			destroy() {
+				node.remove()
+			},
+		}
+	}
+
+	function updatePickerPosition() {
+		if (!pickerTriggerEl) return
+		const triggerRect = pickerTriggerEl.getBoundingClientRect()
+		const gap = 6
+		const top = triggerRect.bottom + gap
+		const centerX = triggerRect.left + triggerRect.width / 2
+
+		// On the very first call after toggleOpen, `pickerEl` is bound but
+		// not yet measurable in the same tick. Use a transform-based centre
+		// as a fallback; the rAF/scroll/resize re-runs measure properly.
+		if (!pickerEl) {
+			pickerStyle = `top: ${top}px; left: ${centerX}px; transform: translateX(-50%);`
+			return
+		}
+
+		const margin = 8
+		const pickerWidth = pickerEl.getBoundingClientRect().width
+		let leftPx = centerX - pickerWidth / 2
+		leftPx = Math.max(
+			margin,
+			Math.min(window.innerWidth - pickerWidth - margin, leftPx)
+		)
+		pickerStyle = `top: ${top}px; left: ${leftPx}px;`
+	}
+
+	function togglePicker() {
+		pickerOpen = !pickerOpen
+		if (pickerOpen) requestAnimationFrame(updatePickerPosition)
+	}
+
+	function closePicker() {
+		pickerOpen = false
+	}
+
+	function handleDocumentClick(event: MouseEvent) {
+		if (!pickerOpen) return
+		const target = event.target as Node | null
+		if (target && pickerTriggerEl && pickerTriggerEl.contains(target)) return
+		if (target && pickerEl && pickerEl.contains(target)) return
+		closePicker()
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (pickerOpen && event.key === 'Escape') closePicker()
+	}
+
+	function handleViewportChange() {
+		if (pickerOpen) updatePickerPosition()
+	}
+
+	$effect(() => {
+		if (!pickerOpen) return
+		// Capture-phase scroll catches the editor pane (which scrolls
+		// independently of the window).
+		document.addEventListener('scroll', handleViewportChange, true)
+		return () =>
+			document.removeEventListener('scroll', handleViewportChange, true)
+	})
 
 	$effect(() => {
 		if (!containerEl) return
@@ -75,6 +161,47 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		offsetMonths += 1
 	}
 
+	function scrollToToday() {
+		// @ts-ignore
+		const today = moment()
+		offsetMonths = offsetForTarget(
+			note.getMoment(),
+			today.year(),
+			today.month()
+		)
+	}
+
+	function prevYear() {
+		offsetMonths -= 12
+	}
+
+	function nextYear() {
+		offsetMonths += 12
+	}
+
+	function selectMonth(value: number) {
+		offsetMonths = offsetForTarget(
+			note.getMoment(),
+			centeredAnchor.year,
+			value
+		)
+		closePicker()
+	}
+
+	// Activate-on-key handler factory so each link-styled <span> can be
+	// reached and triggered with Enter/Space the way a real <button> would.
+	// We use spans rather than <button>s because Obsidian's stylesheet
+	// repaints native buttons with a filled chip background — switching
+	// elements is the simplest way to opt out completely.
+	function onKey(action: () => void) {
+		return (event: KeyboardEvent) => {
+			if (event.key === 'Enter' || event.key === ' ') {
+				event.preventDefault()
+				action()
+			}
+		}
+	}
+
 	async function handleCellClick(cell: CalendarCell, event: MouseEvent) {
 		if (!cell.needsConfirmation) return
 		// Always block the default internal-link navigation; the modal is
@@ -100,7 +227,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		‹
 	</button>
 
-	<div class="journal-folder-calendar-months">
+	<div class="journal-folder-calendar-body">
+		<div class="journal-folder-calendar-controls">
+			<span
+				class="journal-folder-calendar-link"
+				role="button"
+				tabindex="0"
+				aria-label="Scroll back to today"
+				onclick={scrollToToday}
+				onkeydown={onKey(scrollToToday)}
+			>
+				Today
+			</span>
+			<span
+				class="journal-folder-calendar-link"
+				class:open={pickerOpen}
+				role="button"
+				tabindex="0"
+				bind:this={pickerTriggerEl}
+				aria-haspopup="dialog"
+				aria-expanded={pickerOpen}
+				onclick={togglePicker}
+				onkeydown={onKey(togglePicker)}
+			>
+				{centeredMonthLabel} {centeredAnchor.year}
+			</span>
+		</div>
+
+		<div class="journal-folder-calendar-months">
 		{#each info.months as month (month.monthIso)}
 			{@const renderedWeekCount = month.weeks.filter(
 				(w) => !w.days.every((d) => d.isOutsideMonth)
@@ -163,6 +317,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				</div>
 			</div>
 		{/each}
+		</div>
 	</div>
 
 	<button
@@ -174,3 +329,57 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		›
 	</button>
 </div>
+
+<svelte:window
+	onclick={handleDocumentClick}
+	onkeydown={handleKeydown}
+	onresize={handleViewportChange}
+/>
+
+{#if pickerOpen}
+	<div
+		use:portal
+		bind:this={pickerEl}
+		class="journal-folder-calendar-picker"
+		class:is-mobile={isMobile}
+		style={pickerStyle}
+		role="dialog"
+		aria-label="Pick a month and year"
+	>
+		<div class="journal-folder-calendar-picker-year">
+			<button
+				type="button"
+				class="clickable-icon journal-folder-calendar-picker-year-arrow"
+				aria-label="Previous year"
+				onclick={prevYear}
+			>
+				‹
+			</button>
+			<span class="journal-folder-calendar-picker-year-label">
+				{centeredAnchor.year}
+			</span>
+			<button
+				type="button"
+				class="clickable-icon journal-folder-calendar-picker-year-arrow"
+				aria-label="Next year"
+				onclick={nextYear}
+			>
+				›
+			</button>
+		</div>
+		<div class="journal-folder-calendar-picker-months">
+			{#each months as m (m.value)}
+				<span
+					class="journal-folder-calendar-picker-month"
+					class:active={m.value === centeredAnchor.month}
+					role="button"
+					tabindex="0"
+					onclick={() => selectMonth(m.value)}
+					onkeydown={onKey(() => selectMonth(m.value))}
+				>
+					{m.label}
+				</span>
+			{/each}
+		</div>
+	</div>
+{/if}
