@@ -126,10 +126,9 @@ Toggle the calendar from the More popover and the inline picker appears below th
 
 Cell rules (apply uniformly across day/week/month/year cells):
 
-- **Past + missing** — italic, faded grey. Clicking opens a confirmation modal before creating the note (so you don't accidentally create back-dated entries).
-- **Past + existing** — accent colour, bold, underlined.
-- **Present + missing** — accent colour (same as future), no underline.
-- **Present/future + existing** — accent colour, bold, underlined.
+- **Missing** — theme's normal text colour, faded at the theme's unresolved-link opacity. Past missing cells are faded an additional 50% so they read as more demoted than future missing cells. Clicking a past missing cell opens a confirmation modal before creating the note (so you don't accidentally create back-dated entries).
+- **Existing** — accent colour, bold, underlined.
+- **Sundays** — accent colour across every state (existing, future-missing, past-missing) and on the weekday header, so the start of the week is always easy to pick out.
 - **Today** — accent ring around the cell.
 - **Current note** — filled accent background. Travels with the note's time unit, so opening a monthly note paints the *month* cell, not the day:
 
@@ -141,7 +140,7 @@ The number of visible months is chosen automatically based on the available widt
 
 ![Mobile calendar layout](documents/screenshots/calendar-mobile.png)
 
-You can have the calendar open by default for new sessions — see `default-calendar-visible` under *Configuration*. A manual toggle from the More popover wins over any default for the rest of the running Obsidian session, so navigating between folders with different defaults won't override an explicit choice.
+You can have the calendar open by default for new sessions — see `default-calendar-visible-desktop` and `default-calendar-visible-mobile` under *Configuration*. The two platforms have independent defaults (calendar on for desktop, off for mobile) because the multi-month layout isn't useful at phone widths. A manual toggle from the More popover wins over any default for the rest of the running Obsidian session, so navigating between folders with different defaults won't override an explicit choice.
 
 ---
 
@@ -169,7 +168,8 @@ Drop a `journal-folder.md` in the journal folder and put any settings in the fro
 ```markdown
 ---
 journal-folder-title: Atlas Migration
-default-calendar-visible: true
+default-calendar-visible-desktop: true
+default-calendar-visible-mobile: false
 daily-note-title-pattern: dddd, Do MMMM YYYY
 ---
 
@@ -186,7 +186,7 @@ Settings inside a code block override both global and folder settings — but on
 ````markdown
 %% EDITING %%
 ```journal-header
-default-calendar-visible: true
+default-calendar-visible-desktop: true
 daily-note-title-pattern: dddd, Do MMMM YYYY
 ```
 ````
@@ -211,7 +211,8 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `yearly-note-medium-title-pattern`   | Cross-year yearly link pattern (rare; usually identical to short). |
 | `journal-folder-title`               | Display title shown above the H1 in the header. Typically set per-folder, not globally. |
 | `use-folder-name-as-default-title`   | If true and `journal-folder-title` isn't set, falls back to the folder name. |
-| `default-calendar-visible`           | If true, the calendar picker is open when Obsidian starts. A manual toggle in the current session wins over this. |
+| `default-calendar-visible-desktop`   | If true, the calendar picker is open by default on desktop when Obsidian starts. A manual toggle in the current session wins over this. |
+| `default-calendar-visible-mobile`    | If true, the calendar picker is open by default on mobile when Obsidian starts. Defaults to false because the multi-month layout isn't useful at phone widths. |
 
 ### Folder title resolution
 

@@ -129,8 +129,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				>
 					<div class="journal-folder-calendar-divider" aria-hidden="true"></div>
 					<div class="journal-folder-calendar-weekday">W</div>
-					{#each month.weekdayHeaders as label}
-						<div class="journal-folder-calendar-weekday">{label}</div>
+					{#each month.weekdayHeaders as header}
+						<div
+							class="journal-folder-calendar-weekday"
+							class:is-sunday={header.isSunday}
+						>{header.label}</div>
 					{/each}
 
 					{#each month.weeks as week}

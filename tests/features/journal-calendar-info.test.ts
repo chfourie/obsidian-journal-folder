@@ -121,7 +121,61 @@ describe('buildCalendarInfo - month structure', () => {
     )
     const info = buildCalendarInfo(note, { visibleMonthCount: 1 })
     const may = info.months[0]
-    expect(may.weekdayHeaders).toEqual(['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'])
+    expect(may.weekdayHeaders.map((h) => h.label)).toEqual([
+      'Su',
+      'Mo',
+      'Tu',
+      'We',
+      'Th',
+      'Fr',
+      'Sa',
+    ])
+  })
+
+  it('flags only the Sunday weekday header as isSunday', () => {
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026-05-03']
+    )
+    const info = buildCalendarInfo(note, { visibleMonthCount: 1 })
+    const may = info.months[0]
+    // Locale first day is Sunday in en, so the Sunday header is at index 0.
+    expect(may.weekdayHeaders.map((h) => h.isSunday)).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ])
+  })
+
+  it('marks Sunday day cells with isSunday across the whole month', () => {
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026-05-03']
+    )
+    const info = buildCalendarInfo(note, { visibleMonthCount: 1 })
+    const may = info.months[0]
+    // May 2026 Sundays: 3, 10, 17, 24, 31. Filter to in-month cells only.
+    const sundays = may.weeks
+      .flatMap((w) => w.days)
+      .filter((d) => !d.isOutsideMonth && d.isSunday)
+      .map((d) => d.label)
+    expect(sundays).toEqual(['3', '10', '17', '24', '31'])
+  })
+
+  it('does not set isSunday on week, month, or year cells', () => {
+    const { files } = buildApp('Journal', ['2026-05-03'])
+    const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+      files['2026-05-03']
+    )
+    const info = buildCalendarInfo(note, { visibleMonthCount: 1 })
+    const may = info.months[0]
+    expect(may.monthCell.isSunday).toBe(false)
+    expect(may.yearCell.isSunday).toBe(false)
+    expect(may.weeks.every((w) => w.weekCell.isSunday === false)).toBe(true)
   })
 
   it('marks days outside the displayed month as isOutsideMonth', () => {

@@ -31,7 +31,8 @@ export type JournalFolderSettings = {
   yearlyNoteMediumTitlePattern: string
   journalFolderTitle: string
   useFolderNameAsDefaultTitle: boolean
-  defaultCalendarVisible: boolean
+  defaultCalendarVisibleDesktop: boolean
+  defaultCalendarVisibleMobile: boolean
 }
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
@@ -49,5 +50,6 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   yearlyNoteMediumTitlePattern: 'YYYY',
   journalFolderTitle: '',
   useFolderNameAsDefaultTitle: false,
-  defaultCalendarVisible: true,
+  defaultCalendarVisibleDesktop: true,
+  defaultCalendarVisibleMobile: false,
 }

@@ -206,7 +206,17 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
 
     this.createUseFolderNameAsDefaultTitleSetting(settings)
 
-    this.createDefaultCalendarVisibleSetting(settings)
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleDesktop',
+      'Show calendar by default on desktop'
+    )
+
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleMobile',
+      'Show calendar by default on mobile'
+    )
 
     if (!settings.useFolderNameAsDefaultTitle) {
       this.createTextSetting(
@@ -366,35 +376,42 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
   }
 
   createDefaultCalendarVisibleSetting(
-    settings: JournalFolderSettings
+    settings: JournalFolderSettings,
+    field: 'defaultCalendarVisibleDesktop' | 'defaultCalendarVisibleMobile',
+    name: string
   ): Setting {
     let component: ToggleComponent
 
     const onChange = (value: boolean) => {
-      settings.defaultCalendarVisible = value
+      settings[field] = value
       // noinspection JSIgnoredPromiseFromCall
       this.saveSettings(settings)
     }
 
+    const frontMatterKey =
+      field === 'defaultCalendarVisibleDesktop'
+        ? 'default-calendar-visible-desktop'
+        : 'default-calendar-visible-mobile'
+
     return new Setting(this.containerEl)
-      .setName('Show calendar by default')
+      .setName(name)
       .addToggle((toggle) => {
         component = toggle
-        toggle.setValue(settings.defaultCalendarVisible).onChange(onChange)
+        toggle.setValue(settings[field]).onChange(onChange)
       })
       .addExtraButton((btn) => {
         btn
           .setIcon('reset')
           .setTooltip('Reset to default value')
           .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.defaultCalendarVisible)
-            onChange(DEFAULT_SETTINGS.defaultCalendarVisible)
+            component.setValue(DEFAULT_SETTINGS[field])
+            onChange(DEFAULT_SETTINGS[field])
           })
       })
       .setDesc(
         'If checked, the calendar picker is visible when Obsidian starts. ' +
-          'Override per-folder by setting "default-calendar-visible: true" or ' +
-          '"default-calendar-visible: false" in that folder\'s journal-folder.md ' +
+          `Override per-folder by setting "${frontMatterKey}: true" or ` +
+          `"${frontMatterKey}: false" in that folder's journal-folder.md ` +
           'front matter. The user can still toggle the calendar from the More ' +
           'popover at any time, and that manual choice persists for the rest ' +
           'of the running Obsidian session.'

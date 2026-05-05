@@ -30,6 +30,7 @@ import {
   type JournalHeaderInfo,
 } from './journal-header-info'
 import { confirmCreateNote } from './confirm-create-modal'
+import { resolveDefaultCalendarVisible } from './resolve-default-calendar-visible'
 import { Platform, TFile, type Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
@@ -64,10 +65,11 @@ export class JournalHeaderFeature extends PluginFeature {
             const navigate = (linktext: string) => {
               app.workspace.openLinkText(linktext, sourcePath, false)
             }
-            const defaultCalendarVisible = isTruthy(
-              settings.defaultCalendarVisible
-            )
             const isMobile = Platform.isMobile
+            const defaultCalendarVisible = resolveDefaultCalendarVisible(
+              settings,
+              isMobile
+            )
             // @ts-ignore
             mount(JournalHeader, {
               target: el,
@@ -93,14 +95,4 @@ export class JournalHeaderFeature extends PluginFeature {
   private mountError(el: HTMLElement, error: string): void {
     mount(ErrorMessage, { target: el, props: { error: `${error}` } })
   }
-}
-
-// Folder front-matter and embedded code-block configs are merged in by
-// FolderSettingsResolver as raw values, so a boolean field can arrive as a
-// real boolean (YAML), the string "true"/"false" (embedded `key: value`
-// lines), or anything else a user typed. Treat the string "false" — and
-// only that — as false; defer to JS truthiness for everything else.
-function isTruthy(value: unknown): boolean {
-  if (typeof value === 'string') return value.trim().toLowerCase() !== 'false'
-  return Boolean(value)
 }

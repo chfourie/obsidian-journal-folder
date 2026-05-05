@@ -28,6 +28,10 @@ export type CalendarCell = {
   isPast: boolean
   needsConfirmation: boolean
   isOutsideMonth: boolean
+  // True only for day cells whose date is a Sunday — week/month/year cells
+  // always set this to false. Used to give Sundays the theme accent colour
+  // across the calendar regardless of whether the day's note exists.
+  isSunday: boolean
 }
 
 export type CalendarWeek = {
@@ -35,11 +39,16 @@ export type CalendarWeek = {
   days: CalendarCell[]
 }
 
+export type WeekdayHeader = {
+  label: string
+  isSunday: boolean
+}
+
 export type CalendarMonth = {
   monthIso: string
   monthCell: CalendarCell
   yearCell: CalendarCell
-  weekdayHeaders: string[]
+  weekdayHeaders: WeekdayHeader[]
   weeks: CalendarWeek[]
 }
 
@@ -107,10 +116,11 @@ function buildMonth(note: JournalNote, monthMoment: moment.Moment): CalendarMont
   }
 }
 
-function buildWeekdayHeaders(gridStart: moment.Moment): string[] {
-  const headers: string[] = []
+function buildWeekdayHeaders(gridStart: moment.Moment): WeekdayHeader[] {
+  const headers: WeekdayHeader[] = []
   for (let i = 0; i < DAYS_PER_WEEK; i++) {
-    headers.push(gridStart.clone().add(i, 'day').format('dd'))
+    const day = gridStart.clone().add(i, 'day')
+    headers.push({ label: day.format('dd'), isSunday: day.day() === 0 })
   }
   return headers
 }
@@ -132,6 +142,7 @@ function buildDayCell(
     isPast,
     needsConfirmation: isPast && !exists,
     isOutsideMonth: !day.isSame(monthStart, 'month'),
+    isSunday: day.day() === 0,
   }
 }
 
@@ -148,6 +159,7 @@ function buildWeekCell(note: JournalNote, rowStart: moment.Moment): CalendarCell
     isPast,
     needsConfirmation: isPast && !exists,
     isOutsideMonth: false,
+    isSunday: false,
   }
 }
 
@@ -164,6 +176,7 @@ function buildMonthCell(note: JournalNote, monthStart: moment.Moment): CalendarC
     isPast,
     needsConfirmation: isPast && !exists,
     isOutsideMonth: false,
+    isSunday: false,
   }
 }
 
@@ -180,6 +193,7 @@ function buildYearCell(note: JournalNote, monthStart: moment.Moment): CalendarCe
     isPast,
     needsConfirmation: isPast && !exists,
     isOutsideMonth: false,
+    isSunday: false,
   }
 }
 

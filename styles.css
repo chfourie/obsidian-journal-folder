@@ -236,15 +236,24 @@
 	padding-bottom: .15rem;
 }
 
-/* Calendar cells override Obsidian's default `.internal-link` color so every
-   cell renders in the theme accent regardless of the link's resolved state.
-   Missing cells additionally get the `is-unresolved` class added by the
-   plugin (see `calendarCellClasses` in `calendar-cell-classes.ts`) so the
-   active theme's unresolved-link opacity applies and visually demotes them
-   uniformly across all months — including months the calendar inserts after
-   the markdown post-processor returns, which Obsidian's own link-resolution
-   pass would otherwise miss. The `!important` color suffixes keep the accent
-   hue from being overridden by the theme's `--link-unresolved-color`. */
+.journal-folder-calendar-weekday.is-sunday {
+	color: var(--text-accent);
+}
+
+/* Calendar cells force `--text-normal` with `!important` so the theme's
+   normal text colour is what readers see for missing days — Obsidian's own
+   `a.internal-link.is-unresolved` rule (and many community themes that
+   override it) repaints unresolved links in the accent or a custom red,
+   which would otherwise leak through onto every missing day cell. We still
+   stamp `is-unresolved` ourselves (in `calendarCellClasses`) so the theme's
+   `--link-unresolved-opacity` applies — the cell is faded the way an
+   unresolved link is faded, just not recoloured. The plugin stamps
+   `is-unresolved` rather than relying on Obsidian's link-resolution pass
+   because that pass only marks cells present during the initial markdown
+   render and misses months inserted later as the ResizeObserver settles or
+   as the user scrolls. Existing cells (`.exists`) and Sunday day cells
+   (`.day.is-sunday`) override the colour back to `--text-accent` further
+   down — both with `!important` so they can win against the base. */
 .journal-folder-calendar-cell {
 	display: flex;
 	align-items: center;
@@ -280,15 +289,12 @@
 	font-variant-numeric: tabular-nums;
 }
 
-/* Cells whose period hasn't concluded yet, OR whose note exists, render in
-   the theme's emphasis colour. Past-missing cells are demoted to text-faint
-   italic (rule below overrides this one by source order). */
-.journal-folder-calendar-cell.exists,
-.journal-folder-calendar-cell.missing {
-	color: var(--text-accent) !important;
-}
-
+/* Existing cells render in the theme accent so the user can see at a glance
+   which periods already have notes. `!important` is required to win against
+   the base cell's `!important`-qualified `--text-normal`. Missing cells get
+   no colour rule here — they keep the base `--text-normal`. */
 .journal-folder-calendar-cell.exists {
+	color: var(--text-accent) !important;
 	font-weight: 600;
 }
 
@@ -300,9 +306,33 @@
 	text-underline-offset: 2px;
 }
 
+/* Past-missing cells render 50% more faded than future-missing cells so the
+   user can still tell at a glance which missing days are in the past. CSS
+   `opacity` doesn't multiply across classes on the same element (the most-
+   specific declaration wins outright), so we can't simply add a second
+   `opacity` on top of `.is-unresolved`'s theme opacity — we have to restate
+   the combined value. `--link-unresolved-opacity` is Obsidian's standard
+   variable for unresolved-link fading; the .7 fallback matches Obsidian's
+   default theme value, so themes that don't set the variable still get a
+   sensible result. `!important` is required because Obsidian's own
+   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
+   rule has specificity (0,2,1) — higher than this selector's (0,2,0) — so
+   without it the theme's full opacity wins and past- and future-missing
+   render identically. The 0.5 multiplier was tuned by eye: 0.8 (20% lighter)
+   and 0.7 (30%) weren't pronounced enough at the small calendar cell sizes. */
 .journal-folder-calendar-cell.past-missing {
-	color: var(--text-faint) !important;
-	font-style: italic;
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+}
+
+/* Sundays render in the theme accent colour across every state — existing,
+   future-missing, past-missing — so the start of the week is always easy to
+   pick out. `!important` is required because the base cell rule above
+   forces `--text-normal !important` to keep the theme's normal text colour
+   on missing days; without `!important` here, Sunday missing cells would
+   inherit that and appear in `--text-normal` instead of accent. The
+   unresolved opacity (and the past-missing fade above) still applies. */
+.journal-folder-calendar-cell.day.is-sunday {
+	color: var(--text-accent) !important;
 }
 
 .journal-folder-calendar-cell.is-today {

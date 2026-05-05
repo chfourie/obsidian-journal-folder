@@ -30,6 +30,7 @@ export function calendarCellClasses(cell: CalendarCell): string {
   const classes = ['journal-folder-calendar-cell']
   if (cell.isCurrent) classes.push('is-current')
   if (cell.isToday) classes.push('is-today')
+  if (cell.isSunday) classes.push('is-sunday')
   classes.push(cell.exists ? 'exists' : 'missing')
   if (!cell.exists) classes.push('is-unresolved')
   if (cell.needsConfirmation) classes.push('past-missing')

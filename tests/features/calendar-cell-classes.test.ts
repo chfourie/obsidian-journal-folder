@@ -12,6 +12,7 @@ function cell(overrides: Partial<CalendarCell> = {}): CalendarCell {
     isPast: false,
     needsConfirmation: false,
     isOutsideMonth: false,
+    isSunday: false,
     ...overrides,
   }
 }
@@ -75,5 +76,35 @@ describe('calendarCellClasses', () => {
       cell({ exists: true, isPast: true, needsConfirmation: false })
     )
     expect(result.split(' ')).not.toContain('past-missing')
+  })
+
+  it('adds `is-sunday` for Sunday cells', () => {
+    const result = calendarCellClasses(cell({ isSunday: true }))
+    expect(result.split(' ')).toContain('is-sunday')
+  })
+
+  it('does not add `is-sunday` for non-Sunday cells', () => {
+    const result = calendarCellClasses(cell({ isSunday: false }))
+    expect(result.split(' ')).not.toContain('is-sunday')
+  })
+
+  // Sunday styling applies in every state — past, future, existing, missing,
+  // current — so the class must be stamped alongside whichever other tokens
+  // would otherwise be present.
+  it('adds `is-sunday` alongside other state classes', () => {
+    const result = calendarCellClasses(
+      cell({
+        exists: true,
+        isCurrent: true,
+        isToday: true,
+        isPast: true,
+        isSunday: true,
+      })
+    )
+    const tokens = result.split(' ')
+    expect(tokens).toContain('is-sunday')
+    expect(tokens).toContain('is-current')
+    expect(tokens).toContain('is-today')
+    expect(tokens).toContain('exists')
   })
 })
