@@ -24,5 +24,11 @@
   "workspaces": false,
   "file-recovery": false,
   "publish": false,
-  "sync": false
+  "sync": false,
+  "footnotes": false,
+  "properties": true,
+  "daily-notes": true,
+  "bookmarks": true,
+  "bases": true,
+  "webviewer": false
 }

@@ -26,3 +26,4 @@ docs/screenshot-harness/_pages/
 
 # Demo vault — Obsidian writes workspace state every close.
 docs/demo-vault/.obsidian/workspace.json
+docs/demo-vault/.obsidian/workspace-mobile.json

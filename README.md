@@ -136,9 +136,11 @@ Cell rules (apply uniformly across day/week/month/year cells):
 
 Clicking a date that doesn't yet have a note creates it (with a confirm prompt for past dates). Arrows on the sides slide the visible month window by one month at a time.
 
-The number of visible months is chosen automatically based on the available width, capped at 5. On mobile the cells enlarge for easier tapping and the picker drops to a single month:
+The strip above the months grid carries two quick-nav controls. **Today** snaps the month window so the current month sits at the anchor — handy when you've scrolled far away. **{Month} {Year}** (the centred label) toggles a date-picker popover with year chevrons (`‹` and `›` shift by ±12 months) and a 4×3 grid of month names; clicking a month jumps the window straight to it. The picker is portaled and clamped inside the viewport, so it doesn't overflow at narrow widths.
 
-![Mobile calendar layout](docs/screenshots/calendar-mobile.png)
+The number of visible months is chosen automatically based on the available width, capped at 5. As the pane narrows the picker drops to a single month; on mobile the cells additionally enlarge for easier tapping:
+
+![Calendar at narrow width — single month layout](docs/screenshots/calendar-mobile.png)
 
 You can have the calendar open by default for new sessions — see `default-calendar-visible-desktop` and `default-calendar-visible-mobile` under *Configuration*. The two platforms have independent defaults (calendar on for desktop, off for mobile) because the multi-month layout isn't useful at phone widths. A manual toggle from the More popover wins over any default for the rest of the running Obsidian session, so navigating between folders with different defaults won't override an explicit choice.
 
@@ -229,28 +231,6 @@ The header's folder-title row is resolved as:
 - **Templater** with the *Folder Templates* feature is the cleanest way to ensure every new note in a journal folder starts with the `journal-header` code block. The core *Templates* plugin works too.
 - **Hot-reload during development** — if you're iterating on a custom build, the [Hot Reload](https://github.com/pjeby/hot-reload) plugin will reload `journal-folder` whenever its `main.js` rebuilds.
 - **Filename format is fixed.** If you have an existing journal in a different format, rename the files to one of the four supported patterns. The display patterns are entirely up to you; only the filename is rigid.
-
-## Development
-
-```bash
-npm install
-npm run dev        # esbuild watch → main.js (inline sourcemap)
-npm run build      # type-check + production build
-npm test           # vitest run
-npm run test:watch # vitest watch
-```
-
-`CLAUDE.md` documents the architecture in more detail (plugin shell → feature set, settings resolution, the calendar/header components). It's worth a read if you're making non-trivial changes.
-
-### Regenerating the screenshots
-
-Every screenshot in this README is produced by a Playwright harness in `docs/screenshot-harness/`. If you change the plugin's HTML or CSS, regenerate them with:
-
-```bash
-node docs/screenshot-harness/render.mjs
-```
-
-See `docs/screenshot-harness/README.md` for the why, the trade-offs, and how to add new scenarios.
 
 ## License
 
