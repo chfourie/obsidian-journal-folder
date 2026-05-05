@@ -6,10 +6,10 @@ How the screenshots in the project README are generated, why it works this way, 
 
 ```bash
 # from the repo root
-node documents/screenshot-harness/render.mjs
+node docs/screenshot-harness/render.mjs
 ```
 
-That writes every PNG referenced by the README into `documents/screenshots/`. The script is fully self-contained — no Obsidian, no GUI, no permissions.
+That writes every PNG referenced by the README into `docs/screenshots/`. The script is fully self-contained — no Obsidian, no GUI, no permissions.
 
 ## Why not screenshot Obsidian directly?
 
@@ -33,7 +33,7 @@ The plugin's UI is plain HTML/CSS — Svelte just produces DOM nodes. So we rend
    - `obsidian-light.css`, a hand-curated stand-in for Obsidian's default light theme — defines `--text-accent`, `--background-primary`, `--interactive-accent`, etc. with values matching the stock Obsidian "Default" theme in light mode.
 2. Each page contains a `#stage` element that wraps a hand-rendered HTML mock of one scenario (a daily header, a popover open from a weekly note, the calendar with three months visible, etc.). The HTML mirrors the structure of `JournalHeader.svelte` and `JournalCalendar.svelte` exactly — same class names, same nesting.
 3. Playwright (Chromium, headless) opens each page and uses `locator('#stage').screenshot()` to capture just the stage element. No viewport sizing, no cropping — Playwright tightly bounds the screenshot to the stage's bounding box.
-4. PNGs land in `documents/screenshots/`, ready for the README.
+4. PNGs land in `docs/screenshots/`, ready for the README.
 
 `deviceScaleFactor: 2` gives retina-quality output without any resampling.
 
@@ -46,7 +46,7 @@ The plugin's UI is plain HTML/CSS — Svelte just produces DOM nodes. So we rend
 ## File layout
 
 ```
-documents/screenshot-harness/
+docs/screenshot-harness/
 ├── README.md            # this file
 ├── render.mjs           # the harness — scenarios + driver in one file
 ├── obsidian-light.css   # Obsidian-light CSS variable stand-in
@@ -62,8 +62,8 @@ documents/screenshot-harness/
    - `stageWidth` — the CSS width of the stage div. Use 760 for header/calendar shots, 420 for mobile.
    - `html()` — returns a complete HTML page string. Compose using the existing renderers (`renderHeader`, `renderMorePopover`, `renderCalendar`) plus `pageHTML`.
 2. If the scenario needs a new piece of plugin UI not yet covered (modals, error states, settings tab), add a renderer beside the existing ones. Mirror the Svelte template structure faithfully — same classes, same nesting.
-3. Run `node documents/screenshot-harness/render.mjs` and verify the PNG.
-4. Reference `documents/screenshots/<name>.png` from `README.md`.
+3. Run `node docs/screenshot-harness/render.mjs` and verify the PNG.
+4. Reference `docs/screenshots/<name>.png` from `README.md`.
 
 ## Adjusting the demo data
 
@@ -79,10 +79,10 @@ Anything in `EXISTING_NOTES` renders as an existing-note cell in the calendar; a
 
 ## The companion demo vault
 
-`documents/demo-vault/` is a real Obsidian vault with the plugin pre-installed and the same demo dates as the harness. It's not used by the screenshot script — it's a manual-testing aid. To open it:
+`docs/demo-vault/` is a real Obsidian vault with the plugin pre-installed and the same demo dates as the harness. It's not used by the screenshot script — it's a manual-testing aid. To open it:
 
 ```bash
-open "obsidian://open?path=$(pwd)/documents/demo-vault"
+open "obsidian://open?path=$(pwd)/docs/demo-vault"
 ```
 
 (macOS — equivalent works on Windows/Linux via the `obsidian://` URL scheme). The vault is set to light mode, has the plugin enabled, and contains journal notes for the *Project — Atlas* and *Personal* folders. Useful when reviewing live behaviour or capturing additional shots manually.

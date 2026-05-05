@@ -11,7 +11,7 @@
  * grant Claude Code can't acquire from inside its sandbox. Playwright +
  * static HTML runs with no permissions, no GUI, fully reproducible.
  *
- * Run: node documents/screenshot-harness/render.mjs
+ * Run: node docs/screenshot-harness/render.mjs
  */
 
 import { chromium } from 'playwright'
@@ -22,7 +22,7 @@ import moment from 'moment'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..', '..')
-const OUTPUT_DIR = resolve(REPO_ROOT, 'documents/screenshots')
+const OUTPUT_DIR = resolve(REPO_ROOT, 'docs/screenshots')
 const PAGES_DIR = resolve(__dirname, '_pages')
 
 // ─── Anchor date for every scenario ─────────────────────────────────────────
