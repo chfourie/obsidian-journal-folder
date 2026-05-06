@@ -17,8 +17,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+  type App,
+  ButtonComponent,
   debounce,
   DropdownComponent,
+  Modal,
   MomentFormatComponent,
   type Plugin,
   PluginSettingTab,
@@ -78,229 +81,166 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     this.containerEl.empty()
     const settings = { ...this.getCurrentSettings() }
 
-    this.createMomentSetting(
-      settings,
-      'dailyNoteTitlePattern',
-      'Daily note title pattern'
-    ).setDesc(
-      'The pattern used to render the title of a daily note. ' +
-        'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-        "For instance, using a pattern of 'DD-HH' would not make sense " +
-        'as the hour component represents a fraction of the day. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'dailyNoteShortTitlePattern',
-      'Daily note short title pattern'
-    ).setDesc(
-      'The pattern used to render links to daily notes. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-        "For instance, using a pattern of 'DD-HH' would not make sense " +
-        'as the hour component represents a fraction of the day. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'dailyNoteMediumTitlePattern',
-      'Daily note medium title pattern'
-    ).setDesc(
-      'The pattern used to render links to daily notes where the destination note falls in a different ' +
-        'year then the current note. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a day (e.g. hour or minute). ' +
-        "For instance, using a pattern of 'DD-HH' would not make sense " +
-        'as the hour component represents a fraction of the day. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'weeklyNoteTitlePattern',
-      'Weekly note title pattern'
-    ).setDesc(
-      'The pattern used to render the title of a weekly note. ' +
-        'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
-        "For instance, using a pattern of 'WW-DD' would not make sense " +
-        'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'weeklyNoteShortTitlePattern',
-      'Weekly note short title pattern'
-    ).setDesc(
-      'The pattern used to render links to weekly notes. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
-        "For instance, using a pattern of 'WW-DD' would not make sense " +
-        'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'weeklyNoteMediumTitlePattern',
-      'Weekly note medium title pattern'
-    ).setDesc(
-      'The pattern used to render links to weekly notes where the destination note falls in a different ' +
-        'year then the current note. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a week (e.g. day or hour). ' +
-        "For instance, using a pattern of 'WW-DD' would not make sense " +
-        'as the day component represents a fraction of the week. ' +
-        "PLEASE NOTE: for weekly patterns 'gg' or 'gggg' should be used to reflect the year. " +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'monthlyNoteTitlePattern',
-      'Monthly note title pattern'
-    ).setDesc(
-      'The pattern used to render the title of a monthly note. ' +
-        'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
-        "For instance, using a pattern of 'MM-DD' would not make sense " +
-        'as the day component represents a fraction of the month. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'monthlyNoteShortTitlePattern',
-      'Monthly note short title pattern'
-    ).setDesc(
-      'The pattern used to render links to monthly notes. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
-        "For instance, using a pattern of 'MM-DD' would not make sense " +
-        'as the day component represents a fraction of the month. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'monthlyNoteMediumTitlePattern',
-      'Monthly note medium title pattern'
-    ).setDesc(
-      'The pattern used to render links to monthly notes where the destination note falls in a different ' +
-        'year then the current note. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a month (e.g. week or day). ' +
-        "For instance, using a pattern of 'MM-DD' would not make sense " +
-        'as the day component represents a fraction of the month. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createQuartersEnabledSetting(settings)
-
-    if (settings.quartersEnabled) {
-      this.createMomentSetting(
-        settings,
-        'quarterlyNoteTitlePattern',
-        'Quarterly note title pattern'
-      ).setDesc(
-        'The pattern used to render the title of a quarterly note. ' +
-          'This pattern should not render any date/time elements shorter than a quarter (e.g. month, week or day). ' +
-          'For help on the pattern syntax, refer to the link below.'
-      )
-
-      this.createMomentSetting(
-        settings,
-        'quarterlyNoteShortTitlePattern',
-        'Quarterly note short title pattern'
-      ).setDesc(
-        'The pattern used to render links to quarterly notes. ' +
-          'The user should aim to keep this pattern short ' +
-          'as multiple links may be rendered next to each other. ' +
-          'For help on the pattern syntax, refer to the link below.'
-      )
-
-      this.createMomentSetting(
-        settings,
-        'quarterlyNoteMediumTitlePattern',
-        'Quarterly note medium title pattern'
-      ).setDesc(
-        'The pattern used to render links to quarterly notes where the destination note falls in a different ' +
-          'year then the current note. ' +
-          'For help on the pattern syntax, refer to the link below.'
-      )
-    }
-
-    this.createMomentSetting(
-      settings,
-      'yearlyNoteTitlePattern',
-      'Yearly note title pattern'
-    ).setDesc(
-      'The pattern used to render the title of a yearly note. ' +
-        'This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). ' +
-        "For instance, using a pattern of 'YYYY-MM' would not make sense " +
-        'as the month component represents a fraction of the year. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
-    this.createMomentSetting(
-      settings,
-      'yearlyNoteShortTitlePattern',
-      'Yearly note short title pattern'
-    ).setDesc(
-      'The pattern used to render links to yearly notes. The user should aim to keep this pattern short ' +
-        'as multiple links may be rendered next to each other. ' +
-        'This pattern should not render any date/time elements shorter than a year (e.g. month, week or day). ' +
-        "For instance, using a pattern of 'YYYY-MM' would not make sense " +
-        'as the month component represents a fraction of the year. ' +
-        'For help on the pattern syntax, refer to the link below.'
-    )
-
+    new Setting(this.containerEl).setName('General').setHeading()
     this.createUseFolderNameAsDefaultTitleSetting(settings)
-
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleDesktop',
-      'Show calendar by default on desktop'
-    )
-
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleMobile',
-      'Show calendar by default on mobile'
-    )
-
-    this.createStartOfWeekSetting(settings)
-
     if (!settings.useFolderNameAsDefaultTitle) {
       this.createTextSetting(
         settings,
         'journalFolderTitle',
         'Default journal folder title'
       ).setDesc(
-        'The default title assigned to journal folders.  The journal folder title ' +
-          'is used in the rendering of journal headers as well as to identify the ' +
-          'folder in other views. The journal folder title should typically be ' +
-          'configured at folder level as it would typically be unique to that ' +
-          'folder.  The user is however provided the option to assign a default ' +
-          'value here.  For most users it would make most sense, and it is ' +
-          'highly recommended to leave this value blank.'
+        'Used in the rendering of journal headers and to identify the folder ' +
+          'in other views. Typically configured per folder via front matter; ' +
+          'most users should leave this blank.'
+      )
+    }
+    this.createStartOfWeekSetting(settings)
+    this.createQuartersEnabledSetting(settings)
+
+    new Setting(this.containerEl).setName('Calendar').setHeading()
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleDesktop',
+      'Show calendar by default on desktop'
+    )
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleMobile',
+      'Show calendar by default on mobile'
+    )
+
+    this.createPatternsHeading()
+
+    new Setting(this.containerEl).setName('Daily notes').setHeading()
+    this.createMomentSetting(
+      settings,
+      'dailyNoteTitlePattern',
+      'Title pattern'
+    ).setDesc('Rendered as the title of a daily note.')
+    this.createMomentSetting(
+      settings,
+      'dailyNoteShortTitlePattern',
+      'Short link pattern'
+    ).setDesc('Used for compact in-line links to daily notes.')
+    this.createMomentSetting(
+      settings,
+      'dailyNoteMediumTitlePattern',
+      'Cross-year link pattern'
+    ).setDesc('Used for links to daily notes that fall in a different year.')
+
+    new Setting(this.containerEl).setName('Weekly notes').setHeading().setDesc(
+      "Use 'gg' or 'gggg' (not 'YY' / 'YYYY') for the year component so it " +
+        'tracks the ISO/locale week year.'
+    )
+    this.createMomentSetting(
+      settings,
+      'weeklyNoteTitlePattern',
+      'Title pattern'
+    ).setDesc('Rendered as the title of a weekly note.')
+    this.createMomentSetting(
+      settings,
+      'weeklyNoteShortTitlePattern',
+      'Short link pattern'
+    ).setDesc('Used for compact in-line links to weekly notes.')
+    this.createMomentSetting(
+      settings,
+      'weeklyNoteMediumTitlePattern',
+      'Cross-year link pattern'
+    ).setDesc('Used for links to weekly notes that fall in a different year.')
+
+    new Setting(this.containerEl).setName('Monthly notes').setHeading()
+    this.createMomentSetting(
+      settings,
+      'monthlyNoteTitlePattern',
+      'Title pattern'
+    ).setDesc('Rendered as the title of a monthly note.')
+    this.createMomentSetting(
+      settings,
+      'monthlyNoteShortTitlePattern',
+      'Short link pattern'
+    ).setDesc('Used for compact in-line links to monthly notes.')
+    this.createMomentSetting(
+      settings,
+      'monthlyNoteMediumTitlePattern',
+      'Cross-year link pattern'
+    ).setDesc('Used for links to monthly notes that fall in a different year.')
+
+    if (settings.quartersEnabled) {
+      new Setting(this.containerEl).setName('Quarterly notes').setHeading()
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteTitlePattern',
+        'Title pattern'
+      ).setDesc('Rendered as the title of a quarterly note.')
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteShortTitlePattern',
+        'Short link pattern'
+      ).setDesc('Used for compact in-line links to quarterly notes.')
+      this.createMomentSetting(
+        settings,
+        'quarterlyNoteMediumTitlePattern',
+        'Cross-year link pattern'
+      ).setDesc(
+        'Used for links to quarterly notes that fall in a different year.'
       )
     }
 
+    new Setting(this.containerEl).setName('Yearly notes').setHeading()
+    this.createMomentSetting(
+      settings,
+      'yearlyNoteTitlePattern',
+      'Title pattern'
+    ).setDesc('Rendered as the title of a yearly note.')
+    this.createMomentSetting(
+      settings,
+      'yearlyNoteShortTitlePattern',
+      'Short link pattern'
+    ).setDesc('Used for compact in-line links to yearly notes.')
+
+    new Setting(this.containerEl).setName('Reset').setHeading()
     new Setting(this.containerEl)
       .setName('Reset all to default values')
+      .setDesc('Restores every setting on this screen to its default.')
       .addButton((btn) => {
         btn
           .setIcon('reset')
           .setWarning()
           .onClick(() => {
-            // noinspection JSIgnoredPromiseFromCall
-            this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
+            new ConfirmModal(this.plugin.app, {
+              title: 'Reset all settings?',
+              message:
+                'Every setting on this screen will be restored to its ' +
+                'default value. This cannot be undone.',
+              confirmText: 'Reset',
+              onConfirm: () => {
+                // noinspection JSIgnoredPromiseFromCall
+                this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
+              },
+            }).open()
           })
       })
+  }
+
+  createPatternsHeading() {
+    const desc = document.createDocumentFragment()
+    desc.append(
+      'Date format strings used to render note titles and links. Each ' +
+        "pattern should not render units shorter than its tier (e.g. don't " +
+        'use day components in a monthly pattern). '
+    )
+    const link = document.createElement('a')
+    link.href = 'https://momentjs.com/docs/#/displaying/format/'
+    link.textContent = 'Pattern syntax reference'
+    link.setAttribute('target', '_blank')
+    link.setAttribute('rel', 'noopener')
+    desc.append(link)
+    desc.append('.')
+
+    new Setting(this.containerEl)
+      .setName('Note title patterns')
+      .setHeading()
+      .setDesc(desc)
   }
 
   createMomentSetting(
@@ -343,19 +283,10 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     const sampleEl = document.createElement('div')
     sampleEl.addClass('journal-folder-config-hints-row')
 
-    const helpLinkEl = document.createElement('a')
-    helpLinkEl.setAttribute(
-      'href',
-      'https://momentjs.com/docs/#/displaying/format/'
-    )
-    helpLinkEl.innerText = 'Pattern syntax reference'
-    helpLinkEl.addClass('journal-folder-config-syntax-reference-link')
-
     const sampleLabelEl = document.createElement('div')
     sampleLabelEl.addClass('journal-folder-config-sample-label')
     sampleLabelEl.setText('Sample value:')
 
-    sampleEl.appendChild(helpLinkEl)
     sampleEl.appendChild(sampleLabelEl)
     sampleEl.appendChild(sampleValueEl)
     this.containerEl.appendChild(sampleEl)
@@ -542,5 +473,45 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           'popover at any time, and that manual choice persists for the rest ' +
           'of the running Obsidian session.'
       )
+  }
+}
+
+interface ConfirmModalOptions {
+  title: string
+  message: string
+  confirmText: string
+  onConfirm: () => void
+}
+
+class ConfirmModal extends Modal {
+  constructor(
+    app: App,
+    private options: ConfirmModalOptions
+  ) {
+    super(app)
+  }
+
+  onOpen() {
+    const { titleEl, contentEl } = this
+    titleEl.setText(this.options.title)
+    contentEl.createEl('p', { text: this.options.message })
+
+    const buttons = contentEl.createDiv({ cls: 'modal-button-container' })
+
+    new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+      this.close()
+    })
+
+    new ButtonComponent(buttons)
+      .setButtonText(this.options.confirmText)
+      .setWarning()
+      .onClick(() => {
+        this.close()
+        this.options.onConfirm()
+      })
+  }
+
+  onClose() {
+    this.contentEl.empty()
   }
 }
