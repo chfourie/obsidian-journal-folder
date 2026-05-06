@@ -36,5 +36,5 @@ export default class JournalFolderPlugin extends Plugin {
 
   readonly onExternalSettingsChange = this.#features.onExternalSettingsChange
   readonly onload = this.#features.load
-  readonly unload = this.#features.unload
+  readonly onunload = this.#features.unload
 }
