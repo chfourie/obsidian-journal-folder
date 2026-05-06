@@ -217,6 +217,7 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `use-folder-name-as-default-title`   | If true and `journal-folder-title` isn't set, falls back to the folder name. |
 | `default-calendar-visible-desktop`   | If true, the calendar picker is open by default on desktop when Obsidian starts. A manual toggle in the current session wins over this. |
 | `default-calendar-visible-mobile`    | If true, the calendar picker is open by default on mobile when Obsidian starts. Defaults to false because the multi-month layout isn't useful at phone widths. |
+| `start-of-week`                      | First day of the week used by the calendar grid and `gggg-[W]ww` weekly numbering. *Locale default* leaves moment's locale untouched; picking an explicit weekday (`sunday`–`saturday`) overrides it so week 1 still contains January 1. **Global only** — moment's locale is process-wide, so per-folder and embedded overrides are ignored to avoid inconsistent week numbering across the vault. |
 
 ### Folder title resolution
 

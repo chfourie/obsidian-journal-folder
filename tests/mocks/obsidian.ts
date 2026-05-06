@@ -174,6 +174,37 @@ export class Setting {
   addMomentFormat(_cb: (m: unknown) => unknown): this {
     return this
   }
+  addDropdown(_cb: (d: unknown) => unknown): this {
+    return this
+  }
+  setHeading(): this {
+    return this
+  }
+}
+
+export class Modal {
+  app: App
+  contentEl: HTMLElement = document.createElement('div')
+  titleEl: HTMLElement = document.createElement('div')
+  constructor(app: App) {
+    this.app = app
+  }
+  open(): void {}
+  close(): void {}
+  onOpen(): void {}
+  onClose(): void {}
+}
+
+export class DropdownComponent {
+  addOption(_v: string, _l: string): this {
+    return this
+  }
+  setValue(_v: string): this {
+    return this
+  }
+  onChange(_cb: (v: string) => unknown): this {
+    return this
+  }
 }
 
 export class TextComponent {
