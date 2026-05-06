@@ -266,7 +266,7 @@ describe('buildJournalHeaderInfo', () => {
 
       expect(info.moreLinks.map((l) => l.title)).toEqual([
         '2026',
-        '2026 Q2',
+        '2026 Quarter 2',
         'May 2026',
         '2026 Week 19',
       ])
@@ -278,7 +278,10 @@ describe('buildJournalHeaderInfo', () => {
         files['2026-05']
       )
       const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
-      expect(info.moreLinks.map((l) => l.title)).toEqual(['2026', '2026 Q2'])
+      expect(info.moreLinks.map((l) => l.title)).toEqual([
+        '2026',
+        '2026 Quarter 2',
+      ])
     })
 
     it('lists the months contained by a quarterly note as secondary links', () => {
@@ -367,7 +370,7 @@ describe('buildJournalHeaderInfo', () => {
         files['2026-Q2']
       )
       const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
-      expect(info.title).toBe('2026 Q2')
+      expect(info.title).toBe('2026 Quarter 2')
     })
 
     it('lists BOTH overlapping quarters in moreLinks for a weekly note that crosses the Q1/Q2 boundary', () => {
@@ -380,8 +383,8 @@ describe('buildJournalHeaderInfo', () => {
       )
       const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
       const titles = info.moreLinks.map((l) => l.title)
-      expect(titles).toContain('2026 Q1')
-      expect(titles).toContain('2026 Q2')
+      expect(titles).toContain('2026 Quarter 1')
+      expect(titles).toContain('2026 Quarter 2')
       // Both spanning months must also appear.
       expect(titles).toContain('March 2026')
       expect(titles).toContain('April 2026')
@@ -393,8 +396,8 @@ describe('buildJournalHeaderInfo', () => {
         files['2026-W14']
       )
       const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
-      const q1 = info.moreLinks.find((l) => l.title === '2026 Q1')!
-      const q2 = info.moreLinks.find((l) => l.title === '2026 Q2')!
+      const q1 = info.moreLinks.find((l) => l.title === '2026 Quarter 1')!
+      const q2 = info.moreLinks.find((l) => l.title === '2026 Quarter 2')!
       expect(q1.needsConfirmation).toBe(true)
       expect(q2.needsConfirmation).toBe(false)
     })

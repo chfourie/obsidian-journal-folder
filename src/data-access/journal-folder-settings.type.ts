@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   monthlyNoteTitlePattern: 'MMMM YYYY',
   monthlyNoteShortTitlePattern: 'MMM',
   monthlyNoteMediumTitlePattern: 'MMM YY',
-  quarterlyNoteTitlePattern: 'YYYY [Q]Q',
+  quarterlyNoteTitlePattern: 'YYYY [Quarter] Q',
   quarterlyNoteShortTitlePattern: '[Q]Q',
   quarterlyNoteMediumTitlePattern: '[Q]Q YY',
   yearlyNoteTitlePattern: 'YYYY',

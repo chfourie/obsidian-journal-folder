@@ -201,7 +201,7 @@
 	flex: 1 1 auto;
 	display: flex;
 	flex-direction: column;
-	gap: .35rem;
+	gap: .7rem;
 	min-width: 0;
 }
 

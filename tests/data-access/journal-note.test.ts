@@ -335,7 +335,7 @@ describe('journalNoteFactoryWithSettings', () => {
     it('recognises YYYY-Q[1-4] when quarters are enabled', () => {
       const { files } = buildApp('Journal', ['2026-Q2'])
       const note = quarterFactory()(files['2026-Q2'])
-      expect(note.getTitle()).toBe('2026 Q2')
+      expect(note.getTitle()).toBe('2026 Quarter 2')
       expect(note.getTimeUnit()).toBe('quarter')
     })
 
@@ -503,7 +503,7 @@ describe('journalNoteFactoryWithSettings', () => {
         // @ts-ignore — runtime value comes from user-supplied front matter.
         quartersEnabled: 'true',
       })(buildApp('Journal', ['2026-Q2']).files['2026-Q2'])
-      expect(note.getTitle()).toBe('2026 Q2')
+      expect(note.getTitle()).toBe('2026 Quarter 2')
     })
 
     it('treats the front-matter string "false" as disabling quarters', () => {
