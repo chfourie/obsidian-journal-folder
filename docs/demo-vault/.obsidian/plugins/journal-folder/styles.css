@@ -464,7 +464,7 @@
 	z-index: 10000001;
 	display: flex;
 	flex-direction: column;
-	gap: .27rem;
+	gap: .135rem;
 	padding: .33rem .4rem;
 	background: var(--background-primary);
 	border: solid var(--border-width) var(--hr-color);
@@ -480,8 +480,6 @@
 }
 
 .journal-folder-calendar-picker-year-arrow {
-	width: 2.75rem;
-	min-height: 2.75rem;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -531,8 +529,9 @@
 }
 
 /* Mobile: restore the roomier padding/gap (3× the desktop values) so
-   adjacent tap targets don't share an edge. Tap-target dimensions
-   themselves are already set on the base rules above. */
+   adjacent tap targets don't share an edge. The year-arrow tap-target
+   sizing is mobile-only — desktop lets the chevrons size to their
+   content so the year row stays close to the month grid. */
 .journal-folder-calendar-picker.is-mobile {
 	gap: .8rem;
 	padding: 1rem 1.2rem;
@@ -540,6 +539,11 @@
 
 .journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-year {
 	gap: .6rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-year-arrow {
+	width: 2.75rem;
+	min-height: 2.75rem;
 }
 
 .journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-months {
