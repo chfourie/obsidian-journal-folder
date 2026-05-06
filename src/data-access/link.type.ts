@@ -19,5 +19,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 export type Link = {
   title: string
   url: string
-  inactive?: boolean
+  // Past dates whose note doesn't yet exist. NoteLink renders these as
+  // clickable but routes the click through a confirmation modal so the user
+  // can opt in to creating the missing note. Mirrors the calendar's
+  // `CalendarCell.needsConfirmation` flag — same semantics, same UX.
+  needsConfirmation?: boolean
 }

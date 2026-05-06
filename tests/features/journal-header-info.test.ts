@@ -48,7 +48,7 @@ describe('buildJournalHeaderInfo', () => {
     expect(info.todayLink).toEqual({
       title: 'Today',
       url: 'Journal/2026-05-03',
-      inactive: false,
+      needsConfirmation: false,
     })
   })
 
@@ -148,9 +148,10 @@ describe('buildJournalHeaderInfo', () => {
     ])
   })
 
-  it('marks past missing lower-order notes as inactive', () => {
+  it('flags past missing lower-order notes as needing confirmation', () => {
     // 2026-04 is fully in the past relative to 2026-05-03; none of its weekly
-    // notes exist on disk, so each secondary link should be inactive.
+    // notes exist on disk, so each secondary link should route through the
+    // create-confirmation modal when clicked.
     const { files } = buildApp('Journal', ['2026-04'])
     const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
       files['2026-04']
@@ -159,10 +160,12 @@ describe('buildJournalHeaderInfo', () => {
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
     expect(info.secondaryLinks.length).toBeGreaterThan(0)
-    expect(info.secondaryLinks.every((l) => l.inactive === true)).toBe(true)
+    expect(
+      info.secondaryLinks.every((l) => l.needsConfirmation === true)
+    ).toBe(true)
   })
 
-  it('keeps future missing lower-order notes active (not inactive)', () => {
+  it('does not flag future missing lower-order notes as needing confirmation', () => {
     const { files } = buildApp('Journal', ['2026-07'])
     const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
       files['2026-07']
@@ -170,7 +173,9 @@ describe('buildJournalHeaderInfo', () => {
 
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
-    expect(info.secondaryLinks.every((l) => l.inactive === false)).toBe(true)
+    expect(
+      info.secondaryLinks.every((l) => l.needsConfirmation === false)
+    ).toBe(true)
   })
 
   describe('forward link', () => {
@@ -317,6 +322,23 @@ describe('buildJournalHeaderInfo', () => {
       expect(info.extraLinksLabel).toBe('Quarter')
     })
 
+    it('flags past+missing extraLinks (Q1 on a yearly 2026 note) as needing confirmation', () => {
+      // Today is 2026-05-03, so Q1 is fully in the past and missing on disk
+      // — clicking it from the More panel should now route through the
+      // create-confirmation modal rather than render as an inactive span.
+      const { files } = buildApp('Journal', ['2026'])
+      const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
+        files['2026']
+      )
+      const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
+      const q1 = info.extraLinks.find((l) => l.url === 'Journal/2026-Q1')!
+      const q2 = info.extraLinks.find((l) => l.url === 'Journal/2026-Q2')!
+      const q3 = info.extraLinks.find((l) => l.url === 'Journal/2026-Q3')!
+      expect(q1.needsConfirmation).toBe(true)
+      expect(q2.needsConfirmation).toBe(false)
+      expect(q3.needsConfirmation).toBe(false)
+    })
+
     it('does not populate extraLinks for non-yearly note types', () => {
       const { files } = buildApp('Journal', ['2026-05', '2026-Q2', '2026-W19', '2026-05-03'])
       for (const basename of ['2026-05', '2026-Q2', '2026-W19', '2026-05-03']) {
@@ -365,7 +387,7 @@ describe('buildJournalHeaderInfo', () => {
       expect(titles).toContain('April 2026')
     })
 
-    it('marks past+missing entries from a spanning tier as inactive', () => {
+    it('flags past+missing entries from a spanning tier as needing confirmation', () => {
       const { files } = buildApp('Journal', ['2026-W14'])
       const note = journalNoteFactoryWithSettings(QUARTER_SETTINGS)(
         files['2026-W14']
@@ -373,8 +395,8 @@ describe('buildJournalHeaderInfo', () => {
       const info = buildJournalHeaderInfo(QUARTER_SETTINGS, note)
       const q1 = info.moreLinks.find((l) => l.title === '2026 Q1')!
       const q2 = info.moreLinks.find((l) => l.title === '2026 Q2')!
-      expect(q1.inactive).toBe(true)
-      expect(q2.inactive).toBe(false)
+      expect(q1.needsConfirmation).toBe(true)
+      expect(q2.needsConfirmation).toBe(false)
     })
 
     it('does not surface the quarter in moreLinks when quarters are disabled', () => {

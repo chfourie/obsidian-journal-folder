@@ -85,8 +85,17 @@
 	}
 }
 
-.journal-folder-note-link.no-link {
-	color: var(--text-faint);
+/* Past-missing links render at the same fade as past-missing calendar cells
+   so the user gets a consistent "this doesn't exist yet" cue everywhere a
+   journal link can appear. We restate the combined opacity (instead of
+   stacking on `.is-unresolved`'s theme opacity) for the same reason the
+   calendar does: CSS opacity doesn't multiply across classes on the same
+   element — the more specific declaration wins outright. `!important` is
+   needed because Obsidian's own
+   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
+   rule has higher specificity than this selector and would otherwise win. */
+.journal-folder-note-link.needs-confirmation {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
 }
 
 .journal-folder-header-more {

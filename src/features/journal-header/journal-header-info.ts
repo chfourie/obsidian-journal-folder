@@ -80,6 +80,10 @@ export function buildJournalHeaderInfo(
       ),
     }
   }
+  // Note: the `(n.isMissingNote() && n.isPast())` argument flags past+missing
+  // entries so NoteLink can route them through the create-confirmation modal.
+  // Future-missing entries stay as plain links — Obsidian's normal "open or
+  // create" path applies, no prompt needed.
 
   function buildJournalFolderTitle(): string | undefined {
     if (settings.journalFolderTitle) {
@@ -94,10 +98,11 @@ export function buildJournalHeaderInfo(
     // month, week). When the current note spans a boundary at a tier the
     // chain returns two adjacent entries for that tier (e.g. a week that
     // crosses a quarter end gives Q1 and Q2). For those spanning cases we
-    // want every overlapping period visible — past+missing ones render as
-    // inactive, mirroring the secondary list. For single-entry tiers we
-    // keep the existing filter so present-time pages don't show a long
-    // tail of past-and-empty containers.
+    // want every overlapping period visible — past+missing ones get the
+    // confirmation flag so clicking them prompts before creating, mirroring
+    // the secondary list. For single-entry tiers we keep the existing
+    // filter so present-time pages don't show a long tail of past-and-empty
+    // containers.
     const higher = note.getHigherOrderNotes()
     const tiers: JournalNote[][] = []
     for (const n of higher) {

@@ -270,13 +270,13 @@ describe('journalNoteFactoryWithSettings', () => {
   })
 
   describe('link()', () => {
-    it('produces a link object with title, url, inactive', () => {
+    it('produces a link object with title, url, needsConfirmation', () => {
       const { files } = buildApp('Journal', ['2026-05-03'])
       const link = factory()(files['2026-05-03']).link('regular')
       expect(link).toEqual({
         title: 'Sunday, 03 May 2026',
         url: 'Journal/2026-05-03',
-        inactive: false,
+        needsConfirmation: false,
       })
     })
 
@@ -286,10 +286,10 @@ describe('journalNoteFactoryWithSettings', () => {
       expect(link.title).toBe('Sun, 3 May')
     })
 
-    it('passes through the inactive flag', () => {
+    it('passes through the needsConfirmation flag', () => {
       const { files } = buildApp('Journal', ['2026-05-03'])
       const link = factory()(files['2026-05-03']).link('short', true)
-      expect(link.inactive).toBe(true)
+      expect(link.needsConfirmation).toBe(true)
     })
   })
 

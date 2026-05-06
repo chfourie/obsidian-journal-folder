@@ -347,28 +347,31 @@ export class JournalNote {
     return this.folderName
   }
 
-  shortLinkFrom(note: JournalNote, inactive = false): Link {
+  shortLinkFrom(note: JournalNote, needsConfirmation = false): Link {
     const pattern =
       note.formattedYear() === this.formattedYear(note.strategy.yearPattern)
         ? this.strategy.shortTitlePattern
         : this.strategy.mediumTitlePattern
-    return this.linkWithTitlePattern(pattern, inactive)
+    return this.linkWithTitlePattern(pattern, needsConfirmation)
   }
 
-  link(titlePattern: 'regular' | 'short' = 'short', inactive = false): Link {
+  link(
+    titlePattern: 'regular' | 'short' = 'short',
+    needsConfirmation = false
+  ): Link {
     const pattern =
       titlePattern === 'regular'
         ? this.strategy.titlePattern
         : this.strategy.shortTitlePattern
-    return this.linkWithTitlePattern(pattern, inactive)
+    return this.linkWithTitlePattern(pattern, needsConfirmation)
   }
 
-  linkWithTitlePattern(pattern: string, inactive = false): Link {
+  linkWithTitlePattern(pattern: string, needsConfirmation = false): Link {
     return this.createJournalNoteLink(
       pattern,
       this.strategy.filePattern,
       this.fileMoment,
-      inactive
+      needsConfirmation
     )
   }
 
@@ -421,12 +424,12 @@ export class JournalNote {
     titlePattern: string,
     fileNamePattern: string,
     targetMoment: moment.Moment = this.fileMoment,
-    inactive = false
+    needsConfirmation = false
   ): Link {
     return {
       title: targetMoment.format(titlePattern),
       url: this.fullPath(targetMoment.format(fileNamePattern)),
-      inactive,
+      needsConfirmation,
     }
   }
 

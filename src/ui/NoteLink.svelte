@@ -18,13 +18,53 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <script lang="ts">
 	type LinkStyle = 'hyperlink' | 'chip'
-	type Props = { title: string, url: string, inactive?: boolean, linkStyle?: LinkStyle }
+	type Props = {
+		title: string
+		url: string
+		needsConfirmation?: boolean
+		linkStyle?: LinkStyle
+		// When provided, clicks on a `needsConfirmation` link route through
+		// this prompt instead of Obsidian's default open-or-create flow. The
+		// link still renders as `.is-unresolved` (Obsidian fades it via
+		// `--link-unresolved-opacity`), so the user can still tell at a glance
+		// that the note doesn't exist yet.
+		confirmCreate?: (basename: string) => Promise<boolean>
+		navigate?: (linktext: string) => void
+		// Called after a click is fully resolved (confirmed-and-navigated, or
+		// cancelled). The More panel uses this to close itself once the user
+		// commits to or backs out of creating a past note.
+		onAfterClick?: () => void
+	}
 
-	let { title, url, inactive = false, linkStyle = 'hyperlink' }: Props = $props()
+	let {
+		title,
+		url,
+		needsConfirmation = false,
+		linkStyle = 'hyperlink',
+		confirmCreate,
+		navigate,
+		onAfterClick,
+	}: Props = $props()
+
+	async function handleClick(event: MouseEvent) {
+		if (!needsConfirmation || !confirmCreate || !navigate) return
+		// Past+missing notes prompt before being created. Block both default
+		// navigation AND propagation so the panel-level delegation handler
+		// doesn't double-fire `navigate` for the same click.
+		event.preventDefault()
+		event.stopPropagation()
+		const basename = url.split('/').pop() ?? url
+		const confirmed = await confirmCreate(basename)
+		if (confirmed) navigate(url)
+		onAfterClick?.()
+	}
 </script>
 
-{#if inactive}
-	<span class="journal-folder-note-link no-link">{title}</span>
-{:else}
-	<a class="internal-link journal-folder-note-link" class:chip={linkStyle === 'chip'} href={url}>{title}</a>
-{/if}
+<a
+	class="internal-link journal-folder-note-link"
+	class:chip={linkStyle === 'chip'}
+	class:is-unresolved={needsConfirmation}
+	class:needs-confirmation={needsConfirmation}
+	href={url}
+	onclick={handleClick}
+>{title}</a>

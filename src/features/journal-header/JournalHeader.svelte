@@ -120,6 +120,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	// The panel is portaled to <body>, so Obsidian's `.internal-link` click
 	// handler (scoped to the markdown render container) doesn't fire on its
 	// links. Intercept clicks here and route through the injected navigate.
+	// `needsConfirmation` links are handled by NoteLink itself — it
+	// preventDefaults+stopPropagations the click before it reaches this
+	// handler, so we won't double-navigate.
 	function handlePanelClick(event: MouseEvent) {
 		const href = findInternalLinkHref(event.target)
 		if (href === null) return
@@ -161,7 +164,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	<div class="journal-folder-header-options">
 		<div class="journal-folder-header-links">
 			{#if info.backwardLink}
-				<NoteLink {...info.backwardLink} linkStyle="chip" />
+				<NoteLink
+					{...info.backwardLink}
+					linkStyle="chip"
+					{confirmCreate}
+					{navigate}
+				/>
 				<div class="journal-folder-header-arrow">«</div>
 			{/if}
 
@@ -181,12 +189,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			</div>
 
 			{#if info.todayLink}
-				<NoteLink {...info.todayLink} linkStyle="chip" />
+				<NoteLink
+					{...info.todayLink}
+					linkStyle="chip"
+					{confirmCreate}
+					{navigate}
+				/>
 			{/if}
 
 			{#if info.forwardLink}
 				<div class="journal-folder-header-arrow">»</div>
-				<NoteLink {...info.forwardLink} linkStyle="chip" />
+				<NoteLink
+					{...info.forwardLink}
+					linkStyle="chip"
+					{confirmCreate}
+					{navigate}
+				/>
 			{/if}
 		</div>
 	</div>
@@ -219,7 +237,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<div class="journal-folder-header-more-panel-section-rule"></div>
 		<div class="journal-folder-header-more-panel-list">
 			{#each links as link}
-				<NoteLink {...link} />
+				<NoteLink
+					{...link}
+					{confirmCreate}
+					{navigate}
+					onAfterClick={closeMore}
+				/>
 			{/each}
 		</div>
 	</div>
