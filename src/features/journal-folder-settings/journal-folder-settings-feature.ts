@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+  applyStartOfWeek,
   DEFAULT_SETTINGS,
   type JournalFolderSettings,
   PluginFeature,
@@ -49,6 +50,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     settings: JournalFolderSettings
   ): Promise<void> => {
     await this.plugin.saveData(settings)
+    applyStartOfWeek(settings.startOfWeek)
     this.propagateSettings(settings)
   }
 

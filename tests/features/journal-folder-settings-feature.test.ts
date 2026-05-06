@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
-import { App, Plugin } from 'obsidian'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { App, moment, Plugin } from 'obsidian'
 import { JournalFolderSettingsFeature } from '../../src/features/journal-folder-settings/journal-folder-settings-feature'
 import {
   DEFAULT_SETTINGS,
   type JournalFolderSettings,
 } from '../../src/data-access/journal-folder-settings.type'
+import { _resetLocaleDefaultCache } from '../../src/data-access/apply-start-of-week'
 
 function makePlugin(): Plugin {
   return new Plugin(new App(), {
@@ -18,6 +19,22 @@ function makePlugin(): Plugin {
 }
 
 describe('JournalFolderSettingsFeature', () => {
+  afterEach(() => {
+    // Tests below mutate moment's locale via applyStartOfWeek; reset it so
+    // unrelated suites don't inherit the override.
+    _resetLocaleDefaultCache()
+    // @ts-ignore
+    moment.updateLocale(moment.locale(), {
+      week: {
+        // @ts-ignore
+        dow: moment.localeData('en').firstDayOfWeek(),
+        // @ts-ignore
+        doy: moment.localeData('en').firstDayOfYear(),
+      },
+    })
+  })
+
+
   it('load() pulls saved data, merges with defaults, persists, and propagates', async () => {
     const plugin = makePlugin()
     plugin.loadData = vi.fn(async () => ({ journalFolderTitle: 'Stored' }))
@@ -80,5 +97,22 @@ describe('JournalFolderSettingsFeature', () => {
     await feature.onExternalSettingsChange()
 
     expect(propagated.at(-1)?.journalFolderTitle).toBe('Second')
+  })
+
+  it('applies the startOfWeek setting to moment locale on load', async () => {
+    const plugin = makePlugin()
+    plugin.loadData = vi.fn(async () => ({ startOfWeek: 'monday' }))
+    plugin.saveData = vi.fn(async () => {})
+    plugin.addSettingTab = vi.fn()
+
+    const feature = new JournalFolderSettingsFeature(plugin, () => {})
+    await feature.load()
+
+    // @ts-ignore
+    expect(moment.localeData().firstDayOfWeek()).toBe(1)
+    // @ts-ignore
+    expect(moment('2026-01-15').startOf('week').format('YYYY-MM-DD')).toBe(
+      '2026-01-12'
+    )
   })
 })

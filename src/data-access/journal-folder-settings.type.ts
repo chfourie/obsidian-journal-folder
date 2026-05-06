@@ -41,7 +41,24 @@ export type JournalFolderSettings = {
   // the higher/lower-order navigation. Folder-level override goes through
   // the front-matter key `quarters-enabled`.
   quartersEnabled: boolean
+  // Controls the first day of the week. `'locale-default'` leaves moment's
+  // current locale untouched; the explicit weekday names override moment's
+  // locale so both the calendar grid and `gggg-[W]ww` week numbering shift
+  // accordingly. Applied globally — this overrides moment's locale for the
+  // running Obsidian process, so folder-level overrides are intentionally
+  // not honoured for this field.
+  startOfWeek: StartOfWeekSetting
 }
+
+export type StartOfWeekSetting =
+  | 'locale-default'
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
 
 export const DEFAULT_SETTINGS: JournalFolderSettings = {
   dailyNoteTitlePattern: 'dddd, DD MMMM YYYY',
@@ -64,4 +81,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultCalendarVisibleDesktop: true,
   defaultCalendarVisibleMobile: false,
   quartersEnabled: false,
+  startOfWeek: 'locale-default',
 }

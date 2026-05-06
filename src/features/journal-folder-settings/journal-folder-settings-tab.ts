@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import {
   debounce,
+  DropdownComponent,
   MomentFormatComponent,
   type Plugin,
   PluginSettingTab,
@@ -25,7 +26,22 @@ import {
   TextComponent,
   ToggleComponent,
 } from 'obsidian'
-import { DEFAULT_SETTINGS, type JournalFolderSettings } from '../../data-access'
+import {
+  DEFAULT_SETTINGS,
+  type JournalFolderSettings,
+  type StartOfWeekSetting,
+} from '../../data-access'
+
+const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
+  'locale-default': 'Locale default',
+  sunday: 'Sunday',
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+}
 
 type SettingsStringFieldName =
   | 'dailyNoteTitlePattern'
@@ -256,6 +272,8 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       'Show calendar by default on mobile'
     )
 
+    this.createStartOfWeekSetting(settings)
+
     if (!settings.useFolderNameAsDefaultTitle) {
       this.createTextSetting(
         settings,
@@ -444,6 +462,42 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       .setDesc(
         'If this option is checked, and a journal folder title is not configured at ' +
           'folder level, the folder name will be used as title for the journal folder.'
+      )
+  }
+
+  createStartOfWeekSetting(settings: JournalFolderSettings): Setting {
+    let component: DropdownComponent
+
+    const onChange = (value: string) => {
+      settings.startOfWeek = value as StartOfWeekSetting
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Start of week')
+      .addDropdown((dropdown) => {
+        component = dropdown
+        Object.entries(START_OF_WEEK_OPTIONS).forEach(([value, label]) => {
+          dropdown.addOption(value, label)
+        })
+        dropdown.setValue(settings.startOfWeek).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.startOfWeek)
+            onChange(DEFAULT_SETTINGS.startOfWeek)
+          })
+      })
+      .setDesc(
+        'Controls the first day of the week. This affects both the calendar ' +
+          "grid and the way weeks are numbered in 'gggg-[W]ww' weekly note " +
+          "names. 'Locale default' leaves Obsidian's bundled moment locale " +
+          'untouched. Selecting an explicit day overrides the locale so week ' +
+          '1 of any year is the week containing January 1.'
       )
   }
 
