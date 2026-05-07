@@ -119,16 +119,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <div class="jf-sidebar-section">
     <div class="jf-sidebar-header">
       <label class="jf-sidebar-label" for="jf-sidebar-folder">Journal folder</label>
-      <button
-        type="button"
+      <span
+        role="button"
+        tabindex="0"
         class="jf-sidebar-link jf-sidebar-mode-link"
         onclick={toggleMode}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            toggleMode()
+          }
+        }}
         title={settings.sidebarMode === 'dynamic'
           ? 'Following the active note. Click to hold the selected folder instead.'
           : 'Holding the selected folder. Click to follow the active note instead.'}
       >
         {settings.sidebarMode === 'dynamic' ? 'Dynamic' : 'Static'}
-      </button>
+      </span>
     </div>
 
     <select
@@ -147,14 +154,36 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
     <div class="jf-sidebar-row">
       {#if !isDefault && knownFolders.includes(settings.defaultJournalFolder)}
-        <button class="jf-sidebar-link" type="button" onclick={switchToDefault}>
+        <span
+          role="button"
+          tabindex="0"
+          class="jf-sidebar-link"
+          onclick={switchToDefault}
+          onkeydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              switchToDefault()
+            }
+          }}
+        >
           Switch to default
-        </button>
+        </span>
       {/if}
       {#if knownFolders.includes(selected) && !isDefault}
-        <button class="jf-sidebar-link" type="button" onclick={setAsDefault}>
+        <span
+          role="button"
+          tabindex="0"
+          class="jf-sidebar-link"
+          onclick={setAsDefault}
+          onkeydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setAsDefault()
+            }
+          }}
+        >
           Set as default
-        </button>
+        </span>
       {/if}
     </div>
   </div>
@@ -164,11 +193,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   </div>
 
   <div class="jf-sidebar-section jf-sidebar-actions">
-    <button class="jf-sidebar-link" type="button" disabled>
+    <span class="jf-sidebar-link is-disabled" aria-disabled="true">
       Edit folder configuration
-    </button>
-    <button class="jf-sidebar-link" type="button" disabled>
+    </span>
+    <span class="jf-sidebar-link is-disabled" aria-disabled="true">
       Initialize a new journal folder
-    </button>
+    </span>
   </div>
 </div>

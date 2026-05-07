@@ -648,18 +648,15 @@ body.journal-folder-hide-config-notes
 	align-items: baseline;
 }
 
-/* Inline action — styled as a text link to match Obsidian's link colour
- * and underline-on-hover idiom. Used for "switch to default", "set as
- * default", and the dynamic/static mode toggle. */
+/* Inline action — rendered as a `<span role="button">` so Obsidian's
+ * built-in `<button>` chrome (border, box-shadow, padding, background)
+ * doesn't have to be overridden one rule at a time. Styled as a text link
+ * to match Obsidian's accent colour and underline-on-hover idiom. */
 .journal-folder-sidebar .jf-sidebar-link {
-	background: transparent;
-	border: none;
-	padding: 0;
-	margin: 0;
-	font: inherit;
 	color: var(--text-accent);
 	cursor: pointer;
 	text-decoration: none;
+	user-select: none;
 }
 
 .journal-folder-sidebar .jf-sidebar-link:hover {
@@ -667,10 +664,16 @@ body.journal-folder-hide-config-notes
 	text-decoration: underline;
 }
 
-.journal-folder-sidebar .jf-sidebar-link:disabled {
+.journal-folder-sidebar .jf-sidebar-link:focus-visible {
+	outline: 1px dotted var(--text-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-sidebar .jf-sidebar-link.is-disabled {
 	color: var(--text-muted);
 	cursor: default;
 	text-decoration: none;
+	pointer-events: none;
 }
 
 .journal-folder-sidebar .jf-sidebar-mode-link {
