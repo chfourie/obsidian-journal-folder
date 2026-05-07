@@ -58,17 +58,21 @@ export function buildAnchorNote(
     return null
   }
   // The factory reads `file.basename`, `file.parent`, and (transitively
-  // via `file.parent.children`) the sibling note names. Synthesise a
-  // minimal TFile-like that satisfies that contract — we intentionally
-  // don't add the synthetic file to the folder's children, because if it
-  // doesn't exist on disk we don't want it counted as an "existing" note.
-  const synthetic: TFile = Object.assign(new TFile(), {
+  // via `file.parent.children`) the sibling note names — that's it. We
+  // duck-type a plain object rather than `new TFile()` because Obsidian's
+  // real TFile constructor wires `path` through an internal `setPath` that
+  // assumes the path is already a normalised vault-rooted string and
+  // throws a `lastIndexOf` on `undefined` otherwise. The duck-typed object
+  // bypasses that machinery entirely. We intentionally don't add the
+  // synthetic file to the folder's children, because if it doesn't exist
+  // on disk we don't want it counted as an "existing" note.
+  const synthetic = {
     basename: anchorBasename,
     name: `${anchorBasename}.md`,
     path: `${folder.path}/${anchorBasename}.md`,
     extension: 'md',
     parent: folder,
-  })
+  } as unknown as TFile
   try {
     return journalNoteFactoryWithSettings(settings)(synthetic)
   } catch {
