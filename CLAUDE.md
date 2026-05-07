@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Obsidian community plugin (`id: journal-folder`) that adds folder-based journaling utilities. Any folder in a vault can act as a journal — notes named `YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, or `YYYY` are recognized as daily/weekly/monthly/yearly entries. Quarterly notes (`YYYY-Q[1-4]`) are an **opt-in** fifth tier gated by the `quartersEnabled` setting; they slot between yearly and monthly when on. The vault root is *not* supported as a journal folder due to Obsidian link-resolution behavior.
 
-The plugin is built with TypeScript + Svelte 5 (runes API, `$props`, etc.) and bundled with esbuild into a single `main.js`.
+The plugin is built with TypeScript + Svelte 5 (runes API, `$props`, `$state`, `$derived`) and bundled with esbuild into a single `main.js`.
 
 ## Commands
 
@@ -24,10 +24,12 @@ Tests live in `tests/` and mirror the `src/` layout. ESLint and Prettier configs
 
 ### Plugin shell → feature set
 
-Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginFeatureSet` and registers each feature:
+Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginFeatureSet` and registers four features in order:
 
-- `JournalFolderSettingsFeature` — owns the global settings, persists them via `plugin.saveData`/`loadData`, registers the settings tab, and propagates new settings to all other features.
-- `JournalHeaderFeature` — registers the `journal-header` markdown code block processor.
+- `JournalFolderSettingsFeature` — owns the global settings, persists them via `plugin.saveData`/`loadData`, registers the settings tab, propagates settings to the other features, and applies global side-effects (`applyStartOfWeek`, the body class for *Hide journal-folder.md in file explorer*). Its `saveSettings` is `public readonly` so the sidebar feature can mutate global settings (e.g. *Set as default*) through the same pipeline.
+- `JournalHeaderFeature` — registers the `journal-header` markdown code block processor that mounts the in-note header + calendar.
+- `JournalAutoTemplateFeature` — listens to `vault.on('create')` (after `workspace.onLayoutReady`) and seeds new journal notes with a template body when the global/folder `auto-template-enabled` setting is on. See [docs/auto-template.md](docs/auto-template.md).
+- `JournalFolderSidebarFeature` — registers the `journal-folder-sidebar` view type and the calendar ribbon icon. The sidebar is the entry point for folder selection, the calendar, the inline configuration editor, and the *Initialise a new journal folder* action. See [docs/sidebar.md](docs/sidebar.md).
 
 `PluginFeatureSet` (`src/plugin/plugin-feature-set.ts`) is a tiny lifecycle multiplexer: `load`, `unload`, `useSettings`, and `onExternalSettingsChange` fan out to every registered feature with try/catch around each. Adding a new feature = create a `PluginFeature` subclass and `addFeature(...)` it in the plugin constructor.
 
@@ -35,33 +37,67 @@ Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginF
 
 All features extend `PluginFeature` and resolve settings through three layers (later overrides earlier): global settings → folder front-matter (`journal-folder.md` in the same folder as the file) → embedded `key: value` config in the current `journal-header` code block. To add a configurable behavior, add the field to `JournalFolderSettings` + `DEFAULT_SETTINGS` in `src/data-access/journal-folder-settings.type.ts` — the resolver picks it up automatically.
 
+Global-only fields (`startOfWeek`, `defaultJournalFolder`, `hideJournalFolderNotes`, `sidebarMode`) are intentionally not honoured at the folder/embedded layers — see the per-field JSDoc for the rationale (locale singletons, UI preferences, etc.).
+
+`PER_FOLDER_FIELDS` in `src/features/journal-folder-sidebar/folder-config-sync.ts` is the canonical list of fields the per-folder modal lets users edit; it's typed as `const satisfies ReadonlyArray<keyof JournalFolderSettings>` so the type system catches drift if a new field is added without an entry. `kebabCase` (in `data-access/string-utils.ts`) is the inverse of the existing `camelCase` and is used when writing per-folder overrides to YAML front matter.
+
 See [docs/settings-resolution.md](docs/settings-resolution.md) for the per-folder lookup nuance and key-case conversion rules.
 
 ### Journal note model
 
 `src/data-access/journal-note.ts` picks one of up to five `JournalNoteStrategy` records (daily/weekly/monthly/quarterly/yearly — quarterly only when `settings.quartersEnabled` is truthy) by regex-matching a `TFile`'s basename, then exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `getNotesInPeriod`, `dailyNoteToday`), state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`), and `hasUnit(unit)` for callers that need to know whether a tier is currently active. **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
 
+`isJournalFileBasename(basename, quartersEnabled)` is exported separately for callers that want the regex check without instantiating a `JournalNote` (the auto-template feature, the journal-header code block processor's "render nothing in non-journal notes" guard, and the sidebar's dynamic-mode active-leaf filter).
+
 See [docs/journal-note.md](docs/journal-note.md) for strategy fields, *medium* title-pattern semantics, and weekly-pattern caveats (`gggg` vs `YYYY`).
+
+### Journal-folder detection
+
+`src/data-access/journal-folder-detection.ts` exports `FOLDER_CONFIG_FILENAME` (`'journal-folder.md'`), `findJournalFolderPaths(app)` (sorted parent paths of every config note in the vault, vault root reported as `'/'`), `isJournalFolder(app, folderPath)`, and `configPathFor(folderPath)`. Single source of truth — the auto-template feature, the sidebar's folder picker, and the *Initialize a new journal folder* candidate filter all import from here.
 
 ### UI rendering (Svelte 5)
 
-`JournalHeaderFeature` registers a `journal-header` code block processor that resolves settings, builds a `JournalNote`, builds a plain `JournalHeaderInfo`, and mounts `JournalHeader` via Svelte 5's `mount` API. The primary row shows `back ‹‹ More... · Today · ›› forward`; everything else lives in the More popover, which is **portaled to `<body>`** to escape CodeMirror live-preview widget clipping. Errors render via `ErrorMessage.svelte` rather than throwing.
+`JournalHeaderFeature` registers a `journal-header` code block processor that resolves settings, builds a `JournalNote`, builds a plain `JournalHeaderInfo`, and mounts `JournalHeader` via Svelte 5's `mount` API. The primary row shows `back ‹‹ More... · Today · ›› forward`; everything else lives in the More popover, which is **portaled to `<body>`** to escape CodeMirror live-preview widget clipping. The block is a no-op when rendered in a note whose basename isn't a journal pattern (so a `journal-header` block in a template body or in `journal-folder.md` itself is harmless). Errors render via `ErrorMessage.svelte` rather than throwing.
 
 See [docs/header-ui.md](docs/header-ui.md) for the popover positioning logic, the delegated `findInternalLinkHref` click handler (necessary because Obsidian's `.internal-link` interception doesn't fire on portaled content), and the secondary-list date-pattern derivation in `secondaryTitlePatternFor`.
 
 ### Calendar picker
 
-`JournalCalendar.svelte` renders below the options bar inside the same sticky header when `calendarVisible` is true. The pure model lives in `journal-calendar-info.ts` (`buildCalendarInfo`) and is fully unit-tested. A controls strip above the months grid carries **Today** and a `{Month} {Year}` link that toggles a portaled date-picker popover (year chevrons + 4×3 month grid). Pure helpers for the controls/picker live in `calendar-navigation.ts`.
+`JournalCalendar.svelte` (in-note) and `SidebarCalendar.svelte` (sidebar) share the same `buildCalendarInfo` model + `calendarCellClasses` cell-class computation, the same set of `journal-folder-calendar-*` CSS classes, and the same controls strip (year/month picker + *Current* + *Note month* links). The in-note one supports multi-month (1–5 months chosen by `pickVisibleMonthCount` from a ResizeObserver-measured width) and lives in markdown-rendered scope; the sidebar one is always single-month and lives in an `ItemView` so it intercepts every cell click explicitly and routes through `app.workspace.openLinkText` (Obsidian's `internal-link` delegation only fires inside markdown containers).
+
+The picker trigger label is the literal **Year/Month** in both calendars; the actual `MMM YYYY` value appears in the linked title row above each month grid (which doubles as a click target for the month, year, and quarter notes). *Current* jumps to today's month; *Note month* jumps to the host note's month (in-note) or the active journal note's month (sidebar). Show/hide gates live in `calendar-navigation.ts` — `shouldShowCurrentLink(visible, today)` and `shouldShowNoteMonthLink(visible, noteMonth, today)` — both pure and unit-tested.
 
 See [docs/calendar.md](docs/calendar.md) for the deep details: month-window placement and `pickVisibleMonthCount` constants, fixed-width day cells, the dedicated divider grid track, cell-class stamping (and why we don't trust Obsidian's link-resolution pass), the date-picker popover behaviour, the desktop/mobile spacing split, and the platform-specific visibility defaults.
+
+### Sidebar
+
+`JournalFolderSidebarFeature` registers a view of type `journal-folder-sidebar` plus a `calendar-days` ribbon icon. The view (`JournalFolderSidebarView extends ItemView`) mounts `JournalFolderSidebar.svelte` and exposes a `SidebarUpdateApi` (`setSettings`, `setKnownFolders`, `setActiveFile`, `setSelected`, `bumpVault`) that the component registers at mount; the view pushes settings updates and active-leaf snapshots into the component's reactive `$state` without re-mounting. `bumpVault` is fired on every vault `create`/`delete`/`rename` so the synthetic anchor `JournalNote` (built once from a duck-typed TFile via `buildAnchorNote`) rebuilds — its `noteNames` snapshot would otherwise go stale on file mutations.
+
+The header reads **JOURNAL FOLDER (Dynamic)** / **(Static)** with the bracketed mode tag in `var(--text-accent)`. A single **More...** link to the right of the header opens an Obsidian-native `Menu` (right-aligned to the link via a measure-then-reposition pass on `Menu.dom`) carrying every secondary action: mode toggle, *Switch to default folder* (conditional), *Set as default folder* (conditional), *Edit folder configuration* (conditional), *Initialise a new journal folder*. Below the header sits the folder dropdown (transparent background) and the calendar.
+
+**Dynamic mode** subscribes to `workspace.on('active-leaf-change')`; when the active file is a recognised journal note in a known journal folder, the sidebar's selected folder switches to the file's parent and the calendar scrolls to that note's period. **Static mode** ignores active-leaf events. Both are persisted as the global `sidebarMode` setting; the user toggles via the More... menu.
+
+The *Initialise a new journal folder* action opens a `FuzzySuggestModal<TFolder>` listing every folder that isn't already a journal folder (root excluded). Picking a folder creates `journal-folder.md` seeded with `journal-folder-title: <folder name>` and switches the sidebar to the new folder.
+
+The *Edit folder configuration* action opens `FolderConfigModal`, which reuses the settings tab's `renderSettingsForm({ ..., mode: 'folder' })` entrypoint with global-only sections suppressed. Saves diff against the current global settings via `computeFrontMatterDiff` (in `folder-config-sync.ts`) and apply through `app.fileManager.processFrontMatter` — fields matching the global config are *removed* from front matter so future global edits flow through, and diverging fields are written as kebab-cased keys.
+
+The *Hide journal-folder.md in file explorer* setting (in the global settings tab) toggles a `journal-folder-hide-config-notes` body class; a CSS rule with `:has(> .nav-file-title[data-path$="/journal-folder.md"])` hides the matching `.nav-file` rows declaratively (no `MutationObserver`).
 
 ### Folder layout
 
 ```
 src/
   plugin/         # plugin entry + feature lifecycle multiplexer
-  data-access/    # settings types, FolderSettingsResolver, JournalNote, PluginFeature base
-  features/       # one folder per feature; each owns its own *-feature.ts and any Svelte components
+  data-access/    # settings types, FolderSettingsResolver, JournalNote, journal-folder
+                  # detection, string utils, PluginFeature base
+  features/       # one folder per feature; each owns its *-feature.ts and any
+                  # Svelte components / pure helpers
+    journal-folder-settings/   # settings tab + reusable settings-form renderer
+                               #   (used by both the global tab and the per-folder modal)
+    journal-header/            # in-note header + calendar
+    journal-auto-template/     # vault-create listener that seeds new journal notes
+    journal-folder-sidebar/    # sidebar view, picker, calendar embed, init modal,
+                               #   folder-config modal
   ui/             # shared Svelte components (NoteLink, ErrorMessage)
 docs/             # architecture deep-dives, screenshots, demo vault, developer notes
 ```
@@ -72,9 +108,14 @@ Within `data-access`, every module is re-exported from `index.ts`; features impo
 
 Releases are driven by git tags. `.github/workflows/release.yml` runs `npm run build` on tag push and creates a draft GitHub release with `main.js`, `manifest.json`, and `styles.css` attached. Use `npm version <patch|minor|major>` — the `version` script syncs `manifest.json` + `versions.json` and stages them automatically.
 
+After a code change always also build (`npm run build`) and copy `main.js`, `styles.css`, `manifest.json` into `docs/demo-vault/.obsidian/plugins/journal-folder/` so the demo vault stays in sync. The demo-vault `main.js` is gitignored; the others are tracked.
+
 ## Conventions worth honoring
 
 - Prettier: single quotes, 2-space indent, no semicolons, trailing commas `es5`, 80-col print width.
 - License headers: every `.ts`/`.svelte` source file starts with the GPL-3.0 boilerplate. Match the existing style when adding new files.
 - Date formatting always goes through Obsidian's bundled moment (`import { moment } from 'obsidian'`).
-- The settings tab (`journal-folder-settings-tab.ts`) is explicitly marked as throwaway code in a comment — don't be surprised by its shape.
+- The settings tab (`journal-folder-settings-tab.ts`) is explicitly marked as throwaway code in a comment — don't be surprised by its shape. The `renderSettingsForm` entrypoint is used by both the global settings tab and the per-folder `FolderConfigModal`; a `mode: 'global' | 'folder'` flag drives which sections render.
+- When constructing a synthetic `TFile` (e.g. for the sidebar's anchor note), use a duck-typed plain object cast `as unknown as TFile` rather than `new TFile()` — Obsidian's real `TFile` constructor wires `path` through an internal `setPath` that crashes on post-construction assignment.
+- Inline action affordances in the sidebar use `<span role="button" tabindex="0">` rather than `<button>` because Obsidian's button styling adds chrome (border/shadow/padding) that can't be cleanly overridden. Always pair with an `onkeydown` handler for Enter/Space activation.
+- Always write tests when adding functionality. Pure helpers go under `tests/data-access/` or `tests/features/`; mock surface for Obsidian APIs lives in `tests/mocks/obsidian.ts`.
