@@ -16,9 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
-  import type {
-    JournalFolderSettings,
-    SidebarMode,
+  import {
+    isJournalFileBasename,
+    type JournalFolderSettings,
+    type JournalNote,
+    type SidebarMode,
   } from '../../data-access'
   import {
     resolveDynamicSelection,
@@ -28,6 +30,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     ActiveFileSnapshot,
     SidebarUpdateApi,
   } from './journal-folder-sidebar-view'
+  import SidebarCalendar from './SidebarCalendar.svelte'
+  import { todayDailyBasename } from './sidebar-anchor'
 
   type Props = {
     initialSettings: JournalFolderSettings
@@ -36,6 +40,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings: (s: JournalFolderSettings) => Promise<void>
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
+    buildAnchorNote: (
+      folderPath: string,
+      anchorBasename: string
+    ) => JournalNote | null
+    confirmCreate: (basename: string) => Promise<boolean>
+    navigate: (url: string, sourceFolderPath: string) => void
   }
 
   // svelte-ignore state_referenced_locally
@@ -46,6 +56,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings,
     registerApi,
     onInitJournalFolder,
+    buildAnchorNote,
+    confirmCreate,
+    navigate,
   }: Props = $props()
 
   // svelte-ignore state_referenced_locally
@@ -61,6 +74,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       initialKnownFolders
     )
   )
+
+  // Drives the calendar's "current" highlighted cell. Defaults to today's
+  // daily basename; in dynamic mode the active file's basename takes
+  // over so the highlighted cell follows wherever the user is reading.
+  let anchorBasename = $state<string>(todayDailyBasename())
+  // Months relative to the anchor's month — prev/next mutate this, the
+  // *Today* control resets it (along with the anchor itself).
+  let calendarOffset = $state<number>(0)
 
   // svelte-ignore state_referenced_locally
   registerApi({
@@ -91,6 +112,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         quartersEnabled: !!settings.quartersEnabled,
       })
       if (next !== null) selected = next
+      // Even when the parent folder didn't change (already-selected case),
+      // dynamic mode should scroll the calendar to the active note's
+      // period so the user sees the current cell highlighted. Only do
+      // this when the active file is actually a journal note in the
+      // current selection — non-journal notes leave the calendar alone.
+      if (
+        file &&
+        file.parentPath === selected &&
+        isJournalFileBasename(file.basename, !!settings.quartersEnabled)
+      ) {
+        anchorBasename = file.basename
+        calendarOffset = 0
+      }
     },
     setSelected: (path) => {
       if (knownFolders.includes(path)) selected = path
@@ -117,6 +151,38 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     if (knownFolders.includes(settings.defaultJournalFolder)) {
       selected = settings.defaultJournalFolder
     }
+  }
+
+  // Reset the calendar anchor whenever the user switches folders — the
+  // previous anchor (potentially a daily-basename from the prior folder)
+  // is meaningless in the new folder's context.
+  // svelte-ignore state_referenced_locally
+  let lastSelected = selected
+  $effect(() => {
+    if (selected !== lastSelected) {
+      lastSelected = selected
+      anchorBasename = todayDailyBasename()
+      calendarOffset = 0
+    }
+  })
+
+  const anchorNote = $derived(
+    selected ? buildAnchorNote(selected, anchorBasename) : null
+  )
+
+  function calendarPrev() {
+    calendarOffset -= 1
+  }
+  function calendarNext() {
+    calendarOffset += 1
+  }
+  function calendarToday() {
+    anchorBasename = todayDailyBasename()
+    calendarOffset = 0
+  }
+
+  function calendarNavigate(url: string) {
+    navigate(url, selected)
   }
 </script>
 
@@ -193,8 +259,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     </div>
   </div>
 
-  <div class="jf-sidebar-section jf-sidebar-calendar-placeholder">
-    <p class="jf-sidebar-help">Calendar coming in a follow-up update.</p>
+  <div class="jf-sidebar-section">
+    {#if anchorNote}
+      <SidebarCalendar
+        note={anchorNote}
+        offsetMonths={calendarOffset}
+        confirmCreate={confirmCreate}
+        navigate={calendarNavigate}
+        onPrev={calendarPrev}
+        onNext={calendarNext}
+        onToday={calendarToday}
+      />
+    {:else}
+      <p class="jf-sidebar-help">
+        {#if knownFolders.length === 0}
+          No journal folders yet — initialise one below to start.
+        {:else}
+          Pick a journal folder to show its calendar.
+        {/if}
+      </p>
+    {/if}
   </div>
 
   <div class="jf-sidebar-section jf-sidebar-actions">

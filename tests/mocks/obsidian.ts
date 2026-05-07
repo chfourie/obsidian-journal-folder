@@ -195,6 +195,8 @@ export class Workspace {
     return this.activeFile
   }
 
+  openLinkText(_link: string, _src: string, _newLeaf: boolean): void {}
+
   on(name: string, cb: (...args: unknown[]) => unknown): EventRef {
     const ref = { name, cb }
     this.listeners.push(ref)

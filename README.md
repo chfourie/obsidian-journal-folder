@@ -299,8 +299,9 @@ Phase 1 ships:
 - **Switch to default / Set as default** — inline text-link actions below the picker. *Switch to default* resets the picker to the configured `default-journal-folder` (hidden when you're already on the default). *Set as default* promotes the currently selected folder to the new global default. The default folder itself is set from the sidebar — there's no global-settings UI for it in this build, by design.
 - **Hide `journal-folder.md` in file explorer** — global toggle in the plugin settings tab. Hides the config notes from the file tree without removing them from disk.
 - **Initialize a new journal folder** — opens a fuzzy folder picker showing every folder that *isn't* already a journal folder (the vault root is excluded — it's not a supported journal folder elsewhere in the plugin). Picking a folder creates a `journal-folder.md` in it seeded with `journal-folder-title: <folder name>`, then switches the sidebar's selected folder to the new one. Re-opening the picker on an already-initialised folder is a no-op.
+- **Calendar** — a single-month grid bound to the selected folder. Clicking a day, week, month, quarter, or year cell opens (or creates) the corresponding journal note in the selected folder; past-dated cells with no existing note route through the same *Create missing note?* confirmation modal used by the in-note calendar. The controls strip carries `‹` / `›` arrows for month-by-month navigation and a clickable month/year title that jumps back to today and resets the highlight to today's daily cell. In **dynamic** mode, when the active note is a journal note in a known journal folder, the calendar scrolls to that note's period and highlights its cell — even when the parent folder didn't change.
 
-The calendar embed and the inline configuration editor are stubbed in this build and will land in follow-up updates.
+The inline configuration editor is stubbed in this build and will land in a follow-up update.
 
 ---
 

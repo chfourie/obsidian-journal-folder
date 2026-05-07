@@ -688,13 +688,61 @@ body.journal-folder-hide-config-notes
 	margin: 0;
 }
 
-.journal-folder-sidebar .jf-sidebar-calendar-placeholder {
-	min-height: 4em;
-	border: 1px dashed var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: .75em;
+/* Sidebar calendar — single-month view with prev/next arrows. Reuses the
+ * existing `.journal-folder-calendar-grid` / `.journal-folder-calendar-cell`
+ * cell styling from the in-note calendar so cells behave the same way
+ * (links, hover, is-current/is-today, unresolved). The wrapper here only
+ * provides the controls strip and tightens the cell density for the
+ * narrower sidebar pane. */
+.journal-folder-sidebar .jf-sidebar-calendar {
+	display: flex;
+	flex-direction: column;
+	gap: .25em;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-controls {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
 	align-items: center;
-	justify-content: center;
+	gap: .25em;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-arrow {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: .15em .35em;
+	font-size: var(--font-ui-large);
+	line-height: 1;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-arrow:hover {
+	color: var(--text-normal);
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-title {
+	text-align: center;
+	font-weight: var(--font-medium);
+	color: var(--text-normal);
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-title:hover {
+	text-decoration: underline;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-quarter {
+	color: var(--text-muted);
+	font-weight: var(--font-normal);
+	margin-left: .25em;
+}
+
+/* Tighten the embedded grid for the sidebar's narrower column. */
+.journal-folder-sidebar .jf-sidebar-calendar-month .journal-folder-calendar-grid {
+	font-size: var(--font-ui-smaller);
 }
 
 .journal-folder-sidebar .jf-sidebar-actions {

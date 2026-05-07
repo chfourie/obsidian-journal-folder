@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import { ItemView, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
+  configPathFor,
   findJournalFolderPaths,
   type JournalFolderSettings,
 } from '../../data-access'
@@ -29,6 +30,8 @@ import {
   initialiseJournalFolder,
 } from './init-journal-folder'
 import { InitJournalFolderModal } from './init-journal-folder-modal'
+import { buildAnchorNote } from './sidebar-anchor'
+import { confirmCreateNote } from '../journal-header/confirm-create-modal'
 
 type ViewRegistry = {
   register: (v: JournalFolderSidebarView) => void
@@ -94,6 +97,25 @@ export class JournalFolderSidebarView extends ItemView {
           this.#api = api
         },
         onInitJournalFolder: () => this.openInitFolderPicker(),
+        buildAnchorNote: (folderPath: string, anchorBasename: string) =>
+          buildAnchorNote(
+            this.plugin.app,
+            folderPath,
+            anchorBasename,
+            this.getSettings()
+          ),
+        confirmCreate: (basename: string) =>
+          confirmCreateNote(this.plugin.app, basename),
+        navigate: (url: string, sourceFolderPath: string) => {
+          // `openLinkText` resolves relative-ish links against a source
+          // path. Use the selected folder's `journal-folder.md` as the
+          // source so the link's folder context matches the calendar's.
+          this.plugin.app.workspace.openLinkText(
+            url,
+            configPathFor(sourceFolderPath),
+            false
+          )
+        },
       },
     })
 
