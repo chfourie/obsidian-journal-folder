@@ -20,6 +20,7 @@ import { App, Plugin, type PluginManifest } from 'obsidian'
 import { PluginFeatureSet } from './plugin-feature-set'
 import { JournalHeaderFeature } from '../features/journal-header'
 import { JournalFolderSettingsFeature } from '../features/journal-folder-settings'
+import { JournalAutoTemplateFeature } from '../features/journal-auto-template'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -32,6 +33,7 @@ export default class JournalFolderPlugin extends Plugin {
         new JournalFolderSettingsFeature(this, this.#features.useSettings)
       )
       .addFeature(new JournalHeaderFeature(this))
+      .addFeature(new JournalAutoTemplateFeature(this))
   }
 
   readonly onExternalSettingsChange = this.#features.onExternalSettingsChange

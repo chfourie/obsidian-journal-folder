@@ -41,6 +41,18 @@ export type JournalFolderSettings = {
   // the higher/lower-order navigation. Folder-level override goes through
   // the front-matter key `quarters-enabled`.
   quartersEnabled: boolean
+  // When enabled, newly created notes whose basename matches a journal file
+  // pattern (daily/weekly/monthly/quarterly/yearly) and that live in a folder
+  // containing a `journal-folder.md` config note are seeded with a template
+  // body. Disable per-folder by setting `auto-template-enabled: false` in
+  // that folder's `journal-folder.md` front matter. The template body itself
+  // can be overridden globally via `autoTemplateContent` and per-folder by
+  // putting markdown in the body of `journal-folder.md`.
+  autoTemplateEnabled: boolean
+  // Markdown used to seed new journal notes when auto-template is enabled
+  // and no per-folder body override is present in `journal-folder.md`. When
+  // empty, a built-in default (a single `journal-header` code block) is used.
+  autoTemplateContent: string
   // Controls the first day of the week. `'locale-default'` leaves moment's
   // current locale untouched; the explicit weekday names override moment's
   // locale so both the calendar grid and `gggg-[W]ww` week numbering shift
@@ -81,5 +93,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultCalendarVisibleDesktop: true,
   defaultCalendarVisibleMobile: false,
   quartersEnabled: false,
+  autoTemplateEnabled: false,
+  autoTemplateContent: '',
   startOfWeek: 'locale-default',
 }

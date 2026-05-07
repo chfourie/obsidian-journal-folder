@@ -83,8 +83,12 @@ export class MetadataCache {
   }
 }
 
+export type EventRef = { name: string; cb: (...args: unknown[]) => unknown }
+
 export class Vault {
   private files = new Map<string, TAbstractFile>()
+  private contents = new Map<string, string>()
+  private listeners: EventRef[] = []
 
   addFile(file: TAbstractFile): void {
     this.files.set(file.path, file)
@@ -93,11 +97,51 @@ export class Vault {
   getAbstractFileByPath(path: string): TAbstractFile | null {
     return this.files.get(path) ?? null
   }
+
+  setContents(file: TFile, content: string): void {
+    this.contents.set(file.path, content)
+  }
+
+  async read(file: TFile): Promise<string> {
+    return this.contents.get(file.path) ?? ''
+  }
+
+  async modify(file: TFile, content: string): Promise<void> {
+    this.contents.set(file.path, content)
+  }
+
+  on(name: string, cb: (...args: unknown[]) => unknown): EventRef {
+    const ref = { name, cb }
+    this.listeners.push(ref)
+    return ref
+  }
+
+  trigger(name: string, ...args: unknown[]): void {
+    this.listeners.filter((l) => l.name === name).forEach((l) => l.cb(...args))
+  }
+}
+
+export class Workspace {
+  private layoutReadyCallbacks: Array<() => void> = []
+  layoutReady = false
+
+  onLayoutReady(cb: () => void): void {
+    if (this.layoutReady) cb()
+    else this.layoutReadyCallbacks.push(cb)
+  }
+
+  signalLayoutReady(): void {
+    this.layoutReady = true
+    const callbacks = this.layoutReadyCallbacks
+    this.layoutReadyCallbacks = []
+    callbacks.forEach((cb) => cb())
+  }
 }
 
 export class App {
   vault = new Vault()
   metadataCache = new MetadataCache()
+  workspace = new Workspace()
 }
 
 export class Plugin {
@@ -120,6 +164,8 @@ export class Plugin {
     _name: string,
     _processor: (source: string, el: HTMLElement, ctx: unknown) => unknown
   ): void {}
+
+  registerEvent(_ref: EventRef): void {}
 }
 
 export type PluginManifest = {
@@ -160,6 +206,9 @@ export class Setting {
     return this
   }
   addText(_cb: (t: unknown) => unknown): this {
+    return this
+  }
+  addTextArea(_cb: (t: unknown) => unknown): this {
     return this
   }
   addToggle(_cb: (t: unknown) => unknown): this {

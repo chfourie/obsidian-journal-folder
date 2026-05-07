@@ -18,11 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { mount } from 'svelte'
 import {
+  isJournalFileBasename,
   type JournalFolderSettings,
   JournalNote,
   journalNoteFactoryWithSettings,
   PluginFeature,
 } from 'src/data-access'
+import { isTruthySetting } from '../journal-auto-template/auto-template-content'
 import { ErrorMessage } from 'src/ui'
 import JournalHeader from './JournalHeader.svelte'
 import {
@@ -52,6 +54,19 @@ export class JournalHeaderFeature extends PluginFeature {
               currentFile,
               source
             )
+            // The `journal-header` block is meaningless outside a journal
+            // note (e.g. when included in a template body that has been
+            // pasted into `journal-folder.md` itself, or copied into a
+            // non-journal note). Render nothing instead of an error so the
+            // template body is portable.
+            if (
+              !isJournalFileBasename(
+                currentFile.basename,
+                isTruthySetting(settings.quartersEnabled)
+              )
+            ) {
+              return
+            }
             const note: JournalNote =
               journalNoteFactoryWithSettings(settings)(currentFile)
             const info: JournalHeaderInfo = buildJournalHeaderInfo(

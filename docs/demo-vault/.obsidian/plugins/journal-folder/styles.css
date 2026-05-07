@@ -580,3 +580,20 @@
 	gap: 1em;
 	margin-bottom: .25em;
 }
+
+.journal-folder-config-template-wrapper {
+	margin: -.5em 0 1em;
+}
+
+.journal-folder-config-template-textarea {
+	width: 100%;
+	min-height: 8em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	resize: vertical;
+}
+
+.journal-folder-config-template-textarea::placeholder {
+	color: var(--text-faint);
+	opacity: 1;
+}

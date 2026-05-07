@@ -176,12 +176,13 @@ default-calendar-visible-desktop: true
 default-calendar-visible-mobile: false
 daily-note-title-pattern: dddd, Do MMMM YYYY
 ---
-
-Notes about this folder go here. The body is ignored by the plugin.
 ```
 
 > [!CAUTION]
 > Anything set at folder level applies to every journal header in that folder, but does *not* affect the actual folder name on disk. `journal-folder-title` is a display label only.
+
+> [!NOTE]
+> The **body** of `journal-folder.md` is no longer ignored. When *Auto-fill new journal notes* is enabled, a non-empty body is used as the template seeded into new daily/weekly/monthly/quarterly/yearly notes in this folder — see [Auto-fill new journal notes](#auto-fill-new-journal-notes).
 
 ### Per-header overrides (embedded config)
 
@@ -218,6 +219,8 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `default-calendar-visible-desktop`   | If true, the calendar picker is open by default on desktop when Obsidian starts. A manual toggle in the current session wins over this. |
 | `default-calendar-visible-mobile`    | If true, the calendar picker is open by default on mobile when Obsidian starts. Defaults to false because the multi-month layout isn't useful at phone widths. |
 | `start-of-week`                      | First day of the week used by the calendar grid and `gggg-[W]ww` weekly numbering. *Locale default* leaves moment's locale untouched; picking an explicit weekday (`sunday`–`saturday`) overrides it so week 1 still contains January 1. **Global only** — moment's locale is process-wide, so per-folder and embedded overrides are ignored to avoid inconsistent week numbering across the vault. |
+| `auto-template-enabled`              | If true, newly created notes whose basename matches a journal pattern and whose folder contains a `journal-folder.md` are seeded with a template body. Override per-folder by setting `auto-template-enabled: false` in that folder's `journal-folder.md` front matter. See [Auto-fill new journal notes](#auto-fill-new-journal-notes). |
+| `auto-template-content`              | Global default template body used when `auto-template-enabled` is true and the folder doesn't supply its own template. Leave blank for the built-in default (a `journal-header` code block, prefixed with the `%% JOURNAL NOTE %%` Obsidian comment). Per-folder overrides go in the body of `journal-folder.md` — see below. |
 
 ### Folder title resolution
 
@@ -226,6 +229,59 @@ The header's folder-title row is resolved as:
 1. If `journal-folder-title` is configured (folder or embedded), use it.
 2. Else if `use-folder-name-as-default-title` is true, use the folder's actual name.
 3. Else omit the row entirely.
+
+---
+
+## Auto-fill new journal notes
+
+The plugin can seed new journal notes with a template body, so you don't need Templater (or another helper plugin) just to drop a `journal-header` code block at the top of every new note.
+
+### Enabling
+
+Off by default. Turn it on at any of two layers:
+
+- **Globally** in *Settings → Community plugins → Journal Folder → Auto-fill new journal notes*.
+- **Per folder** by adding `auto-template-enabled: true` (or `false` to disable) to that folder's `journal-folder.md` front matter.
+
+When enabled, a new note is auto-filled only when **all** of these are true:
+
+1. The note's basename matches a journal file pattern (`YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, `YYYY-Q[1-4]` when quarters are enabled, or `YYYY`).
+2. The folder containing the note has a `journal-folder.md` config file.
+3. The note is empty at creation (existing content is never overwritten).
+
+### Template precedence
+
+The template body is resolved in three layers, **first non-empty wins**:
+
+1. **Per-folder body** — the markdown body of `journal-folder.md` (everything below its front matter). Use this when one folder needs a different template than the rest of the vault.
+2. **Global setting** — *Default template* in the plugin settings. Persists in `data.json`.
+3. **Built-in default** — `%% JOURNAL NOTE %%` followed immediately by an empty `journal-header` code block (no blank line between them, so the comment sits flush with the fence).
+
+The `%% … %%` line is an Obsidian hidden comment — it doesn't render in reading mode and parks the cursor above the code block when toggling into edit mode. Without it, the cursor lands inside the fence and the block stops rendering until you click out.
+
+### Per-folder template example
+
+```markdown
+---
+journal-folder-title: Atlas Migration
+auto-template-enabled: true
+---
+
+%% JOURNAL NOTE %%
+```journal-header
+```
+
+## Highlights
+
+## Notes
+```
+
+> [!TIP]
+> If your template needs to contain a fenced code block (like the `journal-header` block above) and you want to wrap the *whole* template in another code block for clarity in `journal-folder.md`, use a tilde fence (`~~~`) for the outer wrapper or a longer run of backticks (4+) — anything longer than the inner fences. The plugin treats the entire body of `journal-folder.md` as the template, so wrapping isn't required; this only matters if you're showing the template to humans elsewhere.
+
+### What the `journal-header` code block does in non-journal notes
+
+The `journal-header` block is a no-op when placed in a note whose basename isn't a journal pattern. That means a template body containing the block stays harmless if it's pasted into `journal-folder.md` itself or any other regular note — it just renders nothing. Errors only show up if the block content is malformed config, not if the surrounding filename doesn't fit a journal pattern.
 
 ---
 

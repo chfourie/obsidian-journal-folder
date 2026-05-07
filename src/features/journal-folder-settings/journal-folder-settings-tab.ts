@@ -34,6 +34,7 @@ import {
   type JournalFolderSettings,
   type StartOfWeekSetting,
 } from '../../data-access'
+import { DEFAULT_AUTO_TEMPLATE } from '../journal-auto-template'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
   'locale-default': 'Locale default',
@@ -96,6 +97,21 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     }
     this.createStartOfWeekSetting(settings)
     this.createQuartersEnabledSetting(settings)
+
+    new Setting(this.containerEl).setName('New-note template').setHeading()
+      .setDesc(
+        "When enabled, newly created notes whose names match a journal " +
+          "pattern (e.g. 2026-05-07, 2026-W19, 2026-05, 2026-Q2, 2026) and " +
+          "that live in a folder containing a 'journal-folder.md' note are " +
+          "automatically seeded with a template body. Disable per-folder by " +
+          "adding 'auto-template-enabled: false' to that folder's " +
+          "journal-folder.md front matter, and override the template body " +
+          "per-folder by writing markdown into the body of journal-folder.md."
+      )
+    this.createAutoTemplateEnabledSetting(settings)
+    if (settings.autoTemplateEnabled) {
+      this.createAutoTemplateContentSetting(settings)
+    }
 
     new Setting(this.containerEl).setName('Calendar').setHeading()
     this.createDefaultCalendarVisibleSetting(
@@ -326,6 +342,71 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
             component.onChanged()
           })
       })
+  }
+
+  createAutoTemplateEnabledSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.autoTemplateEnabled = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings).then(() => this.display())
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Auto-fill new journal notes')
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.autoTemplateEnabled).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.autoTemplateEnabled)
+            onChange(DEFAULT_SETTINGS.autoTemplateEnabled)
+          })
+      })
+  }
+
+  createAutoTemplateContentSetting(settings: JournalFolderSettings): Setting {
+    // Standard Obsidian Setting rows place the control on the right, which
+    // gives a textarea ~30% of the row width — useless for editing markdown.
+    // Render the name/desc as a normal Setting, then append a separate
+    // full-width row containing a plain <textarea>. The placeholder shows
+    // the built-in default in the muted placeholder colour so users see
+    // what they'll get if they leave the field blank.
+    const setting = new Setting(this.containerEl)
+      .setName('Default template')
+      .setDesc(
+        "Markdown used to seed new journal notes. Leave blank for the " +
+          "built-in default (shown as placeholder). Per-folder overrides " +
+          "go in the body of that folder's journal-folder.md note."
+      )
+
+    const wrapper = this.containerEl.createDiv({
+      cls: 'journal-folder-config-template-wrapper',
+    })
+    const textarea = wrapper.createEl('textarea', {
+      cls: 'journal-folder-config-template-textarea',
+    })
+    textarea.rows = 8
+    textarea.placeholder = DEFAULT_AUTO_TEMPLATE
+    textarea.value = settings.autoTemplateContent
+
+    const onChange = debounce(
+      (value: string) => {
+        settings.autoTemplateContent = value
+        // noinspection JSIgnoredPromiseFromCall
+        this.saveSettings(settings)
+      },
+      250,
+      true
+    )
+    textarea.addEventListener('input', () => onChange(textarea.value))
+
+    return setting
   }
 
   createQuartersEnabledSetting(settings: JournalFolderSettings): Setting {

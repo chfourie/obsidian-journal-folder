@@ -43,6 +43,25 @@ type JournalNoteStrategies = {
 
 export type JournalNoteFactory = (file: TFile) => JournalNote
 
+// Regex tier for the basename — matches the strategies built below. Quarterly
+// is gated behind a setting because we don't want a folder using `2026-Q1`
+// for something else to accidentally be treated as a journal note.
+const JOURNAL_FILE_REGEXES_NO_QUARTERS = [
+  /^[12]\d{3}-((0[1-9])|(1[012]))-(([0-2][0-9])|(3[01]))$/,
+  /^[12]\d{3}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/,
+  /^[12]\d{3}-((0[1-9])|(1[012]))$/,
+  /^[12]\d{3}$/,
+]
+const JOURNAL_FILE_QUARTERLY_REGEX = /^[12]\d{3}-Q[1-4]$/
+
+export function isJournalFileBasename(
+  basename: string,
+  quartersEnabled: boolean
+): boolean {
+  if (JOURNAL_FILE_REGEXES_NO_QUARTERS.some((r) => r.test(basename))) return true
+  return quartersEnabled && JOURNAL_FILE_QUARTERLY_REGEX.test(basename)
+}
+
 function startOfInterval(
   sourceMoment: moment.Moment,
   pattern: string
