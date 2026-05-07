@@ -82,6 +82,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // Months relative to the anchor's month — prev/next mutate this, the
   // *Today* control resets it (along with the anchor itself).
   let calendarOffset = $state<number>(0)
+  // Bumped every time the vault mutates so the `$derived` anchor note
+  // rebuilds. The synthetic anchor's `noteNames` snapshot is captured at
+  // construction (see `journal-note.ts → journalNote`), so deletes /
+  // renames / creates only flip cell `exists` flags after a rebuild.
+  let vaultTick = $state<number>(0)
 
   // svelte-ignore state_referenced_locally
   registerApi({
@@ -129,6 +134,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     setSelected: (path) => {
       if (knownFolders.includes(path)) selected = path
     },
+    bumpVault: () => {
+      vaultTick += 1
+    },
   })
 
   const folderLabel = (path: string) =>
@@ -166,9 +174,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     }
   })
 
-  const anchorNote = $derived(
-    selected ? buildAnchorNote(selected, anchorBasename) : null
-  )
+  const anchorNote = $derived.by(() => {
+    // Reading vaultTick here makes this derived recompute on every vault
+    // mutation, which rebuilds the synthetic anchor against the current
+    // `parent.children` snapshot.
+    void vaultTick
+    return selected ? buildAnchorNote(selected, anchorBasename) : null
+  })
 
   function calendarPrev() {
     calendarOffset -= 1

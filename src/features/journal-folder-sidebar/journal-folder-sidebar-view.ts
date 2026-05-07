@@ -45,6 +45,12 @@ export type SidebarUpdateApi = {
   setKnownFolders: (folders: string[]) => void
   setActiveFile: (file: ActiveFileSnapshot | null) => void
   setSelected: (path: string) => void
+  // Bumped on every vault mutation (create / delete / rename) so the
+  // calendar's `$derived(buildAnchorNote(...))` recomputes — the
+  // synthetic anchor reads `parent.children` *once* at construction, so
+  // existence-flag accuracy after a deletion or rename requires us to
+  // rebuild the anchor.
+  bumpVault: () => void
 }
 
 export type ActiveFileSnapshot = {
@@ -121,15 +127,17 @@ export class JournalFolderSidebarView extends ItemView {
 
     // Refresh the known-folders list whenever the vault layout changes
     // — new journal folders appearing (or disappearing) shouldn't require
-    // closing and reopening the sidebar.
+    // closing and reopening the sidebar. Also bump the vault tick so the
+    // calendar's anchor rebuilds and existence flags catch up to the
+    // disk state.
     this.registerEvent(
-      this.plugin.app.vault.on('create', () => this.refreshKnownFolders())
+      this.plugin.app.vault.on('create', () => this.onVaultMutation())
     )
     this.registerEvent(
-      this.plugin.app.vault.on('delete', () => this.refreshKnownFolders())
+      this.plugin.app.vault.on('delete', () => this.onVaultMutation())
     )
     this.registerEvent(
-      this.plugin.app.vault.on('rename', () => this.refreshKnownFolders())
+      this.plugin.app.vault.on('rename', () => this.onVaultMutation())
     )
 
     this.registerEvent(
@@ -159,6 +167,11 @@ export class JournalFolderSidebarView extends ItemView {
 
   private refreshKnownFolders(): void {
     this.#api?.setKnownFolders(findJournalFolderPaths(this.plugin.app))
+  }
+
+  private onVaultMutation(): void {
+    this.refreshKnownFolders()
+    this.#api?.bumpVault()
   }
 
   private openInitFolderPicker(): void {

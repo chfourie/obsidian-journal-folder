@@ -49,11 +49,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const month = $derived(info.months[0])
 
   async function handleCellClick(cell: CalendarCell, event: MouseEvent) {
-    if (!cell.needsConfirmation) return
+    // Always intercept — Obsidian's `internal-link` click interception
+    // only fires inside markdown-rendered containers; an ItemView like
+    // the sidebar is outside that scope, so we have to call
+    // `openLinkText` ourselves. Without this, today's and future cells
+    // (which set `needsConfirmation: false`) silently do nothing.
     event.preventDefault()
     event.stopPropagation()
-    const basename = cell.url.split('/').pop() ?? cell.url
-    if (await confirmCreate(basename)) navigate(cell.url)
+    if (cell.needsConfirmation) {
+      const basename = cell.url.split('/').pop() ?? cell.url
+      if (!(await confirmCreate(basename))) return
+    }
+    navigate(cell.url)
   }
 
   function onKey(action: () => void) {
