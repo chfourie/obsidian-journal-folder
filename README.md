@@ -295,8 +295,8 @@ A dedicated sidebar view collects journal-folder actions in one place. Open it w
 Phase 1 ships:
 
 - **Folder picker** listing every folder that contains a `journal-folder.md`.
-- **Dynamic / Static toggle.** *Dynamic* (default) follows the active note when it lives in a journal folder; *static* holds the selected folder regardless of which note is open. Persists as the global `sidebar-mode` setting.
-- **Switch to default** — resets the picker to the configured `default-journal-folder`. Hidden when you're already on the default. There's also a **Set as default** button beside it that promotes the currently selected folder to the new global default.
+- **Dynamic / Static toggle** — a small text link to the right of the *Journal folder* header. The link's label *is* the current state (`Dynamic` or `Static`) — clicking it flips to the other mode. *Dynamic* (default) follows the active note when it lives in a journal folder; *static* holds the selected folder regardless of which note is open. Persists as the global `sidebar-mode` setting.
+- **Switch to default / Set as default** — inline text-link actions below the picker. *Switch to default* resets the picker to the configured `default-journal-folder` (hidden when you're already on the default). *Set as default* promotes the currently selected folder to the new global default. The default folder itself is set from the sidebar — there's no global-settings UI for it in this build, by design.
 - **Hide `journal-folder.md` in file explorer** — global toggle in the plugin settings tab. Hides the config notes from the file tree without removing them from disk.
 
 The calendar embed, the inline configuration editor, and the *initialise a new journal folder* action are stubbed in this build and will land in follow-up updates.

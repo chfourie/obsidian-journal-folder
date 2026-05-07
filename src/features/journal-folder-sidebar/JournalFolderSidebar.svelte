@@ -97,9 +97,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   const isDefault = $derived(selected === settings.defaultJournalFolder)
 
-  async function setMode(mode: SidebarMode) {
-    if (settings.sidebarMode === mode) return
-    await saveSettings({ ...settings, sidebarMode: mode })
+  async function toggleMode() {
+    const next: SidebarMode =
+      settings.sidebarMode === 'dynamic' ? 'static' : 'dynamic'
+    await saveSettings({ ...settings, sidebarMode: next })
   }
 
   async function setAsDefault() {
@@ -116,7 +117,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <div class="jf-sidebar-root">
   <div class="jf-sidebar-section">
-    <label class="jf-sidebar-label" for="jf-sidebar-folder">Journal folder</label>
+    <div class="jf-sidebar-header">
+      <label class="jf-sidebar-label" for="jf-sidebar-folder">Journal folder</label>
+      <button
+        type="button"
+        class="jf-sidebar-link jf-sidebar-mode-link"
+        onclick={toggleMode}
+        title={settings.sidebarMode === 'dynamic'
+          ? 'Following the active note. Click to hold the selected folder instead.'
+          : 'Holding the selected folder. Click to follow the active note instead.'}
+      >
+        {settings.sidebarMode === 'dynamic' ? 'Dynamic' : 'Static'}
+      </button>
+    </div>
+
     <select
       id="jf-sidebar-folder"
       class="dropdown"
@@ -133,50 +147,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
     <div class="jf-sidebar-row">
       {#if !isDefault && knownFolders.includes(settings.defaultJournalFolder)}
-        <button class="jf-sidebar-btn" type="button" onclick={switchToDefault}>
+        <button class="jf-sidebar-link" type="button" onclick={switchToDefault}>
           Switch to default
         </button>
       {/if}
       {#if knownFolders.includes(selected) && !isDefault}
-        <button
-          class="jf-sidebar-btn"
-          type="button"
-          onclick={setAsDefault}
-        >
+        <button class="jf-sidebar-link" type="button" onclick={setAsDefault}>
           Set as default
         </button>
       {/if}
     </div>
-  </div>
-
-  <div class="jf-sidebar-section">
-    <div class="jf-sidebar-mode-toggle" role="tablist" aria-label="Sidebar mode">
-      <button
-        type="button"
-        class="jf-sidebar-mode-btn"
-        class:is-active={settings.sidebarMode === 'dynamic'}
-        aria-pressed={settings.sidebarMode === 'dynamic'}
-        onclick={() => setMode('dynamic')}
-      >
-        Dynamic
-      </button>
-      <button
-        type="button"
-        class="jf-sidebar-mode-btn"
-        class:is-active={settings.sidebarMode === 'static'}
-        aria-pressed={settings.sidebarMode === 'static'}
-        onclick={() => setMode('static')}
-      >
-        Static
-      </button>
-    </div>
-    <p class="jf-sidebar-help">
-      {#if settings.sidebarMode === 'dynamic'}
-        Following the active note when it lives in a journal folder.
-      {:else}
-        Holding the selected folder regardless of which note is open.
-      {/if}
-    </p>
   </div>
 
   <div class="jf-sidebar-section jf-sidebar-calendar-placeholder">
@@ -184,12 +164,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   </div>
 
   <div class="jf-sidebar-section jf-sidebar-actions">
-    <button class="jf-sidebar-btn" type="button" disabled>
+    <button class="jf-sidebar-link" type="button" disabled>
       Edit folder configuration
     </button>
-    <button class="jf-sidebar-btn" type="button" disabled>
+    <button class="jf-sidebar-link" type="button" disabled>
       Initialize a new journal folder
     </button>
-    <p class="jf-sidebar-help">Both actions land in a follow-up update.</p>
   </div>
 </div>

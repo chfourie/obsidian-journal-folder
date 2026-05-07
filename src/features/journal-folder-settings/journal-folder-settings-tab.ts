@@ -31,7 +31,6 @@ import {
 } from 'obsidian'
 import {
   DEFAULT_SETTINGS,
-  findJournalFolderPaths,
   type JournalFolderSettings,
   type StartOfWeekSetting,
 } from '../../data-access'
@@ -104,7 +103,6 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
         '(folder picker, calendar, configuration editor, initialise). Open ' +
         'it via the calendar ribbon icon.'
     )
-    this.createDefaultJournalFolderSetting(settings)
     this.createHideJournalFolderNotesSetting(settings)
 
     new Setting(this.containerEl).setName('New-note template').setHeading()
@@ -349,53 +347,6 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS[fieldName])
             component.onChanged()
-          })
-      })
-  }
-
-  createDefaultJournalFolderSetting(
-    settings: JournalFolderSettings
-  ): Setting {
-    let component: DropdownComponent
-    const knownFolders = findJournalFolderPaths(this.plugin.app)
-    // Always include the configured value so a stale path (the folder it
-    // pointed at was renamed/deleted) doesn't silently revert when the
-    // user opens settings.
-    if (
-      settings.defaultJournalFolder &&
-      !knownFolders.includes(settings.defaultJournalFolder)
-    ) {
-      knownFolders.unshift(settings.defaultJournalFolder)
-    }
-
-    const onChange = (value: string) => {
-      settings.defaultJournalFolder = value
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Default journal folder')
-      .setDesc(
-        "The sidebar opens here on first load. The 'Switch to default' " +
-          'action in the sidebar resets the selected folder to this value. ' +
-          'Leave blank to fall back to the first detected journal folder.'
-      )
-      .addDropdown((dd) => {
-        component = dd
-        dd.addOption('', '(no default)')
-        for (const folder of knownFolders) {
-          dd.addOption(folder, folder === '/' ? '(vault root)' : folder)
-        }
-        dd.setValue(settings.defaultJournalFolder).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.defaultJournalFolder)
-            onChange(DEFAULT_SETTINGS.defaultJournalFolder)
           })
       })
   }

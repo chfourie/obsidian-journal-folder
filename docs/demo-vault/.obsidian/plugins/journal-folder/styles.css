@@ -601,16 +601,16 @@
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
  * the settings feature toggles `journal-folder-hide-config-notes` on the
  * <body>. The selector targets the explorer item by `data-path` ending in
- * `journal-folder.md` and hides its containing `.nav-file` row. Scoped to
- * `.workspace-leaf-content[data-type="file-explorer"]` so it doesn't affect
- * other panes that happen to render the same data-path attribute. */
+ * `journal-folder.md` and hides its containing `.nav-file` row. We don't
+ * scope to `.workspace-leaf-content[data-type="file-explorer"]` because
+ * Obsidian's DOM layering varies between layouts (popout windows, mobile)
+ * and `.nav-file` itself is specific enough — there are no nav-files
+ * outside file explorers. */
 body.journal-folder-hide-config-notes
-	.workspace-leaf-content[data-type="file-explorer"]
 	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
 body.journal-folder-hide-config-notes
-	.workspace-leaf-content[data-type="file-explorer"]
 	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
-	display: none \!important;
+	display: none !important;
 }
 
 /* Sidebar view */
@@ -627,6 +627,13 @@ body.journal-folder-hide-config-notes
 	gap: .5em;
 }
 
+.journal-folder-sidebar .jf-sidebar-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .5em;
+}
+
 .journal-folder-sidebar .jf-sidebar-label {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
@@ -637,35 +644,39 @@ body.journal-folder-hide-config-notes
 .journal-folder-sidebar .jf-sidebar-row {
 	display: flex;
 	flex-wrap: wrap;
-	gap: .5em;
+	gap: .75em;
+	align-items: baseline;
 }
 
-.journal-folder-sidebar .jf-sidebar-btn {
-	font-size: var(--font-ui-small);
-}
-
-.journal-folder-sidebar .jf-sidebar-mode-toggle {
-	display: inline-flex;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	overflow: hidden;
-	width: fit-content;
-}
-
-.journal-folder-sidebar .jf-sidebar-mode-btn {
+/* Inline action — styled as a text link to match Obsidian's link colour
+ * and underline-on-hover idiom. Used for "switch to default", "set as
+ * default", and the dynamic/static mode toggle. */
+.journal-folder-sidebar .jf-sidebar-link {
 	background: transparent;
 	border: none;
-	border-radius: 0;
-	padding: .25em .75em;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: var(--text-accent);
 	cursor: pointer;
-	box-shadow: none;
+	text-decoration: none;
 }
 
-.journal-folder-sidebar .jf-sidebar-mode-btn.is-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
+.journal-folder-sidebar .jf-sidebar-link:hover {
+	color: var(--text-accent-hover);
+	text-decoration: underline;
+}
+
+.journal-folder-sidebar .jf-sidebar-link:disabled {
+	color: var(--text-muted);
+	cursor: default;
+	text-decoration: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-mode-link {
+	font-size: var(--font-ui-smaller);
+	letter-spacing: .05em;
+	text-transform: uppercase;
 }
 
 .journal-folder-sidebar .jf-sidebar-help {
@@ -686,4 +697,7 @@ body.journal-folder-hide-config-notes
 .journal-folder-sidebar .jf-sidebar-actions {
 	border-top: 1px solid var(--background-modifier-border);
 	padding-top: .75em;
+	display: flex;
+	flex-direction: column;
+	gap: .5em;
 }
