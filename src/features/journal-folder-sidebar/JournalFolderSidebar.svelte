@@ -48,7 +48,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
-    showMenu: (evt: MouseEvent, items: SidebarMenuItem[]) => void
+    showMenu: (anchorRect: DOMRect, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
       folderPath: string,
       anchorBasename: string
@@ -311,8 +311,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     return items
   }
 
-  function openMoreMenu(evt: MouseEvent) {
-    showMenu(evt, buildMenuItems())
+  function openMoreMenu(evt: MouseEvent | KeyboardEvent) {
+    const target = evt.currentTarget as HTMLElement | null
+    if (!target) return
+    showMenu(target.getBoundingClientRect(), buildMenuItems())
   }
 </script>
 
@@ -322,7 +324,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <label class="jf-sidebar-label" for="jf-sidebar-folder">
         Journal folder
         <span class="jf-sidebar-label-mode">
-          ({settings.sidebarMode === 'dynamic' ? 'dynamic' : 'static'})
+          ({settings.sidebarMode === 'dynamic' ? 'Dynamic' : 'Static'})
         </span>
       </label>
       <span
@@ -333,16 +335,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         onkeydown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            // Synthesise a MouseEvent at the keyboard target so the
-            // Obsidian Menu has somewhere to anchor itself.
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-            showMenu(
-              new MouseEvent('click', {
-                clientX: rect.right,
-                clientY: rect.bottom,
-              }),
-              buildMenuItems()
-            )
+            openMoreMenu(e)
           }
         }}
         aria-haspopup="menu"
@@ -375,6 +368,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         navigate={calendarNavigate}
         onPrev={calendarPrev}
         onNext={calendarNext}
+        setOffsetMonths={(o) => (calendarOffset = o)}
         showCurrent={showCalendarCurrent}
         showNoteMonth={showCalendarNoteMonth}
         onCurrent={calendarCurrent}

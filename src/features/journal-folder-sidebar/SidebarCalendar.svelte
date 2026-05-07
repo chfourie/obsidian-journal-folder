@@ -22,6 +22,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     type CalendarCell,
   } from '../journal-header/journal-calendar-info'
   import { calendarCellClasses } from '../journal-header/calendar-cell-classes'
+  import {
+    anchorMonth,
+    monthOptions,
+    offsetForTarget,
+  } from '../journal-header/calendar-navigation'
 
   type Props = {
     note: JournalNote
@@ -30,6 +35,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     navigate: (url: string) => void
     onPrev: () => void
     onNext: () => void
+    setOffsetMonths: (offset: number) => void
     showCurrent: boolean
     showNoteMonth: boolean
     onCurrent: () => void
@@ -43,6 +49,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     navigate,
     onPrev,
     onNext,
+    setOffsetMonths,
     showCurrent,
     showNoteMonth,
     onCurrent,
@@ -54,12 +61,98 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   )
   const month = $derived(info.months[0])
 
+  // Year/month picker — same shape as the in-note JournalCalendar's: a
+  // small portaled popover with year `‹ … ›` chevrons and a 4×3 month
+  // grid. Portaled to <body> for parity with the in-note pattern (the
+  // sidebar's own viewport is narrow enough that the picker can extend
+  // past the column edge without being clipped).
+  const months = monthOptions()
+  const centeredAnchor = $derived(anchorMonth(note.getMoment(), offsetMonths))
+  let pickerOpen = $state(false)
+  let pickerTriggerEl: HTMLElement | undefined = $state()
+  let pickerEl: HTMLElement | undefined = $state()
+  let pickerStyle = $state('')
+
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node)
+    return {
+      destroy() {
+        node.remove()
+      },
+    }
+  }
+
+  function updatePickerPosition() {
+    if (!pickerTriggerEl) return
+    const rect = pickerTriggerEl.getBoundingClientRect()
+    const gap = 6
+    const top = rect.bottom + gap
+    const centerX = rect.left + rect.width / 2
+    if (!pickerEl) {
+      pickerStyle = `top: ${top}px; left: ${centerX}px; transform: translateX(-50%);`
+      return
+    }
+    const margin = 8
+    const pickerWidth = pickerEl.getBoundingClientRect().width
+    let leftPx = centerX - pickerWidth / 2
+    leftPx = Math.max(
+      margin,
+      Math.min(window.innerWidth - pickerWidth - margin, leftPx)
+    )
+    pickerStyle = `top: ${top}px; left: ${leftPx}px;`
+  }
+
+  function togglePicker() {
+    pickerOpen = !pickerOpen
+    if (pickerOpen) requestAnimationFrame(updatePickerPosition)
+  }
+
+  function closePicker() {
+    pickerOpen = false
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!pickerOpen) return
+    const target = event.target as Node | null
+    if (target && pickerTriggerEl && pickerTriggerEl.contains(target)) return
+    if (target && pickerEl && pickerEl.contains(target)) return
+    closePicker()
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (pickerOpen && event.key === 'Escape') closePicker()
+  }
+
+  function handleViewportChange() {
+    if (pickerOpen) updatePickerPosition()
+  }
+
+  $effect(() => {
+    if (!pickerOpen) return
+    document.addEventListener('scroll', handleViewportChange, true)
+    return () =>
+      document.removeEventListener('scroll', handleViewportChange, true)
+  })
+
+  function prevYear() {
+    setOffsetMonths(offsetMonths - 12)
+  }
+  function nextYear() {
+    setOffsetMonths(offsetMonths + 12)
+  }
+  function selectMonth(value: number) {
+    setOffsetMonths(
+      offsetForTarget(note.getMoment(), centeredAnchor.year, value)
+    )
+    closePicker()
+  }
+
+  // Cell clicks must always intercept in the sidebar — Obsidian's
+  // built-in `internal-link` click delegation only fires inside markdown
+  // containers, and the sidebar is an ItemView outside that scope. Pass
+  // through to the supplied `navigate` (which calls `openLinkText`) for
+  // every cell, gating the confirmation modal on `needsConfirmation`.
   async function handleCellClick(cell: CalendarCell, event: MouseEvent) {
-    // Always intercept — Obsidian's `internal-link` click interception
-    // only fires inside markdown-rendered containers; an ItemView like
-    // the sidebar is outside that scope, so we have to call
-    // `openLinkText` ourselves. Without this, today's and future cells
-    // (which set `needsConfirmation: false`) silently do nothing.
     event.preventDefault()
     event.stopPropagation()
     if (cell.needsConfirmation) {
@@ -79,36 +172,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 </script>
 
-<div class="jf-sidebar-calendar">
-  <div class="jf-sidebar-calendar-controls">
-    <button
-      type="button"
-      class="clickable-icon jf-sidebar-calendar-arrow"
-      aria-label="Previous month"
-      onclick={onPrev}
-    >
-      ‹
-    </button>
-    <span class="jf-sidebar-calendar-title">
-      {month.monthCell.label} {month.yearCell.label}{#if month.quarterCell}
-        <span class="jf-sidebar-calendar-quarter">({month.quarterCell.label})</span>
-      {/if}
-    </span>
-    <button
-      type="button"
-      class="clickable-icon jf-sidebar-calendar-arrow"
-      aria-label="Next month"
-      onclick={onNext}
-    >
-      ›
-    </button>
-  </div>
+<div class="jf-sidebar-calendar journal-folder-calendar">
+  <button
+    type="button"
+    class="clickable-icon journal-folder-calendar-arrow"
+    aria-label="Previous month"
+    onclick={onPrev}
+  >
+    ‹
+  </button>
 
-  {#if showCurrent || showNoteMonth}
-    <div class="jf-sidebar-calendar-jump-links">
+  <div class="journal-folder-calendar-body">
+    <div class="journal-folder-calendar-controls">
+      <span
+        class="journal-folder-calendar-link"
+        class:open={pickerOpen}
+        role="button"
+        tabindex="0"
+        bind:this={pickerTriggerEl}
+        aria-haspopup="dialog"
+        aria-expanded={pickerOpen}
+        onclick={togglePicker}
+        onkeydown={onKey(togglePicker)}
+      >
+        Year/Month
+      </span>
       {#if showCurrent}
         <span
-          class="jf-sidebar-link"
+          class="journal-folder-calendar-link"
           role="button"
           tabindex="0"
           aria-label="Jump to today's month"
@@ -120,7 +211,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       {/if}
       {#if showNoteMonth}
         <span
-          class="jf-sidebar-link"
+          class="journal-folder-calendar-link"
           role="button"
           tabindex="0"
           aria-label="Jump to the active note's month"
@@ -131,51 +222,137 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         </span>
       {/if}
     </div>
-  {/if}
 
-  <div class="journal-folder-calendar-month jf-sidebar-calendar-month">
-    {#key month.monthIso}
-      {@const renderedWeekCount = month.weeks.filter(
-        (w) => !w.days.every((d) => d.isOutsideMonth)
-      ).length}
-      <div
-        class="journal-folder-calendar-grid"
-        style="grid-template-rows: repeat({renderedWeekCount + 1}, auto)"
-      >
-        <div class="journal-folder-calendar-divider" aria-hidden="true"></div>
-        <div class="journal-folder-calendar-weekday">W</div>
-        {#each month.weekdayHeaders as header}
-          <div
-            class="journal-folder-calendar-weekday"
-            class:is-sunday={header.isSunday}
-          >{header.label}</div>
-        {/each}
-
-        {#each month.weeks as week}
-          {#if !week.days.every((d) => d.isOutsideMonth)}
+    <div class="journal-folder-calendar-months">
+      {#key month.monthIso}
+        {@const renderedWeekCount = month.weeks.filter(
+          (w) => !w.days.every((d) => d.isOutsideMonth)
+        ).length}
+        <div class="journal-folder-calendar-month">
+          <div class="journal-folder-calendar-month-title">
             <a
-              class="internal-link {calendarCellClasses(week.weekCell)} week"
-              href={week.weekCell.url}
-              onclick={(e) => handleCellClick(week.weekCell, e)}
+              class="internal-link {calendarCellClasses(month.monthCell)}"
+              href={month.monthCell.url}
+              onclick={(e) => handleCellClick(month.monthCell, e)}
             >
-              {week.weekCell.label}
+              {month.monthCell.label}
             </a>
-            {#each week.days as day}
-              {#if day.isOutsideMonth}
-                <div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
-              {:else}
+            <a
+              class="internal-link {calendarCellClasses(month.yearCell)}"
+              href={month.yearCell.url}
+              onclick={(e) => handleCellClick(month.yearCell, e)}
+            >
+              {month.yearCell.label}
+            </a>
+            {#if month.quarterCell}
+              <a
+                class="internal-link {calendarCellClasses(month.quarterCell)} quarter-suffix"
+                href={month.quarterCell.url}
+                onclick={(e) => handleCellClick(month.quarterCell!, e)}
+              >
+                ({month.quarterCell.label})
+              </a>
+            {/if}
+          </div>
+
+          <div
+            class="journal-folder-calendar-grid"
+            style="grid-template-rows: repeat({renderedWeekCount + 1}, auto)"
+          >
+            <div class="journal-folder-calendar-divider" aria-hidden="true"></div>
+            <div class="journal-folder-calendar-weekday">W</div>
+            {#each month.weekdayHeaders as header}
+              <div
+                class="journal-folder-calendar-weekday"
+                class:is-sunday={header.isSunday}
+              >{header.label}</div>
+            {/each}
+
+            {#each month.weeks as week}
+              {#if !week.days.every((d) => d.isOutsideMonth)}
                 <a
-                  class="internal-link {calendarCellClasses(day)} day"
-                  href={day.url}
-                  onclick={(e) => handleCellClick(day, e)}
+                  class="internal-link {calendarCellClasses(week.weekCell)} week"
+                  href={week.weekCell.url}
+                  onclick={(e) => handleCellClick(week.weekCell, e)}
                 >
-                  {day.label}
+                  {week.weekCell.label}
                 </a>
+                {#each week.days as day}
+                  {#if day.isOutsideMonth}
+                    <div class="journal-folder-calendar-cell empty" aria-hidden="true"></div>
+                  {:else}
+                    <a
+                      class="internal-link {calendarCellClasses(day)} day"
+                      href={day.url}
+                      onclick={(e) => handleCellClick(day, e)}
+                    >
+                      {day.label}
+                    </a>
+                  {/if}
+                {/each}
               {/if}
             {/each}
-          {/if}
-        {/each}
-      </div>
-    {/key}
+          </div>
+        </div>
+      {/key}
+    </div>
   </div>
+
+  <button
+    type="button"
+    class="clickable-icon journal-folder-calendar-arrow"
+    aria-label="Next month"
+    onclick={onNext}
+  >
+    ›
+  </button>
 </div>
+
+<svelte:window onclick={handleDocumentClick} onkeydown={handleKeydown} onresize={handleViewportChange} />
+
+{#if pickerOpen}
+  <div
+    use:portal
+    bind:this={pickerEl}
+    class="journal-folder-calendar-picker"
+    style={pickerStyle}
+    role="dialog"
+    aria-label="Pick a month and year"
+  >
+    <div class="journal-folder-calendar-picker-year">
+      <button
+        type="button"
+        class="clickable-icon journal-folder-calendar-picker-year-arrow"
+        aria-label="Previous year"
+        onclick={prevYear}
+      >
+        ‹
+      </button>
+      <span class="journal-folder-calendar-picker-year-label">
+        {centeredAnchor.year}
+      </span>
+      <button
+        type="button"
+        class="clickable-icon journal-folder-calendar-picker-year-arrow"
+        aria-label="Next year"
+        onclick={nextYear}
+      >
+        ›
+      </button>
+    </div>
+    <div class="journal-folder-calendar-picker-months">
+      {#each months as m (m.value)}
+        <span
+          class="journal-folder-calendar-picker-month"
+          class:active={m.value === centeredAnchor.month}
+          role="button"
+          tabindex="0"
+          onclick={() => selectMonth(m.value)}
+          onkeydown={onKey(() => selectMonth(m.value))}
+        >
+          {m.label}
+        </span>
+      {/each}
+    </div>
+  </div>
+{/if}

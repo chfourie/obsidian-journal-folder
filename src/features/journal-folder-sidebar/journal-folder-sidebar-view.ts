@@ -120,8 +120,8 @@ export class JournalFolderSidebarView extends ItemView {
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
-        showMenu: (evt: MouseEvent, items: SidebarMenuItem[]) =>
-          this.showMoreMenu(evt, items),
+        showMenu: (rect: DOMRect, items: SidebarMenuItem[]) =>
+          this.showMoreMenu(rect, items),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -199,7 +199,7 @@ export class JournalFolderSidebarView extends ItemView {
     ).open()
   }
 
-  private showMoreMenu(evt: MouseEvent, items: SidebarMenuItem[]): void {
+  private showMoreMenu(rect: DOMRect, items: SidebarMenuItem[]): void {
     const menu = new Menu()
     for (const item of items) {
       if (item.kind === 'separator') {
@@ -212,7 +212,18 @@ export class JournalFolderSidebarView extends ItemView {
         mi.onClick(() => item.onClick())
       })
     }
-    menu.showAtMouseEvent(evt)
+    // Show below the trigger first; on the next frame, shift the menu
+    // left by its measured width so its right edge aligns with the
+    // trigger's right edge. Obsidian's `Menu` API doesn't expose a
+    // `rightAligned: true` option, so we reposition via the underlying
+    // DOM node it exposes.
+    menu.showAtPosition({ x: rect.right, y: rect.bottom + 4 })
+    requestAnimationFrame(() => {
+      const dom = (menu as Menu & { dom?: HTMLElement }).dom
+      if (!dom) return
+      const w = dom.getBoundingClientRect().width
+      dom.style.left = `${Math.max(8, rect.right - w)}px`
+    })
   }
 
   private openInitFolderPicker(): void {

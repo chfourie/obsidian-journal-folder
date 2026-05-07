@@ -257,8 +257,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				aria-expanded={pickerOpen}
 				onclick={togglePicker}
 				onkeydown={onKey(togglePicker)}
+				aria-label="Year/Month picker — currently {centeredMonthLabel} {centeredAnchor.year}"
 			>
-				{centeredMonthLabel} {centeredAnchor.year}
+				Year/Month
 			</span>
 			{#if showCurrent}
 				<span
