@@ -35,6 +35,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     initialActiveFile: ActiveFileSnapshot | null
     saveSettings: (s: JournalFolderSettings) => Promise<void>
     registerApi: (api: SidebarUpdateApi) => void
+    onInitJournalFolder: () => void
   }
 
   // svelte-ignore state_referenced_locally
@@ -44,6 +45,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     initialActiveFile,
     saveSettings,
     registerApi,
+    onInitJournalFolder,
   }: Props = $props()
 
   // svelte-ignore state_referenced_locally
@@ -89,6 +91,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         quartersEnabled: !!settings.quartersEnabled,
       })
       if (next !== null) selected = next
+    },
+    setSelected: (path) => {
+      if (knownFolders.includes(path)) selected = path
     },
   })
 
@@ -196,7 +201,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <span class="jf-sidebar-link is-disabled" aria-disabled="true">
       Edit folder configuration
     </span>
-    <span class="jf-sidebar-link is-disabled" aria-disabled="true">
+    <span
+      role="button"
+      tabindex="0"
+      class="jf-sidebar-link"
+      onclick={onInitJournalFolder}
+      onkeydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onInitJournalFolder()
+        }
+      }}
+    >
       Initialize a new journal folder
     </span>
   </div>

@@ -106,6 +106,28 @@ export class Vault {
     return out
   }
 
+  getAllLoadedFiles(): TAbstractFile[] {
+    return [...this.files.values()]
+  }
+
+  async create(path: string, content: string): Promise<TFile> {
+    const file = new TFile()
+    file.path = path
+    file.name = path.split('/').pop() ?? path
+    file.basename = file.name.replace(/\.md$/, '')
+    file.extension = 'md'
+    const parentPath = path.includes('/')
+      ? path.slice(0, path.lastIndexOf('/'))
+      : ''
+    if (parentPath) {
+      const parent = this.files.get(parentPath)
+      file.parent = parent instanceof TFolder ? parent : null
+    }
+    this.files.set(path, file)
+    this.contents.set(path, content)
+    return file
+  }
+
   setContents(file: TFile, content: string): void {
     this.contents.set(file.path, content)
   }
@@ -309,6 +331,25 @@ export class Setting {
   setHeading(): this {
     return this
   }
+}
+
+export class FuzzySuggestModal<T> {
+  app: App
+  constructor(app: App) {
+    this.app = app
+  }
+  setPlaceholder(_p: string): void {}
+  open(): void {}
+  close(): void {}
+  // Subclasses override these. Default no-op implementations let the class
+  // be imported without crashing under tests.
+  getItems(): T[] {
+    return []
+  }
+  getItemText(_item: T): string {
+    return ''
+  }
+  onChooseItem(_item: T, _evt: MouseEvent | KeyboardEvent): void {}
 }
 
 export class Modal {

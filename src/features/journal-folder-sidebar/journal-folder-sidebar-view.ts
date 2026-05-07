@@ -24,6 +24,11 @@ import {
 } from '../../data-access'
 import { VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR } from './journal-folder-sidebar-feature'
 import JournalFolderSidebar from './JournalFolderSidebar.svelte'
+import {
+  findInitialisableFolders,
+  initialiseJournalFolder,
+} from './init-journal-folder'
+import { InitJournalFolderModal } from './init-journal-folder-modal'
 
 type ViewRegistry = {
   register: (v: JournalFolderSidebarView) => void
@@ -36,6 +41,7 @@ export type SidebarUpdateApi = {
   setSettings: (s: JournalFolderSettings) => void
   setKnownFolders: (folders: string[]) => void
   setActiveFile: (file: ActiveFileSnapshot | null) => void
+  setSelected: (path: string) => void
 }
 
 export type ActiveFileSnapshot = {
@@ -87,6 +93,7 @@ export class JournalFolderSidebarView extends ItemView {
         registerApi: (api: SidebarUpdateApi) => {
           this.#api = api
         },
+        onInitJournalFolder: () => this.openInitFolderPicker(),
       },
     })
 
@@ -130,6 +137,31 @@ export class JournalFolderSidebarView extends ItemView {
 
   private refreshKnownFolders(): void {
     this.#api?.setKnownFolders(findJournalFolderPaths(this.plugin.app))
+  }
+
+  private openInitFolderPicker(): void {
+    const candidates = findInitialisableFolders(this.plugin.app)
+    new InitJournalFolderModal(this.plugin.app, candidates, async (folder) => {
+      try {
+        await initialiseJournalFolder(this.plugin.app, folder)
+      } catch (err) {
+        // The vault.create call can reject if a file with the same path
+        // appears between the candidate scan and the create call (e.g.
+        // another plugin race). Log + bail rather than throw at the user.
+        console.error(
+          '[journal-folder] failed to initialise folder',
+          folder.path,
+          err
+        )
+        return
+      }
+      // The vault `create` event fires here too and refreshes via
+      // `refreshKnownFolders`, but ordering is async — invoke it
+      // explicitly so the new folder is in the dropdown before we ask the
+      // component to switch to it.
+      this.refreshKnownFolders()
+      this.#api?.setSelected(folder.path)
+    }).open()
   }
 
   private snapshotActiveFile(): ActiveFileSnapshot | null {
