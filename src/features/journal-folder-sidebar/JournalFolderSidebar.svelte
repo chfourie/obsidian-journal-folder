@@ -40,6 +40,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings: (s: JournalFolderSettings) => Promise<void>
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
+    onEditFolderConfig: (folderPath: string) => void
     buildAnchorNote: (
       folderPath: string,
       anchorBasename: string
@@ -56,6 +57,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings,
     registerApi,
     onInitJournalFolder,
+    onEditFolderConfig,
     buildAnchorNote,
     confirmCreate,
     navigate,
@@ -294,9 +296,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   </div>
 
   <div class="jf-sidebar-section jf-sidebar-actions">
-    <span class="jf-sidebar-link is-disabled" aria-disabled="true">
-      Edit folder configuration
-    </span>
+    {#if knownFolders.includes(selected)}
+      <span
+        role="button"
+        tabindex="0"
+        class="jf-sidebar-link"
+        onclick={() => onEditFolderConfig(selected)}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onEditFolderConfig(selected)
+          }
+        }}
+      >
+        Edit folder configuration
+      </span>
+    {:else}
+      <span class="jf-sidebar-link is-disabled" aria-disabled="true">
+        Edit folder configuration
+      </span>
+    {/if}
     <span
       role="button"
       tabindex="0"

@@ -65,6 +65,19 @@ type SettingsStringFieldName =
   | 'yearlyNoteMediumTitlePattern'
   | 'journalFolderTitle'
 
+// `'global'` renders the full plugin-settings tab; `'folder'` skips
+// global-only fields (start-of-week, hide-config-notes, sidebar section)
+// and the destructive Reset section, since those don't make sense per-folder.
+export type SettingsFormMode = 'global' | 'folder'
+
+export type SettingsFormConfig = {
+  app: App
+  containerEl: HTMLElement
+  mode: SettingsFormMode
+  getCurrentSettings: () => JournalFolderSettings
+  saveSettings: (settings: JournalFolderSettings) => Promise<void>
+}
+
 /***************************************************************************************************
  ** NOTE: This class has been slapped together in order to get the plugin released into the wild. **
  ** It does the job, but will be replaced with a more refined version somewhere in the future.    **
@@ -79,8 +92,53 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
   }
 
   display() {
+    renderSettingsForm({
+      app: this.plugin.app,
+      containerEl: this.containerEl,
+      mode: 'global',
+      getCurrentSettings: this.getCurrentSettings,
+      saveSettings: this.saveSettings,
+    })
+  }
+}
+
+// Renders the settings form into the given container. Mode flag controls
+// which sections appear: `'global'` includes everything (used by the
+// plugin settings tab); `'folder'` strips out global-only sections and
+// the Reset section (used by the per-folder config modal).
+//
+// Re-renders in place when the user toggles a field that changes the
+// form's structure (`useFolderNameAsDefaultTitle`, `quartersEnabled`,
+// `autoTemplateEnabled`) — same behaviour the original `display()` had.
+export function renderSettingsForm(config: SettingsFormConfig): void {
+  new SettingsFormBuilder(config).render()
+}
+
+class SettingsFormBuilder {
+  constructor(private config: SettingsFormConfig) {}
+
+  private get containerEl(): HTMLElement {
+    return this.config.containerEl
+  }
+
+  private get plugin(): { app: App } {
+    return { app: this.config.app }
+  }
+
+  private readonly saveSettings = async (
+    settings: JournalFolderSettings
+  ): Promise<void> => {
+    await this.config.saveSettings(settings)
+  }
+
+  private readonly getCurrentSettings = (): JournalFolderSettings => {
+    return this.config.getCurrentSettings()
+  }
+
+  render(): void {
     this.containerEl.empty()
     const settings = { ...this.getCurrentSettings() }
+    const isFolder = this.config.mode === 'folder'
 
     new Setting(this.containerEl).setName('General').setHeading()
     this.createUseFolderNameAsDefaultTitleSetting(settings)
@@ -88,22 +146,29 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       this.createTextSetting(
         settings,
         'journalFolderTitle',
-        'Default journal folder title'
+        isFolder ? 'Folder title' : 'Default journal folder title'
       ).setDesc(
-        'Used in the rendering of journal headers and to identify the folder ' +
-          'in other views. Typically configured per folder via front matter; ' +
-          'most users should leave this blank.'
+        isFolder
+          ? "Display title shown above the H1 in this folder's journal " +
+              'headers. Leave blank to inherit the global default.'
+          : 'Used in the rendering of journal headers and to identify the folder ' +
+              'in other views. Typically configured per folder via front matter; ' +
+              'most users should leave this blank.'
       )
     }
-    this.createStartOfWeekSetting(settings)
+    if (!isFolder) {
+      this.createStartOfWeekSetting(settings)
+    }
     this.createQuartersEnabledSetting(settings)
 
-    new Setting(this.containerEl).setName('Sidebar').setHeading().setDesc(
-      'The sidebar tab is the entry point for journaling-related actions ' +
-        '(folder picker, calendar, configuration editor, initialise). Open ' +
-        'it via the calendar ribbon icon.'
-    )
-    this.createHideJournalFolderNotesSetting(settings)
+    if (!isFolder) {
+      new Setting(this.containerEl).setName('Sidebar').setHeading().setDesc(
+        'The sidebar tab is the entry point for journaling-related actions ' +
+          '(folder picker, calendar, configuration editor, initialise). Open ' +
+          'it via the calendar ribbon icon.'
+      )
+      this.createHideJournalFolderNotesSetting(settings)
+    }
 
     new Setting(this.containerEl).setName('New-note template').setHeading()
       .setDesc(
@@ -221,28 +286,30 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       'Short link pattern'
     ).setDesc('Used for compact in-line links to yearly notes.')
 
-    new Setting(this.containerEl).setName('Reset').setHeading()
-    new Setting(this.containerEl)
-      .setName('Reset all to default values')
-      .setDesc('Restores every setting on this screen to its default.')
-      .addButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setWarning()
-          .onClick(() => {
-            new ConfirmModal(this.plugin.app, {
-              title: 'Reset all settings?',
-              message:
-                'Every setting on this screen will be restored to its ' +
-                'default value. This cannot be undone.',
-              confirmText: 'Reset',
-              onConfirm: () => {
-                // noinspection JSIgnoredPromiseFromCall
-                this.saveSettings(DEFAULT_SETTINGS).then(() => this.display())
-              },
-            }).open()
-          })
-      })
+    if (!isFolder) {
+      new Setting(this.containerEl).setName('Reset').setHeading()
+      new Setting(this.containerEl)
+        .setName('Reset all to default values')
+        .setDesc('Restores every setting on this screen to its default.')
+        .addButton((btn) => {
+          btn
+            .setIcon('reset')
+            .setWarning()
+            .onClick(() => {
+              new ConfirmModal(this.plugin.app, {
+                title: 'Reset all settings?',
+                message:
+                  'Every setting on this screen will be restored to its ' +
+                  'default value. This cannot be undone.',
+                confirmText: 'Reset',
+                onConfirm: () => {
+                  // noinspection JSIgnoredPromiseFromCall
+                  this.saveSettings(DEFAULT_SETTINGS).then(() => this.render())
+                },
+              }).open()
+            })
+        })
+    }
   }
 
   createPatternsHeading() {
@@ -390,7 +457,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     const onChange = (value: boolean) => {
       settings.autoTemplateEnabled = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.display())
+      this.saveSettings(settings).then(() => this.render())
     }
 
     return new Setting(this.containerEl)
@@ -455,7 +522,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     const onChange = (value: boolean) => {
       settings.quartersEnabled = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.display())
+      this.saveSettings(settings).then(() => this.render())
     }
 
     return new Setting(this.containerEl)
@@ -493,7 +560,7 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
       settings.useFolderNameAsDefaultTitle = value
       if (value) settings.journalFolderTitle = ''
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.display())
+      this.saveSettings(settings).then(() => this.render())
     }
 
     return new Setting(this.containerEl)

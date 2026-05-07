@@ -598,6 +598,15 @@
 	opacity: 1;
 }
 
+/* The folder-config modal hosts the same Setting form rows as the plugin
+ * settings tab. Cap the modal width and let it scroll vertically so the
+ * larger pattern-rich form doesn't overflow the viewport on smaller
+ * screens. */
+.journal-folder-config-modal {
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
  * the settings feature toggles `journal-folder-hide-config-notes` on the
  * <body>. The selector targets the explorer item by `data-path` ending in

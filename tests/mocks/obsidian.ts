@@ -208,10 +208,23 @@ export class Workspace {
   }
 }
 
+export class FileManager {
+  constructor(private metadataCache: MetadataCache) {}
+  async processFrontMatter(
+    file: TFile,
+    fn: (fm: FrontMatterCache) => void
+  ): Promise<void> {
+    const fm = { ...(this.metadataCache.getFileCache(file)?.frontmatter ?? {}) }
+    fn(fm)
+    this.metadataCache.setFrontmatter(file, fm)
+  }
+}
+
 export class App {
   vault = new Vault()
   metadataCache = new MetadataCache()
   workspace = new Workspace()
+  fileManager = new FileManager(this.metadataCache)
 }
 
 export class Plugin {

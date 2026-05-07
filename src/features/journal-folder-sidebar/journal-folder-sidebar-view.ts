@@ -32,6 +32,7 @@ import {
 import { InitJournalFolderModal } from './init-journal-folder-modal'
 import { buildAnchorNote } from './sidebar-anchor'
 import { confirmCreateNote } from '../journal-header/confirm-create-modal'
+import { FolderConfigModal } from './folder-config-modal'
 
 type ViewRegistry = {
   register: (v: JournalFolderSidebarView) => void
@@ -103,6 +104,8 @@ export class JournalFolderSidebarView extends ItemView {
           this.#api = api
         },
         onInitJournalFolder: () => this.openInitFolderPicker(),
+        onEditFolderConfig: (folderPath: string) =>
+          this.openFolderConfigModal(folderPath),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -172,6 +175,12 @@ export class JournalFolderSidebarView extends ItemView {
   private onVaultMutation(): void {
     this.refreshKnownFolders()
     this.#api?.bumpVault()
+  }
+
+  private openFolderConfigModal(folderPath: string): void {
+    new FolderConfigModal(this.plugin.app, folderPath, () =>
+      this.getSettings()
+    ).open()
   }
 
   private openInitFolderPicker(): void {

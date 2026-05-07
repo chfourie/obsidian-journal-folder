@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { camelCase } from '../../src/data-access/string-utils'
+import { camelCase, kebabCase } from '../../src/data-access/string-utils'
 
 describe('camelCase', () => {
   it('converts kebab-case to camelCase', () => {
@@ -38,5 +38,22 @@ describe('camelCase', () => {
 
   it('returns an empty string for empty input', () => {
     expect(camelCase('')).toBe('')
+  })
+})
+
+describe('kebabCase', () => {
+  it('inserts hyphens before each uppercase letter and lowercases', () => {
+    expect(kebabCase('dailyNoteTitlePattern')).toBe('daily-note-title-pattern')
+    expect(kebabCase('quartersEnabled')).toBe('quarters-enabled')
+    expect(kebabCase('autoTemplateContent')).toBe('auto-template-content')
+  })
+
+  it('round-trips with camelCase', () => {
+    const camel = 'defaultCalendarVisibleDesktop'
+    expect(camelCase(kebabCase(camel))).toBe(camel)
+  })
+
+  it('leaves an already-lowercase string unchanged', () => {
+    expect(kebabCase('foo')).toBe('foo')
   })
 })

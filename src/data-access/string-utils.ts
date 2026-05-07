@@ -23,3 +23,12 @@ export function camelCase(str: string): string {
     .split(/[ _-]/)
     .reduce((s, c) => s + c.charAt(0).toUpperCase() + c.slice(1))
 }
+
+// Inverse of `camelCase` for the camelCase → kebab-case direction. Used
+// when writing per-folder overrides to YAML front matter, where the
+// convention across the plugin is kebab-cased keys (`daily-note-title-
+// pattern`) rather than the camelCase JS identifiers
+// (`dailyNoteTitlePattern`). Matches the resolver's `camelCase` round-trip.
+export function kebabCase(camelStr: string): string {
+  return camelStr.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
+}
