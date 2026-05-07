@@ -31,6 +31,7 @@ import {
 } from 'obsidian'
 import {
   DEFAULT_SETTINGS,
+  findJournalFolderPaths,
   type JournalFolderSettings,
   type StartOfWeekSetting,
 } from '../../data-access'
@@ -97,6 +98,14 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
     }
     this.createStartOfWeekSetting(settings)
     this.createQuartersEnabledSetting(settings)
+
+    new Setting(this.containerEl).setName('Sidebar').setHeading().setDesc(
+      'The sidebar tab is the entry point for journaling-related actions ' +
+        '(folder picker, calendar, configuration editor, initialise). Open ' +
+        'it via the calendar ribbon icon.'
+    )
+    this.createDefaultJournalFolderSetting(settings)
+    this.createHideJournalFolderNotesSetting(settings)
 
     new Setting(this.containerEl).setName('New-note template').setHeading()
       .setDesc(
@@ -340,6 +349,86 @@ export class JournalFolderSettingsTab extends PluginSettingTab {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS[fieldName])
             component.onChanged()
+          })
+      })
+  }
+
+  createDefaultJournalFolderSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    let component: DropdownComponent
+    const knownFolders = findJournalFolderPaths(this.plugin.app)
+    // Always include the configured value so a stale path (the folder it
+    // pointed at was renamed/deleted) doesn't silently revert when the
+    // user opens settings.
+    if (
+      settings.defaultJournalFolder &&
+      !knownFolders.includes(settings.defaultJournalFolder)
+    ) {
+      knownFolders.unshift(settings.defaultJournalFolder)
+    }
+
+    const onChange = (value: string) => {
+      settings.defaultJournalFolder = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Default journal folder')
+      .setDesc(
+        "The sidebar opens here on first load. The 'Switch to default' " +
+          'action in the sidebar resets the selected folder to this value. ' +
+          'Leave blank to fall back to the first detected journal folder.'
+      )
+      .addDropdown((dd) => {
+        component = dd
+        dd.addOption('', '(no default)')
+        for (const folder of knownFolders) {
+          dd.addOption(folder, folder === '/' ? '(vault root)' : folder)
+        }
+        dd.setValue(settings.defaultJournalFolder).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.defaultJournalFolder)
+            onChange(DEFAULT_SETTINGS.defaultJournalFolder)
+          })
+      })
+  }
+
+  createHideJournalFolderNotesSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.hideJournalFolderNotes = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Hide journal-folder.md in file explorer')
+      .setDesc(
+        "Hides every 'journal-folder.md' note from Obsidian's built-in " +
+          'file explorer. The notes still exist on disk and remain ' +
+          'accessible via search and the sidebar.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.hideJournalFolderNotes).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.hideJournalFolderNotes)
+            onChange(DEFAULT_SETTINGS.hideJournalFolderNotes)
           })
       })
   }

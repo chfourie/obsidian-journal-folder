@@ -98,6 +98,14 @@ export class Vault {
     return this.files.get(path) ?? null
   }
 
+  getMarkdownFiles(): TFile[] {
+    const out: TFile[] = []
+    for (const f of this.files.values()) {
+      if (f instanceof TFile && f.extension === 'md') out.push(f)
+    }
+    return out
+  }
+
   setContents(file: TFile, content: string): void {
     this.contents.set(file.path, content)
   }
@@ -121,9 +129,17 @@ export class Vault {
   }
 }
 
+export class WorkspaceLeaf {
+  view: unknown = null
+  async setViewState(_state: unknown): Promise<void> {}
+}
+
 export class Workspace {
   private layoutReadyCallbacks: Array<() => void> = []
+  private leafLeaves: WorkspaceLeaf[] = []
+  private listeners: EventRef[] = []
   layoutReady = false
+  activeFile: TFile | null = null
 
   onLayoutReady(cb: () => void): void {
     if (this.layoutReady) cb()
@@ -135,6 +151,36 @@ export class Workspace {
     const callbacks = this.layoutReadyCallbacks
     this.layoutReadyCallbacks = []
     callbacks.forEach((cb) => cb())
+  }
+
+  getLeavesOfType(_type: string): WorkspaceLeaf[] {
+    return [...this.leafLeaves]
+  }
+
+  detachLeavesOfType(_type: string): void {
+    this.leafLeaves = []
+  }
+
+  getRightLeaf(_split: boolean): WorkspaceLeaf | null {
+    const leaf = new WorkspaceLeaf()
+    this.leafLeaves.push(leaf)
+    return leaf
+  }
+
+  revealLeaf(_leaf: WorkspaceLeaf): void {}
+
+  getActiveFile(): TFile | null {
+    return this.activeFile
+  }
+
+  on(name: string, cb: (...args: unknown[]) => unknown): EventRef {
+    const ref = { name, cb }
+    this.listeners.push(ref)
+    return ref
+  }
+
+  trigger(name: string, ...args: unknown[]): void {
+    this.listeners.filter((l) => l.name === name).forEach((l) => l.cb(...args))
   }
 }
 
@@ -166,6 +212,40 @@ export class Plugin {
   ): void {}
 
   registerEvent(_ref: EventRef): void {}
+
+  registerView(
+    _type: string,
+    _factory: (leaf: WorkspaceLeaf) => unknown
+  ): void {}
+
+  addRibbonIcon(
+    _icon: string,
+    _title: string,
+    _cb: (evt: MouseEvent) => unknown
+  ): HTMLElement {
+    return document.createElement('div')
+  }
+}
+
+export class ItemView {
+  contentEl: HTMLElement = document.createElement('div')
+  leaf: WorkspaceLeaf
+  app: App = new App()
+  constructor(leaf: WorkspaceLeaf) {
+    this.leaf = leaf
+  }
+  registerEvent(_ref: EventRef): void {}
+  async onOpen(): Promise<void> {}
+  async onClose(): Promise<void> {}
+  getViewType(): string {
+    return ''
+  }
+  getDisplayText(): string {
+    return ''
+  }
+  getIcon(): string {
+    return ''
+  }
 }
 
 export type PluginManifest = {

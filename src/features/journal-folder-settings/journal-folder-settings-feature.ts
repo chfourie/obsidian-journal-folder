@@ -46,11 +46,25 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     )
   }
 
-  private readonly saveSettings = async (
+  unload(): void {
+    // Pull the body-class off if the plugin disables — leaving it set would
+    // continue to hide journal-folder.md notes after the plugin is gone.
+    document.body.classList.remove('journal-folder-hide-config-notes')
+  }
+
+  // Public so sibling features (e.g. the sidebar) can mutate global
+  // settings without having to import the settings tab. The flow is the
+  // same as edits made through the settings tab: persist → side-effects
+  // (start-of-week, body classes) → broadcast.
+  readonly saveSettings = async (
     settings: JournalFolderSettings
   ): Promise<void> => {
     await this.plugin.saveData(settings)
     applyStartOfWeek(settings.startOfWeek)
+    document.body.classList.toggle(
+      'journal-folder-hide-config-notes',
+      !!settings.hideJournalFolderNotes
+    )
     this.propagateSettings(settings)
   }
 

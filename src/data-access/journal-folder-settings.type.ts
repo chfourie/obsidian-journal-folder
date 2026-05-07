@@ -60,7 +60,29 @@ export type JournalFolderSettings = {
   // running Obsidian process, so folder-level overrides are intentionally
   // not honoured for this field.
   startOfWeek: StartOfWeekSetting
+  // Folder path of the user's preferred journal folder. The sidebar opens
+  // here on first load; the *Switch to default folder* action resets the
+  // sidebar context to this value. Empty string means "no default chosen
+  // yet" — the sidebar then falls back to the first detected journal
+  // folder. **Global only** — this is a UI preference, not a per-folder
+  // concept.
+  defaultJournalFolder: string
+  // When true, every `journal-folder.md` file is hidden from Obsidian's
+  // built-in file explorer via a body-class-scoped CSS rule. The notes
+  // still exist on disk and remain accessible via search, links, and the
+  // sidebar's *Edit configuration* action — they just don't clutter the
+  // tree. **Global only** because the file-explorer DOM is process-wide.
+  hideJournalFolderNotes: boolean
+  // Controls how the sidebar follows (or doesn't follow) the active leaf.
+  // `'dynamic'` switches the sidebar's selected folder whenever the active
+  // file is a recognised journal note in a journal folder, and scrolls the
+  // calendar to that note's period. `'static'` ignores active-leaf changes
+  // — the sidebar only moves when the user picks a folder explicitly.
+  // **Global only** because the sidebar is a singleton view.
+  sidebarMode: SidebarMode
 }
+
+export type SidebarMode = 'static' | 'dynamic'
 
 export type StartOfWeekSetting =
   | 'locale-default'
@@ -96,4 +118,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   autoTemplateEnabled: false,
   autoTemplateContent: '',
   startOfWeek: 'locale-default',
+  defaultJournalFolder: '',
+  hideJournalFolderNotes: false,
+  sidebarMode: 'dynamic',
 }

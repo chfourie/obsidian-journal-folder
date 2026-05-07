@@ -16,11 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
+export {
+  JournalFolderSidebarFeature,
+  VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR,
+} from './journal-folder-sidebar-feature'
+export {
+  resolveSelectedFolder,
+  resolveDynamicSelection,
+} from './sidebar-selection'

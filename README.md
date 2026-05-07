@@ -221,6 +221,9 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `start-of-week`                      | First day of the week used by the calendar grid and `gggg-[W]ww` weekly numbering. *Locale default* leaves moment's locale untouched; picking an explicit weekday (`sunday`–`saturday`) overrides it so week 1 still contains January 1. **Global only** — moment's locale is process-wide, so per-folder and embedded overrides are ignored to avoid inconsistent week numbering across the vault. |
 | `auto-template-enabled`              | If true, newly created notes whose basename matches a journal pattern and whose folder contains a `journal-folder.md` are seeded with a template body. Override per-folder by setting `auto-template-enabled: false` in that folder's `journal-folder.md` front matter. See [Auto-fill new journal notes](#auto-fill-new-journal-notes). |
 | `auto-template-content`              | Global default template body used when `auto-template-enabled` is true and the folder doesn't supply its own template. Leave blank for the built-in default (a `journal-header` code block, prefixed with the `%% JOURNAL NOTE %%` Obsidian comment). Per-folder overrides go in the body of `journal-folder.md` — see below. |
+| `default-journal-folder`             | Folder path the **sidebar tab** opens on by default. The sidebar's *Switch to default* action resets the selected folder to this value. Empty string means "no default chosen" — the sidebar then falls back to the first detected journal folder. **Global only** — this is a UI preference, not a per-folder concept. |
+| `hide-journal-folder-notes`          | If true, every `journal-folder.md` is hidden from Obsidian's built-in file explorer. The notes still exist on disk and remain accessible via search and the sidebar's *Edit configuration* action. **Global only**. |
+| `sidebar-mode`                       | `'dynamic'` (default) makes the sidebar follow the active note when it lives in a journal folder; `'static'` holds whichever folder you picked regardless of which note is open. **Global only** because the sidebar is a singleton view; toggle it from inside the sidebar itself. |
 
 ### Folder title resolution
 
@@ -282,6 +285,21 @@ auto-template-enabled: true
 ### What the `journal-header` code block does in non-journal notes
 
 The `journal-header` block is a no-op when placed in a note whose basename isn't a journal pattern. That means a template body containing the block stays harmless if it's pasted into `journal-folder.md` itself or any other regular note — it just renders nothing. Errors only show up if the block content is malformed config, not if the surrounding filename doesn't fit a journal pattern.
+
+---
+
+## Sidebar tab
+
+A dedicated sidebar view collects journal-folder actions in one place. Open it with the calendar ribbon icon (left edge of the workspace) — the view docks in the right sidebar by default.
+
+Phase 1 ships:
+
+- **Folder picker** listing every folder that contains a `journal-folder.md`.
+- **Dynamic / Static toggle.** *Dynamic* (default) follows the active note when it lives in a journal folder; *static* holds the selected folder regardless of which note is open. Persists as the global `sidebar-mode` setting.
+- **Switch to default** — resets the picker to the configured `default-journal-folder`. Hidden when you're already on the default. There's also a **Set as default** button beside it that promotes the currently selected folder to the new global default.
+- **Hide `journal-folder.md` in file explorer** — global toggle in the plugin settings tab. Hides the config notes from the file tree without removing them from disk.
+
+The calendar embed, the inline configuration editor, and the *initialise a new journal folder* action are stubbed in this build and will land in follow-up updates.
 
 ---
 

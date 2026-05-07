@@ -21,6 +21,7 @@ import { PluginFeatureSet } from './plugin-feature-set'
 import { JournalHeaderFeature } from '../features/journal-header'
 import { JournalFolderSettingsFeature } from '../features/journal-folder-settings'
 import { JournalAutoTemplateFeature } from '../features/journal-auto-template'
+import { JournalFolderSidebarFeature } from '../features/journal-folder-sidebar'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -28,12 +29,17 @@ export default class JournalFolderPlugin extends Plugin {
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest)
 
+    const settingsFeature = new JournalFolderSettingsFeature(
+      this,
+      this.#features.useSettings
+    )
     this.#features
-      .addFeature(
-        new JournalFolderSettingsFeature(this, this.#features.useSettings)
-      )
+      .addFeature(settingsFeature)
       .addFeature(new JournalHeaderFeature(this))
       .addFeature(new JournalAutoTemplateFeature(this))
+      .addFeature(
+        new JournalFolderSidebarFeature(this, settingsFeature.saveSettings)
+      )
   }
 
   readonly onExternalSettingsChange = this.#features.onExternalSettingsChange

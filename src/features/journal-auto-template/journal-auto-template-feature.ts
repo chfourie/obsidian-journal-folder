@@ -17,14 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+  configPathFor,
+  FOLDER_CONFIG_FILENAME,
   isJournalFileBasename,
   type JournalFolderSettings,
   PluginFeature,
 } from 'src/data-access'
 import { TFile, type Plugin, type TAbstractFile } from 'obsidian'
 import { isTruthySetting, resolveAutoTemplate } from './auto-template-content'
-
-const FOLDER_CONFIG_FILENAME = 'journal-folder.md'
 
 export class JournalAutoTemplateFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -77,9 +77,10 @@ export class JournalAutoTemplateFeature extends PluginFeature {
   }
 
   private getFolderConfigFile(file: TFile): TFile | null {
-    const path = file.parent ? `${file.parent.path}/${FOLDER_CONFIG_FILENAME}` : null
-    if (!path) return null
-    const config = this.plugin.app.vault.getAbstractFileByPath(path)
+    if (!file.parent) return null
+    const config = this.plugin.app.vault.getAbstractFileByPath(
+      configPathFor(file.parent.path)
+    )
     return config instanceof TFile ? config : null
   }
 }

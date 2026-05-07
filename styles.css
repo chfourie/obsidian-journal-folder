@@ -597,3 +597,93 @@
 	color: var(--text-faint);
 	opacity: 1;
 }
+
+/* When the global "Hide journal-folder.md in file explorer" setting is on,
+ * the settings feature toggles `journal-folder-hide-config-notes` on the
+ * <body>. The selector targets the explorer item by `data-path` ending in
+ * `journal-folder.md` and hides its containing `.nav-file` row. Scoped to
+ * `.workspace-leaf-content[data-type="file-explorer"]` so it doesn't affect
+ * other panes that happen to render the same data-path attribute. */
+body.journal-folder-hide-config-notes
+	.workspace-leaf-content[data-type="file-explorer"]
+	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
+body.journal-folder-hide-config-notes
+	.workspace-leaf-content[data-type="file-explorer"]
+	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
+	display: none \!important;
+}
+
+/* Sidebar view */
+.journal-folder-sidebar .jf-sidebar-root {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+	padding: .75em;
+}
+
+.journal-folder-sidebar .jf-sidebar-section {
+	display: flex;
+	flex-direction: column;
+	gap: .5em;
+}
+
+.journal-folder-sidebar .jf-sidebar-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: .05em;
+}
+
+.journal-folder-sidebar .jf-sidebar-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5em;
+}
+
+.journal-folder-sidebar .jf-sidebar-btn {
+	font-size: var(--font-ui-small);
+}
+
+.journal-folder-sidebar .jf-sidebar-mode-toggle {
+	display: inline-flex;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	overflow: hidden;
+	width: fit-content;
+}
+
+.journal-folder-sidebar .jf-sidebar-mode-btn {
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	padding: .25em .75em;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-mode-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.journal-folder-sidebar .jf-sidebar-help {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar-placeholder {
+	min-height: 4em;
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: .75em;
+	align-items: center;
+	justify-content: center;
+}
+
+.journal-folder-sidebar .jf-sidebar-actions {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: .75em;
+}
