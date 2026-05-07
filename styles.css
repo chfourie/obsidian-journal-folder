@@ -685,10 +685,19 @@ body.journal-folder-hide-config-notes
 	pointer-events: none;
 }
 
-.journal-folder-sidebar .jf-sidebar-mode-link {
+.journal-folder-sidebar .jf-sidebar-mode-link,
+.journal-folder-sidebar .jf-sidebar-more-link {
 	font-size: var(--font-ui-smaller);
 	letter-spacing: .05em;
 	text-transform: uppercase;
+}
+
+.journal-folder-sidebar .jf-sidebar-label-mode {
+	color: var(--text-faint);
+	font-weight: var(--font-normal);
+	letter-spacing: 0;
+	text-transform: none;
+	margin-left: .25em;
 }
 
 .journal-folder-sidebar .jf-sidebar-help {

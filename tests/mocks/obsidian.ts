@@ -348,6 +348,20 @@ export class Setting {
   }
 }
 
+export class Menu {
+  private items: Array<unknown> = []
+  addItem(_cb: (item: unknown) => unknown): this {
+    this.items.push({})
+    return this
+  }
+  addSeparator(): this {
+    this.items.push({ separator: true })
+    return this
+  }
+  showAtMouseEvent(_evt: MouseEvent): void {}
+  showAtPosition(_pos: { x: number; y: number }): void {}
+}
+
 export class FuzzySuggestModal<T> {
   app: App
   constructor(app: App) {

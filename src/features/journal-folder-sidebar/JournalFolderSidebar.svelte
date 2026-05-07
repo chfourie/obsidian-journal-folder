@@ -28,6 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   } from './sidebar-selection'
   import type {
     ActiveFileSnapshot,
+    SidebarMenuItem,
     SidebarUpdateApi,
   } from './journal-folder-sidebar-view'
   import SidebarCalendar from './SidebarCalendar.svelte'
@@ -41,6 +42,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
+    showMenu: (evt: MouseEvent, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
       folderPath: string,
       anchorBasename: string
@@ -58,6 +60,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi,
     onInitJournalFolder,
     onEditFolderConfig,
+    showMenu,
     buildAnchorNote,
     confirmCreate,
     navigate,
@@ -198,28 +201,97 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function calendarNavigate(url: string) {
     navigate(url, selected)
   }
+
+  function buildMenuItems(): SidebarMenuItem[] {
+    const items: SidebarMenuItem[] = []
+    const isDynamic = settings.sidebarMode === 'dynamic'
+    items.push({
+      kind: 'item',
+      title: isDynamic ? 'Switch to static' : 'Switch to dynamic',
+      icon: isDynamic ? 'pin' : 'navigation',
+      onClick: toggleMode,
+    })
+
+    const canSwitchToDefault =
+      !isDefault && knownFolders.includes(settings.defaultJournalFolder)
+    const canSetAsDefault = knownFolders.includes(selected) && !isDefault
+
+    if (canSwitchToDefault || canSetAsDefault) {
+      items.push({ kind: 'separator' })
+      if (canSwitchToDefault) {
+        items.push({
+          kind: 'item',
+          title: 'Switch to default folder',
+          icon: 'home',
+          onClick: switchToDefault,
+        })
+      }
+      if (canSetAsDefault) {
+        items.push({
+          kind: 'item',
+          title: 'Set as default folder',
+          icon: 'star',
+          onClick: setAsDefault,
+        })
+      }
+    }
+
+    items.push({ kind: 'separator' })
+    if (knownFolders.includes(selected)) {
+      items.push({
+        kind: 'item',
+        title: 'Edit folder configuration',
+        icon: 'settings',
+        onClick: () => onEditFolderConfig(selected),
+      })
+    }
+    items.push({
+      kind: 'item',
+      title: 'Initialise a new journal folder',
+      icon: 'folder-plus',
+      onClick: onInitJournalFolder,
+    })
+
+    return items
+  }
+
+  function openMoreMenu(evt: MouseEvent) {
+    showMenu(evt, buildMenuItems())
+  }
 </script>
 
 <div class="jf-sidebar-root">
   <div class="jf-sidebar-section">
     <div class="jf-sidebar-header">
-      <label class="jf-sidebar-label" for="jf-sidebar-folder">Journal folder</label>
+      <label class="jf-sidebar-label" for="jf-sidebar-folder">
+        Journal folder
+        <span class="jf-sidebar-label-mode">
+          ({settings.sidebarMode === 'dynamic' ? 'dynamic' : 'static'})
+        </span>
+      </label>
       <span
         role="button"
         tabindex="0"
-        class="jf-sidebar-link jf-sidebar-mode-link"
-        onclick={toggleMode}
+        class="jf-sidebar-link jf-sidebar-more-link"
+        onclick={openMoreMenu}
         onkeydown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            toggleMode()
+            // Synthesise a MouseEvent at the keyboard target so the
+            // Obsidian Menu has somewhere to anchor itself.
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            showMenu(
+              new MouseEvent('click', {
+                clientX: rect.right,
+                clientY: rect.bottom,
+              }),
+              buildMenuItems()
+            )
           }
         }}
-        title={settings.sidebarMode === 'dynamic'
-          ? 'Following the active note. Click to hold the selected folder instead.'
-          : 'Holding the selected folder. Click to follow the active note instead.'}
+        aria-haspopup="menu"
       >
-        {settings.sidebarMode === 'dynamic' ? 'Dynamic' : 'Static'}
+        More...
       </span>
     </div>
 
@@ -236,41 +308,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <option value="">(no journal folders found)</option>
       {/if}
     </select>
-
-    <div class="jf-sidebar-row">
-      {#if !isDefault && knownFolders.includes(settings.defaultJournalFolder)}
-        <span
-          role="button"
-          tabindex="0"
-          class="jf-sidebar-link"
-          onclick={switchToDefault}
-          onkeydown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              switchToDefault()
-            }
-          }}
-        >
-          Switch to default
-        </span>
-      {/if}
-      {#if knownFolders.includes(selected) && !isDefault}
-        <span
-          role="button"
-          tabindex="0"
-          class="jf-sidebar-link"
-          onclick={setAsDefault}
-          onkeydown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setAsDefault()
-            }
-          }}
-        >
-          Set as default
-        </span>
-      {/if}
-    </div>
   </div>
 
   <div class="jf-sidebar-section">
@@ -287,48 +324,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     {:else}
       <p class="jf-sidebar-help">
         {#if knownFolders.length === 0}
-          No journal folders yet — initialise one below to start.
+          No journal folders yet — pick <em>Initialise a new journal folder</em> from the
+          <strong>More...</strong> menu to get started.
         {:else}
           Pick a journal folder to show its calendar.
         {/if}
       </p>
     {/if}
-  </div>
-
-  <div class="jf-sidebar-section jf-sidebar-actions">
-    {#if knownFolders.includes(selected)}
-      <span
-        role="button"
-        tabindex="0"
-        class="jf-sidebar-link"
-        onclick={() => onEditFolderConfig(selected)}
-        onkeydown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onEditFolderConfig(selected)
-          }
-        }}
-      >
-        Edit folder configuration
-      </span>
-    {:else}
-      <span class="jf-sidebar-link is-disabled" aria-disabled="true">
-        Edit folder configuration
-      </span>
-    {/if}
-    <span
-      role="button"
-      tabindex="0"
-      class="jf-sidebar-link"
-      onclick={onInitJournalFolder}
-      onkeydown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onInitJournalFolder()
-        }
-      }}
-    >
-      Initialize a new journal folder
-    </span>
   </div>
 </div>

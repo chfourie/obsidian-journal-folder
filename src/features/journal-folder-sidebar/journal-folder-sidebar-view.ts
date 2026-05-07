@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ItemView, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
+import { ItemView, Menu, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
   configPathFor,
@@ -59,6 +59,20 @@ export type ActiveFileSnapshot = {
   basename: string
   parentPath: string
 }
+
+// Items the Svelte component pushes into the *More...* menu. The view
+// translates them into Obsidian `Menu` API calls (`addItem` /
+// `addSeparator`) so we don't have to ship a custom popover for the
+// sidebar — Obsidian's native menu styling, keyboard handling, and
+// dismiss-on-click-outside come for free.
+export type SidebarMenuItem =
+  | {
+      kind: 'item'
+      title: string
+      icon?: string
+      onClick: () => void
+    }
+  | { kind: 'separator' }
 
 export class JournalFolderSidebarView extends ItemView {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +120,8 @@ export class JournalFolderSidebarView extends ItemView {
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
+        showMenu: (evt: MouseEvent, items: SidebarMenuItem[]) =>
+          this.showMoreMenu(evt, items),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -181,6 +197,22 @@ export class JournalFolderSidebarView extends ItemView {
     new FolderConfigModal(this.plugin.app, folderPath, () =>
       this.getSettings()
     ).open()
+  }
+
+  private showMoreMenu(evt: MouseEvent, items: SidebarMenuItem[]): void {
+    const menu = new Menu()
+    for (const item of items) {
+      if (item.kind === 'separator') {
+        menu.addSeparator()
+        continue
+      }
+      menu.addItem((mi) => {
+        mi.setTitle(item.title)
+        if (item.icon) mi.setIcon(item.icon)
+        mi.onClick(() => item.onClick())
+      })
+    }
+    menu.showAtMouseEvent(evt)
   }
 
   private openInitFolderPicker(): void {
