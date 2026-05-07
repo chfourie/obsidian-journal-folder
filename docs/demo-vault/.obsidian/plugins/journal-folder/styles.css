@@ -657,12 +657,50 @@ body.journal-folder-hide-config-notes
 	align-items: baseline;
 }
 
-/* Drop the default grey fill on the folder dropdown so it blends into
- * the sidebar surface — Obsidian's default `--background-modifier-form-field`
- * pulls the eye away from the label that owns the section. Border stays
- * so the control is still recognisable as a dropdown. */
-.journal-folder-sidebar select.dropdown {
+/* Folder picker — rendered as a `<span role="button">` rather than a
+ * `<select>` so the popup is an Obsidian `Menu` (matching the *More...*
+ * popover) rather than a native OS `<select>` dropdown whose styling
+ * can't be brought in line with the rest of the floating panels. */
+.journal-folder-sidebar .jf-sidebar-folder-button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: .5em;
+	padding: var(--size-4-1) var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
 	background: transparent;
+	color: var(--text-normal);
+	cursor: pointer;
+	user-select: none;
+	font-size: var(--font-ui-small);
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button:hover {
+	background: var(--background-modifier-hover);
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button:focus-visible {
+	outline: 1px dotted var(--text-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button.is-disabled {
+	color: var(--text-muted);
+	cursor: default;
+	pointer-events: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button-caret {
+	color: var(--text-muted);
+	font-size: .75em;
+	flex: 0 0 auto;
 }
 
 /* Inline action — rendered as a `<span role="button">` so Obsidian's

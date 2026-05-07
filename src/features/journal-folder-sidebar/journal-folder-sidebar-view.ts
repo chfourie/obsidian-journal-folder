@@ -39,6 +39,10 @@ type ViewRegistry = {
   unregister: (v: JournalFolderSidebarView) => void
 }
 
+export type MenuTrigger =
+  | { kind: 'mouse'; event: MouseEvent }
+  | { kind: 'keyboard'; rect: DOMRect }
+
 // Callback the Svelte component registers so the view can push settings
 // updates and active-leaf events into reactive state without re-mounting.
 export type SidebarUpdateApi = {
@@ -120,8 +124,8 @@ export class JournalFolderSidebarView extends ItemView {
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
-        showMenu: (rect: DOMRect, items: SidebarMenuItem[]) =>
-          this.showMoreMenu(rect, items),
+        showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) =>
+          this.showMoreMenu(trigger, items),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -199,7 +203,7 @@ export class JournalFolderSidebarView extends ItemView {
     ).open()
   }
 
-  private showMoreMenu(rect: DOMRect, items: SidebarMenuItem[]): void {
+  private showMoreMenu(trigger: MenuTrigger, items: SidebarMenuItem[]): void {
     const menu = new Menu()
     for (const item of items) {
       if (item.kind === 'separator') {
@@ -212,18 +216,14 @@ export class JournalFolderSidebarView extends ItemView {
         mi.onClick(() => item.onClick())
       })
     }
-    // Show below the trigger first; on the next frame, shift the menu
-    // left by its measured width so its right edge aligns with the
-    // trigger's right edge. Obsidian's `Menu` API doesn't expose a
-    // `rightAligned: true` option, so we reposition via the underlying
-    // DOM node it exposes.
-    menu.showAtPosition({ x: rect.right, y: rect.bottom + 4 })
-    requestAnimationFrame(() => {
-      const dom = (menu as Menu & { dom?: HTMLElement }).dom
-      if (!dom) return
-      const w = dom.getBoundingClientRect().width
-      dom.style.left = `${Math.max(8, rect.right - w)}px`
-    })
+    if (trigger.kind === 'mouse') {
+      menu.showAtMouseEvent(trigger.event)
+    } else {
+      menu.showAtPosition({
+        x: trigger.rect.left,
+        y: trigger.rect.bottom,
+      })
+    }
   }
 
   private openInitFolderPicker(): void {

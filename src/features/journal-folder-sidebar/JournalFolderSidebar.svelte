@@ -28,6 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   } from './sidebar-selection'
   import type {
     ActiveFileSnapshot,
+    MenuTrigger,
     SidebarMenuItem,
     SidebarUpdateApi,
   } from './journal-folder-sidebar-view'
@@ -48,7 +49,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
-    showMenu: (anchorRect: DOMRect, items: SidebarMenuItem[]) => void
+    showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
       folderPath: string,
       anchorBasename: string
@@ -312,9 +313,49 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 
   function openMoreMenu(evt: MouseEvent | KeyboardEvent) {
+    if (evt instanceof MouseEvent) {
+      showMenu({ kind: 'mouse', event: evt }, buildMenuItems())
+      return
+    }
     const target = evt.currentTarget as HTMLElement | null
     if (!target) return
-    showMenu(target.getBoundingClientRect(), buildMenuItems())
+    showMenu(
+      { kind: 'keyboard', rect: target.getBoundingClientRect() },
+      buildMenuItems()
+    )
+  }
+
+  function buildFolderMenuItems(): SidebarMenuItem[] {
+    if (knownFolders.length === 0) {
+      return [
+        {
+          kind: 'item',
+          title: '(no journal folders found)',
+          onClick: () => {},
+        },
+      ]
+    }
+    return knownFolders.map((folder) => ({
+      kind: 'item',
+      title: folderLabel(folder),
+      icon: folder === selected ? 'check' : undefined,
+      onClick: () => {
+        selected = folder
+      },
+    }))
+  }
+
+  function openFolderMenu(evt: MouseEvent | KeyboardEvent) {
+    if (evt instanceof MouseEvent) {
+      showMenu({ kind: 'mouse', event: evt }, buildFolderMenuItems())
+      return
+    }
+    const target = evt.currentTarget as HTMLElement | null
+    if (!target) return
+    showMenu(
+      { kind: 'keyboard', rect: target.getBoundingClientRect() },
+      buildFolderMenuItems()
+    )
   }
 </script>
 
@@ -344,19 +385,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       </span>
     </div>
 
-    <select
+    <span
       id="jf-sidebar-folder"
-      class="dropdown"
-      bind:value={selected}
-      disabled={knownFolders.length === 0}
+      role="button"
+      tabindex="0"
+      class="jf-sidebar-folder-button"
+      class:is-disabled={knownFolders.length === 0}
+      aria-haspopup="menu"
+      aria-disabled={knownFolders.length === 0}
+      onclick={(e) => {
+        if (knownFolders.length === 0) return
+        openFolderMenu(e)
+      }}
+      onkeydown={(e) => {
+        if (knownFolders.length === 0) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          openFolderMenu(e)
+        }
+      }}
     >
-      {#each knownFolders as folder}
-        <option value={folder}>{folderLabel(folder)}</option>
-      {/each}
-      {#if knownFolders.length === 0}
-        <option value="">(no journal folders found)</option>
-      {/if}
-    </select>
+      <span class="jf-sidebar-folder-button-label">
+        {knownFolders.length === 0
+          ? '(no journal folders found)'
+          : folderLabel(selected)}
+      </span>
+      <span class="jf-sidebar-folder-button-caret" aria-hidden="true">▾</span>
+    </span>
   </div>
 
   <div class="jf-sidebar-section">
