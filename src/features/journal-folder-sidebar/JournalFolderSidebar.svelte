@@ -33,6 +33,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   } from './journal-folder-sidebar-view'
   import SidebarCalendar from './SidebarCalendar.svelte'
   import { todayDailyBasename } from './sidebar-anchor'
+  import {
+    anchorMonth,
+    shouldShowCurrentLink,
+    shouldShowNoteMonthLink,
+    todayAnchor,
+  } from '../journal-header/calendar-navigation'
 
   type Props = {
     initialSettings: JournalFolderSettings
@@ -193,14 +199,64 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function calendarNext() {
     calendarOffset += 1
   }
-  function calendarToday() {
+  function calendarCurrent() {
     anchorBasename = todayDailyBasename()
     calendarOffset = 0
+  }
+  function calendarNoteMonth() {
+    if (activeNoteBasename) {
+      anchorBasename = activeNoteBasename
+      calendarOffset = 0
+    }
   }
 
   function calendarNavigate(url: string) {
     navigate(url, selected)
   }
+
+  // Active note's basename when (a) the active file is in the selected
+  // folder, and (b) its basename is a recognised journal pattern. Used
+  // to drive the *Note month* jump link — `null` hides the link entirely.
+  const activeNoteBasename = $derived.by(() => {
+    if (!activeFile) return null
+    if (activeFile.parentPath !== selected) return null
+    if (
+      !isJournalFileBasename(
+        activeFile.basename,
+        !!settings.quartersEnabled
+      )
+    ) {
+      return null
+    }
+    return activeFile.basename
+  })
+
+  // The active note as a JournalNote, when there is one, so we can read
+  // its `getMoment()` for the *Note month* anchor target.
+  const activeNoteAsJournalNote = $derived.by(() => {
+    void vaultTick // rebuild on vault mutations, same reason as anchorNote
+    if (!activeNoteBasename) return null
+    return buildAnchorNote(selected, activeNoteBasename)
+  })
+
+  const visibleAnchor = $derived(
+    anchorNote
+      ? anchorMonth(anchorNote.getMoment(), calendarOffset)
+      : null
+  )
+  const noteMonthAnchor = $derived(
+    activeNoteAsJournalNote
+      ? anchorMonth(activeNoteAsJournalNote.getMoment(), 0)
+      : null
+  )
+  const todayMonthAnchor = $derived(todayAnchor())
+  const showCalendarCurrent = $derived(
+    !!visibleAnchor && shouldShowCurrentLink(visibleAnchor, todayMonthAnchor)
+  )
+  const showCalendarNoteMonth = $derived(
+    !!visibleAnchor &&
+      shouldShowNoteMonthLink(visibleAnchor, noteMonthAnchor, todayMonthAnchor)
+  )
 
   function buildMenuItems(): SidebarMenuItem[] {
     const items: SidebarMenuItem[] = []
@@ -319,7 +375,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         navigate={calendarNavigate}
         onPrev={calendarPrev}
         onNext={calendarNext}
-        onToday={calendarToday}
+        showCurrent={showCalendarCurrent}
+        showNoteMonth={showCalendarNoteMonth}
+        onCurrent={calendarCurrent}
+        onNoteMonth={calendarNoteMonth}
       />
     {:else}
       <p class="jf-sidebar-help">

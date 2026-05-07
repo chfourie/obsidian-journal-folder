@@ -30,7 +30,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     navigate: (url: string) => void
     onPrev: () => void
     onNext: () => void
-    onToday: () => void
+    showCurrent: boolean
+    showNoteMonth: boolean
+    onCurrent: () => void
+    onNoteMonth: () => void
   }
 
   const {
@@ -40,7 +43,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     navigate,
     onPrev,
     onNext,
-    onToday,
+    showCurrent,
+    showNoteMonth,
+    onCurrent,
+    onNoteMonth,
   }: Props = $props()
 
   const info = $derived(
@@ -83,15 +89,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     >
       ‹
     </button>
-    <span
-      class="jf-sidebar-calendar-title"
-      role="button"
-      tabindex="0"
-      aria-label="Jump to today"
-      onclick={onToday}
-      onkeydown={onKey(onToday)}
-      title="Click to jump to today"
-    >
+    <span class="jf-sidebar-calendar-title">
       {month.monthCell.label} {month.yearCell.label}{#if month.quarterCell}
         <span class="jf-sidebar-calendar-quarter">({month.quarterCell.label})</span>
       {/if}
@@ -105,6 +103,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       ›
     </button>
   </div>
+
+  {#if showCurrent || showNoteMonth}
+    <div class="jf-sidebar-calendar-jump-links">
+      {#if showCurrent}
+        <span
+          class="jf-sidebar-link"
+          role="button"
+          tabindex="0"
+          aria-label="Jump to today's month"
+          onclick={onCurrent}
+          onkeydown={onKey(onCurrent)}
+        >
+          Current
+        </span>
+      {/if}
+      {#if showNoteMonth}
+        <span
+          class="jf-sidebar-link"
+          role="button"
+          tabindex="0"
+          aria-label="Jump to the active note's month"
+          onclick={onNoteMonth}
+          onkeydown={onKey(onNoteMonth)}
+        >
+          Note month
+        </span>
+      {/if}
+    </div>
+  {/if}
 
   <div class="journal-folder-calendar-month jf-sidebar-calendar-month">
     {#key month.monthIso}

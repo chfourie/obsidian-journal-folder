@@ -744,12 +744,18 @@ body.journal-folder-hide-config-notes
 	text-align: center;
 	font-weight: var(--font-medium);
 	color: var(--text-normal);
-	cursor: pointer;
 	user-select: none;
 }
 
-.journal-folder-sidebar .jf-sidebar-calendar-title:hover {
-	text-decoration: underline;
+/* Quick-jump row above the month grid, holding the conditional `Current`
+ * and `Note month` links. Right-aligned so the controls strip above
+ * (with arrows + month label) stays visually anchored to the centre. */
+.journal-folder-sidebar .jf-sidebar-calendar-jump-links {
+	display: flex;
+	justify-content: flex-end;
+	gap: .75em;
+	font-size: var(--font-ui-smaller);
+	margin-bottom: .25em;
 }
 
 .journal-folder-sidebar .jf-sidebar-calendar-quarter {

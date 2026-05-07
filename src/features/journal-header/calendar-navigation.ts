@@ -69,3 +69,42 @@ export function monthOptions(): { label: string; value: number }[] {
   }
   return out
 }
+
+export function sameAnchor(a: AnchorMonth, b: AnchorMonth): boolean {
+  return a.year === b.year && a.month === b.month
+}
+
+export function todayAnchor(): AnchorMonth {
+  // @ts-ignore — `moment()` returns a Moment from the obsidian-bundled lib.
+  const t = moment()
+  return { year: t.year(), month: t.month() }
+}
+
+// `Current` jumps the calendar so today's month sits at the anchor. Hide
+// when the visible anchor is already today's month — the link would be a
+// no-op there.
+export function shouldShowCurrentLink(
+  visible: AnchorMonth,
+  today: AnchorMonth
+): boolean {
+  return !sameAnchor(visible, today)
+}
+
+// `Note month` jumps the calendar to the (active or hosting) note's
+// month. Hide when:
+//   - there isn't a note month (e.g. no active journal note in the
+//     sidebar context), or
+//   - the note's month is already the visible anchor (same no-op case),
+//     or
+//   - the note's month coincides with today's month — in that case the
+//     `Current` link covers the same target and showing both would just
+//     be redundant chrome.
+export function shouldShowNoteMonthLink(
+  visible: AnchorMonth,
+  noteMonth: AnchorMonth | null,
+  today: AnchorMonth
+): boolean {
+  if (!noteMonth) return false
+  if (sameAnchor(noteMonth, today)) return false
+  return !sameAnchor(visible, noteMonth)
+}

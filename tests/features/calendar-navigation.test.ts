@@ -4,6 +4,10 @@ import {
   anchorMonth,
   monthOptions,
   offsetForTarget,
+  sameAnchor,
+  shouldShowCurrentLink,
+  shouldShowNoteMonthLink,
+  todayAnchor,
 } from '../../src/features/journal-header/calendar-navigation'
 
 const TODAY = new Date('2026-05-03T12:00:00Z')
@@ -111,6 +115,54 @@ describe('monthOptions', () => {
       'Nov',
       'Dec',
     ])
+  })
+})
+
+describe('sameAnchor', () => {
+  it('compares year and month', () => {
+    expect(sameAnchor({ year: 2026, month: 4 }, { year: 2026, month: 4 })).toBe(true)
+    expect(sameAnchor({ year: 2026, month: 4 }, { year: 2026, month: 5 })).toBe(false)
+    expect(sameAnchor({ year: 2025, month: 4 }, { year: 2026, month: 4 })).toBe(false)
+  })
+})
+
+describe('todayAnchor', () => {
+  it("returns today's month indexed Jan=0", () => {
+    // TODAY is 2026-05-03 → year 2026, month 4 (May)
+    expect(todayAnchor()).toEqual({ year: 2026, month: 4 })
+  })
+})
+
+describe('shouldShowCurrentLink', () => {
+  const today = { year: 2026, month: 4 }
+  it('hides when visible already equals today', () => {
+    expect(shouldShowCurrentLink(today, today)).toBe(false)
+  })
+  it('shows when visible differs from today', () => {
+    expect(shouldShowCurrentLink({ year: 2026, month: 5 }, today)).toBe(true)
+    expect(shouldShowCurrentLink({ year: 2025, month: 4 }, today)).toBe(true)
+  })
+})
+
+describe('shouldShowNoteMonthLink', () => {
+  const today = { year: 2026, month: 4 }
+  it('hides when no note month is provided', () => {
+    expect(shouldShowNoteMonthLink({ year: 2026, month: 5 }, null, today)).toBe(false)
+  })
+  it("hides when the note's month coincides with today (Current would duplicate)", () => {
+    expect(
+      shouldShowNoteMonthLink({ year: 2026, month: 5 }, today, today)
+    ).toBe(false)
+  })
+  it("hides when the visible anchor already shows the note's month", () => {
+    const note = { year: 2026, month: 2 }
+    expect(shouldShowNoteMonthLink(note, note, today)).toBe(false)
+  })
+  it('shows when the note month differs from today and from visible', () => {
+    const note = { year: 2026, month: 2 }
+    expect(
+      shouldShowNoteMonthLink({ year: 2026, month: 5 }, note, today)
+    ).toBe(true)
   })
 })
 

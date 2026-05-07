@@ -29,6 +29,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		anchorMonth,
 		monthOptions,
 		offsetForTarget,
+		shouldShowCurrentLink,
+		shouldShowNoteMonthLink,
+		todayAnchor,
 	} from './calendar-navigation'
 
 	type Props = {
@@ -54,6 +57,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	const months = monthOptions()
 	let centeredAnchor = $derived(anchorMonth(note.getMoment(), offsetMonths))
 	let centeredMonthLabel = $derived(months[centeredAnchor.month].label)
+	// `Current` and `Note month` quick-jumps. The note's month is at
+	// offset 0 by definition; today's month is wherever today's calendar
+	// currently sits relative to the note's anchor.
+	let noteMonthAnchor = $derived(anchorMonth(note.getMoment(), 0))
+	let todayMonthAnchor = $derived(todayAnchor())
+	let showCurrent = $derived(
+		shouldShowCurrentLink(centeredAnchor, todayMonthAnchor)
+	)
+	let showNoteMonth = $derived(
+		shouldShowNoteMonthLink(centeredAnchor, noteMonthAnchor, todayMonthAnchor)
+	)
 
 	// Date-picker popover state. The picker is portaled to <body> for the
 	// same reason the More popover is — CodeMirror live-preview widgets clip
@@ -171,6 +185,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		)
 	}
 
+	function scrollToNoteMonth() {
+		offsetMonths = 0
+	}
+
 	function prevYear() {
 		offsetMonths -= 12
 	}
@@ -231,16 +249,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<div class="journal-folder-calendar-controls">
 			<span
 				class="journal-folder-calendar-link"
-				role="button"
-				tabindex="0"
-				aria-label="Scroll back to today"
-				onclick={scrollToToday}
-				onkeydown={onKey(scrollToToday)}
-			>
-				Today
-			</span>
-			<span
-				class="journal-folder-calendar-link"
 				class:open={pickerOpen}
 				role="button"
 				tabindex="0"
@@ -252,6 +260,30 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			>
 				{centeredMonthLabel} {centeredAnchor.year}
 			</span>
+			{#if showCurrent}
+				<span
+					class="journal-folder-calendar-link"
+					role="button"
+					tabindex="0"
+					aria-label="Jump to today's month"
+					onclick={scrollToToday}
+					onkeydown={onKey(scrollToToday)}
+				>
+					Current
+				</span>
+			{/if}
+			{#if showNoteMonth}
+				<span
+					class="journal-folder-calendar-link"
+					role="button"
+					tabindex="0"
+					aria-label="Jump to this note's month"
+					onclick={scrollToNoteMonth}
+					onkeydown={onKey(scrollToNoteMonth)}
+				>
+					Note month
+				</span>
+			{/if}
 		</div>
 
 		<div class="journal-folder-calendar-months">
