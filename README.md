@@ -184,7 +184,7 @@ Items:
 
 ### Hiding the config notes
 
-A separate **Hide `journal-folder.md` in file explorer** toggle in the plugin settings tab keeps the config notes out of Obsidian's file tree without removing them from disk — they remain reachable through search and the *Edit folder configuration* action above.
+`journal-folder.md` files are hidden from Obsidian's file tree by default — the **Hide `journal-folder.md` in file explorer** toggle in the plugin settings tab. They remain on disk and remain reachable through search and the *Edit folder configuration* action above; the *Edit folder configuration* form is the preferred way to change per-folder settings, so most users never need to see the raw config note. Turn the toggle off if you'd rather hand-edit the front matter directly in the file tree.
 
 ---
 
@@ -207,7 +207,10 @@ Journal folder title: Atlas Migration
 
 ### Folder-level overrides
 
-Drop a `journal-folder.md` in the journal folder and put any settings in the front matter:
+> [!TIP]
+> The recommended way to edit per-folder settings is the **sidebar tab → More… → *Edit folder configuration*** action. It opens a form pre-populated with the effective values, validates as you go, and writes a sparse diff to `journal-folder.md` so the folder still inherits future global changes for any field you didn't deliberately diverge on. See [Sidebar tab](#sidebar-tab) for the entry point.
+
+Under the hood, per-folder overrides live in the front matter of a file named `journal-folder.md` inside the journal folder. The sidebar UI is the easiest way to edit it; you *can* hand-edit the front matter directly if you prefer:
 
 ```markdown
 ---
@@ -217,6 +220,8 @@ default-calendar-visible-mobile: false
 daily-note-title-pattern: dddd, Do MMMM YYYY
 ---
 ```
+
+By default `journal-folder.md` is hidden from Obsidian's file explorer (see `hide-journal-folder-notes` below). It's still reachable via search and through the sidebar's *Edit folder configuration* action.
 
 > [!CAUTION]
 > Anything set at folder level applies to every journal header in that folder, but does *not* affect the actual folder name on disk. `journal-folder-title` is a display label only.
@@ -260,9 +265,15 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `default-calendar-visible-mobile`    | If true, the calendar picker is open by default on mobile when Obsidian starts. Defaults to false because the multi-month layout isn't useful at phone widths. |
 | `start-of-week`                      | First day of the week used by the calendar grid and `gggg-[W]ww` weekly numbering. *Locale default* leaves moment's locale untouched; picking an explicit weekday (`sunday`–`saturday`) overrides it so week 1 still contains January 1. **Global only** — moment's locale is process-wide, so per-folder and embedded overrides are ignored to avoid inconsistent week numbering across the vault. |
 | `auto-template-enabled`              | If true, newly created notes whose basename matches a journal pattern and whose folder contains a `journal-folder.md` are seeded with a template body. Override per-folder by setting `auto-template-enabled: false` in that folder's `journal-folder.md` front matter. See [Auto-fill new journal notes](#auto-fill-new-journal-notes). |
-| `auto-template-content`              | Global default template body used when `auto-template-enabled` is true and the folder doesn't supply its own template. Leave blank for the built-in default (a `journal-header` code block, prefixed with the `%% JOURNAL NOTE %%` Obsidian comment). Per-folder overrides go in the body of `journal-folder.md` — see below. |
+| `auto-template-per-tier`             | If false (default), every new journal note shares `auto-template-content`. If true, the per-tier fields below are used instead, one per note type. The two modes are mutually exclusive — only the fields that match the current mode are consulted. |
+| `auto-template-content`              | Single template body used when `auto-template-per-tier` is **off**. Leave blank for the built-in default (a `journal-header` code block, prefixed with the `%% JOURNAL NOTE %%` Obsidian comment). Per-folder overrides go in the body of `journal-folder.md` — see below. |
+| `daily-note-auto-template-content`     | Template body used for **new daily notes** (`YYYY-MM-DD`) when `auto-template-per-tier` is **on**. Leave blank for the built-in default. |
+| `weekly-note-auto-template-content`    | Template body used for **new weekly notes** (`gggg-[W]ww`) when `auto-template-per-tier` is **on**. Leave blank for the built-in default. |
+| `monthly-note-auto-template-content`   | Template body used for **new monthly notes** (`YYYY-MM`) when `auto-template-per-tier` is **on**. Leave blank for the built-in default. |
+| `quarterly-note-auto-template-content` | Template body used for **new quarterly notes** (`YYYY-Q[1-4]`) when `auto-template-per-tier` is **on**. Only consulted when `quarters-enabled` is also on. Leave blank for the built-in default. |
+| `yearly-note-auto-template-content`    | Template body used for **new yearly notes** (`YYYY`) when `auto-template-per-tier` is **on**. Leave blank for the built-in default. |
 | `default-journal-folder`             | Folder path the **sidebar tab** opens on by default. The sidebar's *Switch to default* action resets the selected folder to this value. Empty string means "no default chosen" — the sidebar then falls back to the first detected journal folder. **Global only** — this is a UI preference, not a per-folder concept. |
-| `hide-journal-folder-notes`          | If true, every `journal-folder.md` is hidden from Obsidian's built-in file explorer. The notes still exist on disk and remain accessible via search and the sidebar's *Edit configuration* action. **Global only**. |
+| `hide-journal-folder-notes`          | If true (the default), every `journal-folder.md` is hidden from Obsidian's built-in file explorer. The notes still exist on disk and remain accessible via search and the sidebar's *Edit folder configuration* action. Set to false if you'd rather see and edit the config note directly in the file tree. **Global only**. |
 | `sidebar-mode`                       | `'dynamic'` (default) makes the sidebar follow the active note when it lives in a journal folder; `'static'` holds whichever folder you picked regardless of which note is open. **Global only** because the sidebar is a singleton view; toggle it from inside the sidebar itself. |
 
 ### Folder title resolution
@@ -292,15 +303,60 @@ When enabled, a new note is auto-filled only when **all** of these are true:
 2. The folder containing the note has a `journal-folder.md` config file.
 3. The note is empty at creation (existing content is never overwritten).
 
+### One template, or one per note type?
+
+A toggle in the plugin settings — *Use a different template per note type* — selects between the two modes. They are **mutually exclusive**: only one is in effect at a time.
+
+- **Off** (default) — every new journal note (daily, weekly, monthly, quarterly, yearly) is seeded with the same *Default template*. The per-tier fields are hidden and ignored.
+- **On** — pick a separate template for each note type via the *Daily / Weekly / Monthly / Quarterly / Yearly note template* fields. The generic *Default template* is hidden and ignored. A blank tier-specific field falls through to the built-in default rather than to the generic template.
+
+The toggle is persisted as `auto-template-per-tier` and can be overridden per-folder in `journal-folder.md`.
+
 ### Template precedence
 
 The template body is resolved in three layers, **first non-empty wins**:
 
-1. **Per-folder body** — the markdown body of `journal-folder.md` (everything below its front matter). Use this when one folder needs a different template than the rest of the vault.
-2. **Global setting** — *Default template* in the plugin settings. Persists in `data.json`.
+1. **Per-folder body** — the markdown body of `journal-folder.md` (everything below its front matter). Use this when one folder needs a different template than the rest of the vault. Applies to every tier in that folder regardless of the toggle.
+2. **Global setting** — depends on the toggle:
+   - Toggle off: *Default template* (`auto-template-content`).
+   - Toggle on: the matching *…note template* field for the new note's tier (`{daily,weekly,monthly,quarterly,yearly}-note-auto-template-content`).
 3. **Built-in default** — `%% JOURNAL NOTE %%` followed immediately by an empty `journal-header` code block (no blank line between them, so the comment sits flush with the fence).
 
 The `%% … %%` line is an Obsidian hidden comment — it doesn't render in reading mode and parks the cursor above the code block when toggling into edit mode. Without it, the cursor lands inside the fence and the block stops rendering until you click out.
+
+### Different templates for different note types
+
+Flip the *Use a different template per note type* toggle on (or set `auto-template-per-tier: true` per-folder) and the per-tier fields apply. For example, to give a folder a checklist for daily notes and a review prompt for weekly notes — while leaving monthly and yearly notes on the built-in default:
+
+```markdown
+---
+auto-template-enabled: true
+auto-template-per-tier: true
+daily-note-auto-template-content: |
+  %% JOURNAL NOTE %%
+  ```journal-header
+  ```
+
+  ## Today's three priorities
+  -
+  -
+  -
+
+  ## Mood
+weekly-note-auto-template-content: |
+  %% JOURNAL NOTE %%
+  ```journal-header
+  ```
+
+  ## Wins this week
+
+  ## What to carry forward
+
+  ## What to drop
+---
+```
+
+When a tier-specific field is blank in this mode, the resolver falls through to the built-in default (the generic *Default template* is ignored while per-tier mode is on). The folder body (markdown below the front matter) still wins over every tier-specific field — leave it empty if you want the per-tier templates to be used.
 
 ### Per-folder template example
 

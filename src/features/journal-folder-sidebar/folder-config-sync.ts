@@ -45,6 +45,12 @@ export const PER_FOLDER_FIELDS = [
   'quartersEnabled',
   'autoTemplateEnabled',
   'autoTemplateContent',
+  'autoTemplatePerTier',
+  'dailyNoteAutoTemplateContent',
+  'weeklyNoteAutoTemplateContent',
+  'monthlyNoteAutoTemplateContent',
+  'quarterlyNoteAutoTemplateContent',
+  'yearlyNoteAutoTemplateContent',
 ] as const satisfies ReadonlyArray<keyof JournalFolderSettings>
 
 type PerFolderField = (typeof PER_FOLDER_FIELDS)[number]

@@ -62,6 +62,25 @@ export function isJournalFileBasename(
   return quartersEnabled && JOURNAL_FILE_QUARTERLY_REGEX.test(basename)
 }
 
+// Returns the journal time unit a basename represents, or `null` when the
+// basename isn't a recognised journal pattern. Quarters resolve to `null`
+// unless `quartersEnabled` is true. Mirrors the regexes used by
+// `isJournalFileBasename`.
+export function journalUnitForBasename(
+  basename: string,
+  quartersEnabled: boolean
+): JournalTimeUnit | null {
+  if (/^[12]\d{3}-((0[1-9])|(1[012]))-(([0-2][0-9])|(3[01]))$/.test(basename))
+    return 'day'
+  if (/^[12]\d{3}-W((0[1-9])|([1-4][0-9])|(5[0-3]))$/.test(basename))
+    return 'week'
+  if (/^[12]\d{3}-((0[1-9])|(1[012]))$/.test(basename)) return 'month'
+  if (quartersEnabled && JOURNAL_FILE_QUARTERLY_REGEX.test(basename))
+    return 'quarter'
+  if (/^[12]\d{3}$/.test(basename)) return 'year'
+  return null
+}
+
 function startOfInterval(
   sourceMoment: moment.Moment,
   pattern: string

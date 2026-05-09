@@ -52,7 +52,24 @@ export type JournalFolderSettings = {
   // Markdown used to seed new journal notes when auto-template is enabled
   // and no per-folder body override is present in `journal-folder.md`. When
   // empty, a built-in default (a single `journal-header` code block) is used.
+  // Acts as the cross-tier fallback — the per-tier fields below take
+  // precedence when the new note matches that tier.
   autoTemplateContent: string
+  // When true, the auto-fill feature ignores `autoTemplateContent` and uses
+  // the per-tier fields below instead — one template per note type. When
+  // false (the default), the per-tier fields are ignored and every tier
+  // shares `autoTemplateContent`. The two modes are mutually exclusive in
+  // the UI (a single toggle in the settings tab swaps which fields show).
+  autoTemplatePerTier: boolean
+  // Per-tier templates used only when `autoTemplatePerTier` is true. An
+  // empty string for a tier falls through to the built-in default. The
+  // folder-level override (the body of `journal-folder.md`) still wins
+  // over all of these.
+  dailyNoteAutoTemplateContent: string
+  weeklyNoteAutoTemplateContent: string
+  monthlyNoteAutoTemplateContent: string
+  quarterlyNoteAutoTemplateContent: string
+  yearlyNoteAutoTemplateContent: string
   // Controls the first day of the week. `'locale-default'` leaves moment's
   // current locale untouched; the explicit weekday names override moment's
   // locale so both the calendar grid and `gggg-[W]ww` week numbering shift
@@ -117,8 +134,14 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   quartersEnabled: false,
   autoTemplateEnabled: false,
   autoTemplateContent: '',
+  autoTemplatePerTier: false,
+  dailyNoteAutoTemplateContent: '',
+  weeklyNoteAutoTemplateContent: '',
+  monthlyNoteAutoTemplateContent: '',
+  quarterlyNoteAutoTemplateContent: '',
+  yearlyNoteAutoTemplateContent: '',
   startOfWeek: 'locale-default',
   defaultJournalFolder: '',
-  hideJournalFolderNotes: false,
+  hideJournalFolderNotes: true,
   sidebarMode: 'dynamic',
 }

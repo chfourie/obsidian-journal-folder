@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_AUTO_TEMPLATE,
+  perUnitAutoTemplate,
   resolveAutoTemplate,
   stripFrontMatter,
 } from '../../src/features/journal-auto-template/auto-template-content'
-import { isJournalFileBasename } from '../../src/data-access/journal-note'
+import {
+  isJournalFileBasename,
+  journalUnitForBasename,
+} from '../../src/data-access/journal-note'
 
 describe('stripFrontMatter', () => {
   it('removes a leading YAML block', () => {
@@ -30,22 +34,69 @@ describe('stripFrontMatter', () => {
 describe('resolveAutoTemplate', () => {
   it('uses the per-folder body when present and non-empty', () => {
     const folder = '---\nfoo: bar\n---\n# Folder template\n\nhello\n'
-    const result = resolveAutoTemplate(folder, 'GLOBAL')
+    const result = resolveAutoTemplate(folder, 'PER_UNIT', 'GLOBAL')
     expect(result).toBe('# Folder template\n\nhello\n')
   })
 
-  it('falls through to the global setting when the folder body is whitespace only', () => {
+  it('falls through to the per-unit template when the folder body is whitespace only', () => {
     const folder = '---\nfoo: bar\n---\n   \n'
-    expect(resolveAutoTemplate(folder, 'GLOBAL')).toBe('GLOBAL')
+    expect(resolveAutoTemplate(folder, 'PER_UNIT', 'GLOBAL')).toBe('PER_UNIT')
   })
 
-  it('falls through to the global setting when the folder body is missing', () => {
-    expect(resolveAutoTemplate(null, 'GLOBAL')).toBe('GLOBAL')
+  it('falls through to the global setting when the folder body and per-unit template are missing', () => {
+    expect(resolveAutoTemplate(null, '', 'GLOBAL')).toBe('GLOBAL')
   })
 
-  it('falls through to the built-in default when neither folder nor global provide content', () => {
-    expect(resolveAutoTemplate(null, '')).toBe(DEFAULT_AUTO_TEMPLATE)
-    expect(resolveAutoTemplate('---\n---\n', '   ')).toBe(DEFAULT_AUTO_TEMPLATE)
+  it('prefers the per-unit template over the generic global template', () => {
+    expect(resolveAutoTemplate(null, 'PER_UNIT', 'GLOBAL')).toBe('PER_UNIT')
+  })
+
+  it('falls through to the built-in default when nothing else provides content', () => {
+    expect(resolveAutoTemplate(null, '', '')).toBe(DEFAULT_AUTO_TEMPLATE)
+    expect(resolveAutoTemplate('---\n---\n', '   ', '   ')).toBe(
+      DEFAULT_AUTO_TEMPLATE
+    )
+  })
+})
+
+describe('perUnitAutoTemplate', () => {
+  const settings = {
+    dailyNoteAutoTemplateContent: 'D',
+    weeklyNoteAutoTemplateContent: 'W',
+    monthlyNoteAutoTemplateContent: 'M',
+    quarterlyNoteAutoTemplateContent: 'Q',
+    yearlyNoteAutoTemplateContent: 'Y',
+  }
+
+  it('returns the field that matches the unit', () => {
+    expect(perUnitAutoTemplate(settings, 'day')).toBe('D')
+    expect(perUnitAutoTemplate(settings, 'week')).toBe('W')
+    expect(perUnitAutoTemplate(settings, 'month')).toBe('M')
+    expect(perUnitAutoTemplate(settings, 'quarter')).toBe('Q')
+    expect(perUnitAutoTemplate(settings, 'year')).toBe('Y')
+  })
+
+  it('returns the empty string for a null unit', () => {
+    expect(perUnitAutoTemplate(settings, null)).toBe('')
+  })
+})
+
+describe('journalUnitForBasename', () => {
+  it('maps each tier to its time unit', () => {
+    expect(journalUnitForBasename('2026-05-07', false)).toBe('day')
+    expect(journalUnitForBasename('2026-W19', false)).toBe('week')
+    expect(journalUnitForBasename('2026-05', false)).toBe('month')
+    expect(journalUnitForBasename('2026', false)).toBe('year')
+  })
+
+  it('returns "quarter" only when quarters are enabled', () => {
+    expect(journalUnitForBasename('2026-Q2', false)).toBe(null)
+    expect(journalUnitForBasename('2026-Q2', true)).toBe('quarter')
+  })
+
+  it('returns null for non-journal basenames', () => {
+    expect(journalUnitForBasename('journal-folder', true)).toBe(null)
+    expect(journalUnitForBasename('Untitled', true)).toBe(null)
   })
 })
 

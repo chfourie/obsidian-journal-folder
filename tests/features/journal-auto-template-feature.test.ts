@@ -93,6 +93,43 @@ describe('JournalAutoTemplateFeature', () => {
     expect(await app.vault.read(file)).toBe(DEFAULT_AUTO_TEMPLATE)
   })
 
+  it('uses per-tier templates when autoTemplatePerTier is on, ignoring the generic template', async () => {
+    ;({ app } = setupFeature({
+      autoTemplateEnabled: true,
+      autoTemplatePerTier: true,
+      autoTemplateContent: '# Generic\n',
+      dailyNoteAutoTemplateContent: '# Daily\n',
+      weeklyNoteAutoTemplateContent: '# Weekly\n',
+    }))
+    seedJournalFolder(app)
+
+    const daily = await createFile(app, 'Journal', '2026-05-07')
+    const weekly = await createFile(app, 'Journal', '2026-W19')
+    const monthly = await createFile(app, 'Journal', '2026-05')
+    // @ts-expect-error
+    expect(await app.vault.read(daily)).toBe('# Daily\n')
+    // @ts-expect-error
+    expect(await app.vault.read(weekly)).toBe('# Weekly\n')
+    // monthly has no per-tier override → falls through to the built-in
+    // default (the generic template is ignored in per-tier mode).
+    // @ts-expect-error
+    expect(await app.vault.read(monthly)).toBe(DEFAULT_AUTO_TEMPLATE)
+  })
+
+  it('ignores per-tier fields when autoTemplatePerTier is off', async () => {
+    ;({ app } = setupFeature({
+      autoTemplateEnabled: true,
+      autoTemplatePerTier: false,
+      autoTemplateContent: '# Generic\n',
+      dailyNoteAutoTemplateContent: '# Daily\n',
+    }))
+    seedJournalFolder(app)
+
+    const daily = await createFile(app, 'Journal', '2026-05-07')
+    // @ts-expect-error
+    expect(await app.vault.read(daily)).toBe('# Generic\n')
+  })
+
   it('uses the global template content when set', async () => {
     ;({ app } = setupFeature({
       autoTemplateEnabled: true,

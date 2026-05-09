@@ -19,12 +19,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import {
   configPathFor,
   FOLDER_CONFIG_FILENAME,
-  isJournalFileBasename,
+  journalUnitForBasename,
   type JournalFolderSettings,
   PluginFeature,
 } from 'src/data-access'
 import { TFile, type Plugin, type TAbstractFile } from 'obsidian'
-import { isTruthySetting, resolveAutoTemplate } from './auto-template-content'
+import {
+  isTruthySetting,
+  perUnitAutoTemplate,
+  resolveAutoTemplate,
+} from './auto-template-content'
 
 export class JournalAutoTemplateFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -51,14 +55,11 @@ export class JournalAutoTemplateFeature extends PluginFeature {
     if (file.name === FOLDER_CONFIG_FILENAME) return
 
     const settings = this.getSettings(file)
-    if (
-      !isJournalFileBasename(
-        file.basename,
-        isTruthySetting(settings.quartersEnabled)
-      )
-    ) {
-      return
-    }
+    const unit = journalUnitForBasename(
+      file.basename,
+      isTruthySetting(settings.quartersEnabled)
+    )
+    if (unit === null) return
 
     const folderConfigFile = this.getFolderConfigFile(file)
     if (!folderConfigFile) return
@@ -72,7 +73,16 @@ export class JournalAutoTemplateFeature extends PluginFeature {
     if (existing.length > 0) return
 
     const folderBody = await this.plugin.app.vault.read(folderConfigFile)
-    const template = resolveAutoTemplate(folderBody, settings.autoTemplateContent)
+    // The toggle is mutually exclusive: per-tier mode ignores the generic
+    // template, single-template mode ignores the per-tier fields. Either
+    // way the folder body still wins, and an empty resolved template falls
+    // through to `DEFAULT_AUTO_TEMPLATE`.
+    const perTier = isTruthySetting(settings.autoTemplatePerTier)
+    const template = resolveAutoTemplate(
+      folderBody,
+      perTier ? perUnitAutoTemplate(settings, unit) : '',
+      perTier ? '' : settings.autoTemplateContent
+    )
     await this.plugin.app.vault.modify(file, template)
   }
 

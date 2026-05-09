@@ -20,5 +20,6 @@ export { JournalAutoTemplateFeature } from './journal-auto-template-feature'
 export {
   resolveAutoTemplate,
   stripFrontMatter,
+  perUnitAutoTemplate,
   DEFAULT_AUTO_TEMPLATE,
 } from './auto-template-content'

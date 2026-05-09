@@ -34,20 +34,61 @@ export function stripFrontMatter(source: string): string {
 }
 
 // Resolves which template body to seed a new journal note with. Precedence
-// matches the rest of the plugin: per-folder override beats the global
-// setting beats the built-in default. The folder body is what's left of
-// `journal-folder.md` after the YAML front-matter is removed; an empty body
-// (whitespace only) falls through to the next layer.
+// (first non-empty wins):
+//   1. Per-folder body of `journal-folder.md` (front-matter stripped).
+//   2. Per-tier global template (`{daily,weekly,monthly,quarterly,yearly}NoteAutoTemplateContent`).
+//   3. Generic global template (`autoTemplateContent`).
+//   4. Built-in `DEFAULT_AUTO_TEMPLATE`.
+// `perUnitTemplate` may be the empty string when the caller has no per-tier
+// override to apply (or when the note's tier doesn't have a dedicated field).
 export function resolveAutoTemplate(
   folderConfigBody: string | null,
+  perUnitTemplate: string,
   globalTemplate: string
 ): string {
   if (folderConfigBody !== null) {
     const body = stripFrontMatter(folderConfigBody)
     if (body.trim().length > 0) return body
   }
+  if (perUnitTemplate.trim().length > 0) return perUnitTemplate
   if (globalTemplate.trim().length > 0) return globalTemplate
   return DEFAULT_AUTO_TEMPLATE
+}
+
+// Picks the per-tier template field that matches a journal time unit. Used
+// by the auto-template feature to thread the right setting into
+// `resolveAutoTemplate`. Yearly unit returns `yearlyNoteAutoTemplateContent`,
+// etc. A `null` unit (non-journal basename) returns the empty string so the
+// resolver falls straight through to the generic global template.
+export function perUnitAutoTemplate(
+  settings: JournalAutoTemplateSettings,
+  unit: 'day' | 'week' | 'month' | 'quarter' | 'year' | null
+): string {
+  switch (unit) {
+    case 'day':
+      return settings.dailyNoteAutoTemplateContent
+    case 'week':
+      return settings.weeklyNoteAutoTemplateContent
+    case 'month':
+      return settings.monthlyNoteAutoTemplateContent
+    case 'quarter':
+      return settings.quarterlyNoteAutoTemplateContent
+    case 'year':
+      return settings.yearlyNoteAutoTemplateContent
+    default:
+      return ''
+  }
+}
+
+// Subset of `JournalFolderSettings` actually consulted by the resolver —
+// kept narrow so the helper can be unit-tested without building a full
+// settings object.
+export type JournalAutoTemplateSettings = {
+  dailyNoteAutoTemplateContent: string
+  weeklyNoteAutoTemplateContent: string
+  monthlyNoteAutoTemplateContent: string
+  quarterlyNoteAutoTemplateContent: string
+  yearlyNoteAutoTemplateContent: string
 }
 
 // Front-matter and embedded-config values may arrive as real booleans (YAML)

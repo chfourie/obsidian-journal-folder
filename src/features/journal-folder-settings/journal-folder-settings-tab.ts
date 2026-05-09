@@ -65,6 +65,14 @@ type SettingsStringFieldName =
   | 'yearlyNoteMediumTitlePattern'
   | 'journalFolderTitle'
 
+type AutoTemplateField =
+  | 'autoTemplateContent'
+  | 'dailyNoteAutoTemplateContent'
+  | 'weeklyNoteAutoTemplateContent'
+  | 'monthlyNoteAutoTemplateContent'
+  | 'quarterlyNoteAutoTemplateContent'
+  | 'yearlyNoteAutoTemplateContent'
+
 // `'global'` renders the full plugin-settings tab; `'folder'` skips
 // global-only fields (start-of-week, hide-config-notes, sidebar section)
 // and the destructive Reset section, since those don't make sense per-folder.
@@ -182,7 +190,56 @@ class SettingsFormBuilder {
       )
     this.createAutoTemplateEnabledSetting(settings)
     if (settings.autoTemplateEnabled) {
-      this.createAutoTemplateContentSetting(settings)
+      this.createAutoTemplatePerTierSetting(settings)
+      if (settings.autoTemplatePerTier) {
+        this.createAutoTemplateContentSetting(
+          settings,
+          'dailyNoteAutoTemplateContent',
+          'Daily note template',
+          'Used for new daily notes (YYYY-MM-DD). Leave blank for the ' +
+            'built-in default (shown as placeholder).'
+        )
+        this.createAutoTemplateContentSetting(
+          settings,
+          'weeklyNoteAutoTemplateContent',
+          'Weekly note template',
+          'Used for new weekly notes (gggg-[W]ww). Leave blank for the ' +
+            'built-in default (shown as placeholder).'
+        )
+        this.createAutoTemplateContentSetting(
+          settings,
+          'monthlyNoteAutoTemplateContent',
+          'Monthly note template',
+          'Used for new monthly notes (YYYY-MM). Leave blank for the ' +
+            'built-in default (shown as placeholder).'
+        )
+        if (settings.quartersEnabled) {
+          this.createAutoTemplateContentSetting(
+            settings,
+            'quarterlyNoteAutoTemplateContent',
+            'Quarterly note template',
+            'Used for new quarterly notes (YYYY-Q[1-4]). Leave blank for ' +
+              'the built-in default (shown as placeholder).'
+          )
+        }
+        this.createAutoTemplateContentSetting(
+          settings,
+          'yearlyNoteAutoTemplateContent',
+          'Yearly note template',
+          'Used for new yearly notes (YYYY). Leave blank for the ' +
+            'built-in default (shown as placeholder).'
+        )
+      } else {
+        this.createAutoTemplateContentSetting(
+          settings,
+          'autoTemplateContent',
+          'Default template',
+          "Markdown used to seed every new journal note. Leave blank " +
+            "for the built-in default (shown as placeholder). Per-folder " +
+            "overrides go in the body of that folder's journal-folder.md " +
+            "note."
+        )
+      }
     }
 
     new Setting(this.containerEl).setName('Calendar').setHeading()
@@ -477,20 +534,52 @@ class SettingsFormBuilder {
       })
   }
 
-  createAutoTemplateContentSetting(settings: JournalFolderSettings): Setting {
+  createAutoTemplatePerTierSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.autoTemplatePerTier = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings).then(() => this.render())
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Use a different template per note type')
+      .setDesc(
+        'Off — every new journal note (daily, weekly, monthly, ' +
+          'quarterly, yearly) is seeded with the same default template. ' +
+          'On — pick a separate template for each note type. The two ' +
+          'modes are mutually exclusive.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.autoTemplatePerTier).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.autoTemplatePerTier)
+            onChange(DEFAULT_SETTINGS.autoTemplatePerTier)
+          })
+      })
+  }
+
+  createAutoTemplateContentSetting(
+    settings: JournalFolderSettings,
+    field: AutoTemplateField,
+    name: string,
+    desc: string
+  ): Setting {
     // Standard Obsidian Setting rows place the control on the right, which
     // gives a textarea ~30% of the row width — useless for editing markdown.
     // Render the name/desc as a normal Setting, then append a separate
     // full-width row containing a plain <textarea>. The placeholder shows
-    // the built-in default in the muted placeholder colour so users see
-    // what they'll get if they leave the field blank.
-    const setting = new Setting(this.containerEl)
-      .setName('Default template')
-      .setDesc(
-        "Markdown used to seed new journal notes. Leave blank for the " +
-          "built-in default (shown as placeholder). Per-folder overrides " +
-          "go in the body of that folder's journal-folder.md note."
-      )
+    // the effective fallback (the generic default template, or the
+    // built-in template) so users see what they'll get if they leave the
+    // field blank.
+    const setting = new Setting(this.containerEl).setName(name).setDesc(desc)
 
     const wrapper = this.containerEl.createDiv({
       cls: 'journal-folder-config-template-wrapper',
@@ -500,11 +589,11 @@ class SettingsFormBuilder {
     })
     textarea.rows = 8
     textarea.placeholder = DEFAULT_AUTO_TEMPLATE
-    textarea.value = settings.autoTemplateContent
+    textarea.value = settings[field]
 
     const onChange = debounce(
       (value: string) => {
-        settings.autoTemplateContent = value
+        settings[field] = value
         // noinspection JSIgnoredPromiseFromCall
         this.saveSettings(settings)
       },

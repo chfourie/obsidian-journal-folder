@@ -55,7 +55,7 @@ The synthetic anchor's `noteNames` array is captured *once* at construction (the
 
 ## File-explorer hide
 
-The global *Hide journal-folder.md in file explorer* setting (`hideJournalFolderNotes`, off by default) toggles a `journal-folder-hide-config-notes` body class on every `saveSettings` call (and removes it on `unload()`). A CSS rule in `styles.css` then declaratively hides the matching `.nav-file` rows:
+The global *Hide journal-folder.md in file explorer* setting (`hideJournalFolderNotes`, on by default) toggles a `journal-folder-hide-config-notes` body class on every `saveSettings` call (and removes it on `unload()`). A CSS rule in `styles.css` then declaratively hides the matching `.nav-file` rows:
 
 ```css
 body.journal-folder-hide-config-notes
