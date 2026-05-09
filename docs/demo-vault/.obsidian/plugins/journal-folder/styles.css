@@ -598,12 +598,22 @@
 	opacity: 1;
 }
 
-/* The folder-config modal hosts the same Setting form rows as the plugin
- * settings tab. Cap the modal width and let it scroll vertically so the
- * larger pattern-rich form doesn't overflow the viewport on smaller
- * screens. */
-.journal-folder-config-modal {
-	max-height: 70vh;
+/* The folder-config modal borrows Obsidian's settings-dialog skin
+ * (`mod-settings`) so it gets the same width and chrome as the plugin
+ * settings tab. `mod-settings` normally renders a left-hand tab list
+ * (`.modal-tab-header`) and uses `.vertical-tabs-container` as the
+ * sibling content area; we have only one tab worth of content, so we
+ * hide the empty tab list and let our content fill the modal. */
+.journal-folder-config-modal-wrap .modal-tab-header {
+	display: none;
+}
+
+.journal-folder-config-modal-wrap .vertical-tab-content-container {
+	display: none;
+}
+
+.journal-folder-config-modal-wrap .modal-content.journal-folder-config-modal {
+	flex: 1 1 auto;
 	overflow-y: auto;
 }
 

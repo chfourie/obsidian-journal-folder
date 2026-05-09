@@ -66,7 +66,16 @@ export class FolderConfigModal extends Modal {
     this.titleEl.setText(
       `Edit configuration — ${this.folderPath || '(vault root)'}`
     )
-    this.contentEl.addClass('journal-folder-config-modal')
+    // Borrow Obsidian's settings-dialog skin (`mod-settings`) so this
+    // modal lays out at the same width and with the same chrome as the
+    // global plugin settings tab. Our own class on `contentEl` lets us
+    // hide the (always-empty) tab sidebar that `mod-settings` normally
+    // renders, and pad the body the way the settings dialog does.
+    this.modalEl.addClass('mod-settings', 'journal-folder-config-modal-wrap')
+    this.contentEl.addClass(
+      'vertical-tab-content',
+      'journal-folder-config-modal'
+    )
 
     renderSettingsForm({
       app: this.app,
