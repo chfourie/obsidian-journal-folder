@@ -604,6 +604,11 @@
  * (`.modal-tab-header`) and uses `.vertical-tabs-container` as the
  * sibling content area; we have only one tab worth of content, so we
  * hide the empty tab list and let our content fill the modal. */
+.journal-folder-config-modal-wrap {
+	width: min(95vw, 1100px);
+	max-width: 95vw;
+}
+
 .journal-folder-config-modal-wrap .modal-tab-header {
 	display: none;
 }
