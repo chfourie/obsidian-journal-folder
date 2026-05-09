@@ -264,7 +264,7 @@ The `%% … %%` line is an Obsidian hidden comment — it doesn't render in read
 
 ### Per-folder template example
 
-```markdown
+````markdown
 ---
 journal-folder-title: Atlas Migration
 auto-template-enabled: true
@@ -277,7 +277,7 @@ auto-template-enabled: true
 ## Highlights
 
 ## Notes
-```
+````
 
 > [!TIP]
 > If your template needs to contain a fenced code block (like the `journal-header` block above) and you want to wrap the *whole* template in another code block for clarity in `journal-folder.md`, use a tilde fence (`~~~`) for the outer wrapper or a longer run of backticks (4+) — anything longer than the inner fences. The plugin treats the entire body of `journal-folder.md` as the template, so wrapping isn't required; this only matters if you're showing the template to humans elsewhere.
