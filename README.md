@@ -138,7 +138,7 @@ Cell rules (apply uniformly across day/week/month/year cells):
 
 Clicking a date that doesn't yet have a note creates it (with a confirm prompt for past dates). Arrows on the sides slide the visible month window by one month at a time.
 
-The strip above the months grid carries two quick-nav controls. **Today** snaps the month window so the current month sits at the anchor — handy when you've scrolled far away. **{Month} {Year}** (the centred label) toggles a date-picker popover with year chevrons (`‹` and `›` shift by ±12 months) and a 4×3 grid of month names; clicking a month jumps the window straight to it. The picker is portaled and clamped inside the viewport, so it doesn't overflow at narrow widths.
+The strip above the months grid carries up to three quick-nav controls. **Year/Month** (always shown) toggles a date-picker popover with year chevrons (`‹` and `›` shift by ±12 months) and a 4×3 grid of month names; clicking a month jumps the window straight to it. The picker is portaled and clamped inside the viewport, so it doesn't overflow at narrow widths. **Current** appears only when the visible window has scrolled away from today's month — clicking it snaps back. **Note month** appears only when the visible window has scrolled away from the host note's own month, and only differs from *Current* once you start a session on a non-today note. Both *Current* and *Note month* hide themselves when they'd be redundant, so the chrome quietly disappears as you navigate back into range.
 
 The number of visible months is chosen automatically based on the available width, capped at 5. As the pane narrows the picker drops to a single month; on mobile the cells additionally enlarge for easier tapping:
 
@@ -292,17 +292,39 @@ The `journal-header` block is a no-op when placed in a note whose basename isn't
 
 A dedicated sidebar view collects journal-folder actions in one place. Open it with the calendar ribbon icon (left edge of the workspace) — the view docks in the right sidebar by default.
 
-Phase 1 ships:
+![Sidebar in dynamic mode](docs/screenshots/sidebar-dynamic.png)
 
-- **Folder picker** listing every folder that contains a `journal-folder.md`. The section header reads **JOURNAL FOLDER (dynamic)** or **JOURNAL FOLDER (static)** — the parenthesised tag tracks the current mode at a glance.
-- **Calendar** — a single-month grid bound to the selected folder. Clicking a day, week, month, quarter, or year cell opens (or creates) the corresponding journal note in the selected folder; past-dated cells with no existing note route through the same *Create missing note?* confirmation modal used by the in-note calendar. The controls strip carries `‹` / `›` arrows for month-by-month navigation and a clickable month/year title that jumps back to today and resets the highlight to today's daily cell. In **dynamic** mode, when the active note is a journal note in a known journal folder, the calendar scrolls to that note's period and highlights its cell — even when the parent folder didn't change.
-- **More... menu** — a single text link to the right of the section header opens an Obsidian-native menu with every secondary action (mode toggle, default-folder swap/set, folder-config editor, initialise). The menu is built from the current sidebar state, so options that don't apply right now are simply omitted (e.g. *Switch to default folder* is hidden when you're already on the default; *Edit folder configuration* is hidden when no journal folder is selected). Items in the menu:
-  - **Switch to dynamic / Switch to static** — flips the mode (also reflected in the section-header tag). *Dynamic* follows the active note when it lives in a journal folder; *static* holds the selected folder regardless of which note is open. Persists as the global `sidebar-mode` setting.
-  - **Switch to default folder** — resets the picker to the configured `default-journal-folder`. Shown only when you're on a non-default folder *and* the configured default still exists in the known list.
-  - **Set as default folder** — promotes the currently selected folder to the new global default. Shown only when the picker is on a non-default journal folder. The default folder itself has no global-settings-tab UI — set it from here.
-  - **Edit folder configuration** — opens a modal containing the same form rows as the plugin settings tab, but writing to the selected folder's `journal-folder.md` front matter instead of the plugin's `data.json`. Global-only fields (`start-of-week`, `hide-journal-folder-notes`, the *Sidebar* section, the destructive *Reset all* button) are hidden. Per-folder fields show their **effective** value (global merged with the folder's existing front matter), and edits are stored sparsely — fields that match the global config are *removed* from the front matter so subsequent global edits keep flowing through, while diverging fields are written as kebab-cased keys.
-  - **Initialise a new journal folder** — opens a fuzzy folder picker showing every folder that *isn't* already a journal folder (the vault root is excluded — it's not a supported journal folder elsewhere in the plugin). Picking a folder creates a `journal-folder.md` in it seeded with `journal-folder-title: <folder name>`, then switches the sidebar's selected folder to the new one.
-- **Hide `journal-folder.md` in file explorer** — global toggle in the plugin settings tab. Hides the config notes from the file tree without removing them from disk.
+The header reads **JOURNAL FOLDER (Dynamic)** or **JOURNAL FOLDER (Static)** — the parenthesised tag tracks the current mode at a glance. A single **More...** link to the right of that label opens every secondary action; the folder picker beneath it switches between known journal folders.
+
+### Folder picker
+
+Every folder that contains a `journal-folder.md` shows up in the picker. Click the dropdown trigger and Obsidian's native menu lists them all:
+
+![Sidebar folder picker](docs/screenshots/sidebar-folder-picker.png)
+
+In **dynamic** mode (the default), opening a journal note in a different folder switches the picker automatically — the calendar scrolls to that note's period and highlights its cell. In **static** mode the picker holds whichever folder you chose regardless of which note is open. Persists as the global `sidebar-mode` setting.
+
+### Calendar
+
+The calendar is the same single-month grid logic the in-note calendar uses, scoped to the selected folder. Clicking a day, week, month, quarter, or year cell opens (or creates) the corresponding journal note; past-dated cells with no existing note route through the same *Create missing note?* confirmation prompt the in-note calendar uses. The controls strip carries the same **Year/Month**, **Current**, and **Note month** quick-nav links as the in-note calendar, plus `‹` / `›` arrows for month-by-month navigation. In dynamic mode the calendar scrolls to follow the active note's period without clearing your manual `‹` / `›` history.
+
+### More... menu
+
+A single text link to the right of the section header opens an Obsidian-native menu with every secondary action. The menu is built from the current sidebar state, so options that don't apply right now are simply omitted (e.g. *Switch to default folder* is hidden when you're already on the default; *Edit folder configuration* is hidden when no journal folder is selected).
+
+![Sidebar More... menu](docs/screenshots/sidebar-more-menu.png)
+
+Items:
+
+- **Switch to dynamic / Switch to static** — flips the mode (also reflected in the section-header tag). Persists as the global `sidebar-mode` setting.
+- **Switch to default folder** — resets the picker to the configured `default-journal-folder`. Shown only when you're on a non-default folder *and* the configured default still exists in the known list.
+- **Set as default folder** — promotes the currently selected folder to the new global default. Shown only when the picker is on a non-default journal folder. The default folder itself has no global-settings-tab UI — set it from here.
+- **Edit folder configuration** — opens a modal containing the same form rows as the plugin settings tab, but writing to the selected folder's `journal-folder.md` front matter instead of the plugin's `data.json`. Global-only fields (`start-of-week`, `hide-journal-folder-notes`, the *Sidebar* section, the destructive *Reset all* button) are hidden. Per-folder fields show their **effective** value (global merged with the folder's existing front matter), and edits are stored sparsely — fields that match the global config are *removed* from the front matter so subsequent global edits keep flowing through, while diverging fields are written as kebab-cased keys.
+- **Initialise a new journal folder** — opens a fuzzy folder picker showing every folder that *isn't* already a journal folder (the vault root is excluded — it's not a supported journal folder elsewhere in the plugin). Picking a folder creates a `journal-folder.md` in it seeded with `journal-folder-title: <folder name>`, then switches the sidebar's selected folder to the new one.
+
+### Hiding the config notes
+
+A separate **Hide `journal-folder.md` in file explorer** toggle in the plugin settings tab keeps the config notes out of Obsidian's file tree without removing them from disk — they remain reachable through search and the *Edit folder configuration* action above.
 
 ---
 
