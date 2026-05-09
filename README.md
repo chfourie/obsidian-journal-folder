@@ -4,7 +4,7 @@ An Obsidian community plugin that turns *any* folder in your vault into a journa
 
 You can run as many independent journals as you like in the same vault. A folder per project, a folder for personal notes, a folder per client — each gets its own settings, its own sequence of notes, and its own header.
 
-![Daily note header rendered by the plugin](docs/screenshots/header-daily.png)
+![Bird's-eye view: a daily journal note rendered by the plugin, with the journal-folder sidebar tab open on the right](docs/screenshots/hero-overview.png)
 
 ---
 
