@@ -56,4 +56,29 @@ describe('computeFrontMatterDiff', () => {
       'default-calendar-visible-desktop',
     ])
   })
+
+  it('treats a non-string non-boolean value (number, null) as different from the global', () => {
+    // Front matter loaded from disk can occasionally surface a number where
+    // a string was expected (e.g. a user typed `daily-note-title-pattern: 1`
+    // by accident). `areEqual` only cross-coerces string<->boolean — every
+    // other type-mismatch must be treated as "different" so the user's
+    // explicit value is preserved verbatim rather than silently flipped.
+    const global = settings({ dailyNoteTitlePattern: 'CUSTOM' })
+    const next = settings({
+      ...global,
+      dailyNoteTitlePattern: 1 as unknown as string,
+    })
+    const diff = computeFrontMatterDiff(next, global)
+    expect(diff.set).toHaveProperty('daily-note-title-pattern', 1)
+  })
+
+  it('keeps null distinct from a string global value', () => {
+    const global = settings({ dailyNoteTitlePattern: 'CUSTOM' })
+    const next = settings({
+      ...global,
+      dailyNoteTitlePattern: null as unknown as string,
+    })
+    const diff = computeFrontMatterDiff(next, global)
+    expect(diff.set).toHaveProperty('daily-note-title-pattern', null)
+  })
 })

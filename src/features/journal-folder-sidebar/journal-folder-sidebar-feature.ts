@@ -66,7 +66,7 @@ export class JournalFolderSidebarFeature extends PluginFeature {
   unload(): void {
     // The view's onClose handles its own cleanup; we just detach leaves so
     // the view-type registration disposes cleanly when the plugin unloads.
-    this.plugin.app.workspace.detachLeavesOfType?.(
+    this.plugin.app.workspace.detachLeavesOfType(
       VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR
     )
   }

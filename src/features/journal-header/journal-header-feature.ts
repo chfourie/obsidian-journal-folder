@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { mount } from 'svelte'
+import { mount, unmount } from 'svelte'
 import {
   isJournalFileBasename,
   type JournalFolderSettings,
@@ -33,7 +33,7 @@ import {
 } from './journal-header-info'
 import { confirmCreateNote } from './confirm-create-modal'
 import { resolveDefaultCalendarVisible } from './resolve-default-calendar-visible'
-import { Platform, TFile, type Plugin } from 'obsidian'
+import { MarkdownRenderChild, Platform, TFile, type Plugin } from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -86,7 +86,7 @@ export class JournalHeaderFeature extends PluginFeature {
               isMobile
             )
             // @ts-ignore
-            mount(JournalHeader, {
+            const component = mount(JournalHeader, {
               target: el,
               props: {
                 info,
@@ -97,17 +97,48 @@ export class JournalHeaderFeature extends PluginFeature {
                 isMobile,
               },
             })
+            ctx.addChild(new SvelteRenderChild(el, component))
           } else {
-            this.mountError(el, `No current file present (${ctx.sourcePath})`)
+            this.mountError(el, ctx, `No current file present (${ctx.sourcePath})`)
           }
         } catch (error) {
-          this.mountError(el, `${error}`)
+          this.mountError(el, ctx, `${error}`)
         }
       }
     )
   }
 
-  private mountError(el: HTMLElement, error: string): void {
-    mount(ErrorMessage, { target: el, props: { error: `${error}` } })
+  private mountError(
+    el: HTMLElement,
+    ctx: { addChild: (child: MarkdownRenderChild) => void },
+    error: string
+  ): void {
+    const component = mount(ErrorMessage, {
+      target: el,
+      props: { error: `${error}` },
+    })
+    ctx.addChild(new SvelteRenderChild(el, component))
+  }
+}
+
+// Pairs a Svelte 5 mount() with the markdown post-processor lifecycle so
+// every re-render of the code block tears down its component instance and
+// the listeners/effects it registered. Without this, switching between
+// edit/preview or scrolling the code block in/out of view leaks one Svelte
+// instance per fire of the processor.
+class SvelteRenderChild extends MarkdownRenderChild {
+  constructor(
+    containerEl: HTMLElement,
+    private component: ReturnType<typeof mount>
+  ) {
+    super(containerEl)
+  }
+
+  onunload(): void {
+    try {
+      unmount(this.component)
+    } catch {
+      // Defensive: if the component is already torn down, swallow.
+    }
   }
 }

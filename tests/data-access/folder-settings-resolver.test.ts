@@ -135,6 +135,57 @@ describe('FolderSettingsResolver', () => {
       )
     })
 
+    it('strips global-only keys from folder front matter', () => {
+      // `start-of-week`, `default-journal-folder`, `hide-journal-folder-notes`,
+      // and `sidebar-mode` are documented as global-only — folder-level
+      // overrides for them must not bleed through into the resolved settings.
+      const { app, files } = buildApp('Journal', [
+        '2026-05-03',
+        {
+          name: 'journal-folder.md',
+          frontmatter: {
+            'start-of-week': 'monday',
+            'default-journal-folder': 'OtherFolder',
+            'hide-journal-folder-notes': false,
+            'sidebar-mode': 'static',
+            // Sanity check: a non-global-only key on the same file still applies.
+            'journal-folder-title': 'My Journal',
+          },
+        },
+      ])
+      const resolver = new FolderSettingsResolver(makePlugin(app))
+      const resolved = resolver.resolve(DEFAULT_SETTINGS, files['2026-05-03'])
+
+      expect(resolved.startOfWeek).toBe(DEFAULT_SETTINGS.startOfWeek)
+      expect(resolved.defaultJournalFolder).toBe(
+        DEFAULT_SETTINGS.defaultJournalFolder
+      )
+      expect(resolved.hideJournalFolderNotes).toBe(
+        DEFAULT_SETTINGS.hideJournalFolderNotes
+      )
+      expect(resolved.sidebarMode).toBe(DEFAULT_SETTINGS.sidebarMode)
+      expect(resolved.journalFolderTitle).toBe('My Journal')
+    })
+
+    it('strips global-only keys from embedded code-block config', () => {
+      const { app, files } = buildApp('Journal', ['2026-05-03'])
+      const resolver = new FolderSettingsResolver(makePlugin(app))
+
+      const resolved = resolver.resolve(
+        DEFAULT_SETTINGS,
+        files['2026-05-03'],
+        `
+        start-of-week: monday
+        sidebar-mode: static
+        journal-folder-title: Embedded
+        `
+      )
+
+      expect(resolved.startOfWeek).toBe(DEFAULT_SETTINGS.startOfWeek)
+      expect(resolved.sidebarMode).toBe(DEFAULT_SETTINGS.sidebarMode)
+      expect(resolved.journalFolderTitle).toBe('Embedded')
+    })
+
     it('does not bleed settings between sibling folders with the same name', () => {
       const app = new App()
 

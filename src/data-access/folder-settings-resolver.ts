@@ -20,6 +20,18 @@ import { TFile, type FrontMatterCache, type Plugin } from 'obsidian'
 import { type JournalFolderSettings } from './journal-folder-settings.type'
 import { camelCase } from './string-utils'
 
+// Settings that only make sense at the global level. The per-field JSDoc on
+// `JournalFolderSettings` explains why each one is global-only (locale
+// singletons, sidebar/file-explorer UI preferences). The resolver strips
+// these from folder front-matter and embedded configs so a stray override
+// can't silently change process-wide behaviour.
+const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
+  'startOfWeek',
+  'defaultJournalFolder',
+  'hideJournalFolderNotes',
+  'sidebarMode',
+])
+
 export class FolderSettingsResolver {
   constructor(private plugin: Plugin) {}
 
@@ -40,7 +52,8 @@ export class FolderSettingsResolver {
     const frontMatter = this.getFrontMatterCache(this.getFolderConfigFile(file))
 
     Object.keys(frontMatter).forEach((key) => {
-      const configKey = camelCase(key)
+      const configKey = camelCase(key) as keyof JournalFolderSettings
+      if (GLOBAL_ONLY_FIELDS.has(configKey)) return
       // @ts-ignore
       config[configKey] = frontMatter[key]
     })
@@ -66,6 +79,8 @@ export class FolderSettingsResolver {
       .map((line) => this.keyValuePair(line))
       .filter((item) => !!item)
       .forEach((item) => {
+        if (GLOBAL_ONLY_FIELDS.has(item.key as keyof JournalFolderSettings))
+          return
         // @ts-ignore
         config[item.key] = item.value
       })

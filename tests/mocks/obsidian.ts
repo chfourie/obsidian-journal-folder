@@ -381,6 +381,15 @@ export class FuzzySuggestModal<T> {
   onChooseItem(_item: T, _evt: MouseEvent | KeyboardEvent): void {}
 }
 
+export class MarkdownRenderChild {
+  containerEl: HTMLElement
+  constructor(containerEl: HTMLElement) {
+    this.containerEl = containerEl
+  }
+  onload(): void {}
+  onunload(): void {}
+}
+
 export class Modal {
   app: App
   contentEl: HTMLElement = document.createElement('div')
