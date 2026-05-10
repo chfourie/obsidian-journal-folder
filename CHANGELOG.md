@@ -7,23 +7,6 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
-## [2.2.0]
-
-### Fixed
-- **Global-only settings can no longer be overridden per folder.** Folder
-  front matter and embedded `journal-header` configs silently overrode
-  `startOfWeek`, `defaultJournalFolder`, `hideJournalFolderNotes`, and
-  `sidebarMode` despite the documented global-only contract. The resolver
-  now strips those keys from both override layers.
-- **Svelte components in the `journal-header` code block are now properly
-  unmounted.** Previously, every re-render of the block (live-preview
-  toggle, scroll-in/out, edit-mode switch) leaked a component instance and
-  its effects. The mount is now registered as a `MarkdownRenderChild` so
-  Obsidian tears it down on re-render.
-- **Sidebar leaves are no longer left zombied on plugin unload** if
-  Obsidian's `detachLeavesOfType` is unexpectedly missing — the silent
-  optional-chaining guard has been removed so failures surface visibly.
-
 ## [2.1.0]
 
 ### Added
