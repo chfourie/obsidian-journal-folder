@@ -7,6 +7,15 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.1.1]
+
+### Changed
+- **Dependency upgrades.** Bumped `svelte` to 5.55.7 (resolves SSR XSS
+  advisories GHSA-pr6f-5x2q-rwfp and GHSA-f3cj-j4f6-wq85, plus the transitive
+  `devalue` advisory GHSA-77vg-94rm-hx3p) along with patch/minor bumps to
+  `@types/node`, `@typescript-eslint/*`, `builtin-modules`, `esbuild-svelte`,
+  and `vitest`. No user-facing behavioural changes.
+
 ## [2.1.0]
 
 ### Added
