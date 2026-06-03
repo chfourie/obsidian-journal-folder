@@ -19,49 +19,80 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import type { TaskModel, TaskStatus, TaskStatusId } from './task-model.type'
 import { TASK_LINE_REGEX } from './task-line-regex'
 
+// Visual defaults mirror the semantic-colour reference layout: outline
+// ring for open, soft fill for in-progress, accent-coloured filled
+// circles with white glyphs for done / cancelled, bare coloured
+// chevron for migrated. Every colour resolves through theme tokens
+// so the icons follow the user's active theme automatically.
 const STATUSES: TaskStatus[] = [
   {
     id: 'open',
     label: 'Open',
     char: ' ',
-    iconSquare: 'square',
-    iconCircle: 'circle',
+    isDone: false,
+    shell: {
+      shape: 'circle',
+      background: undefined,
+      border: { color: { kind: 'token', var: '--text-faint' }, width: 2 },
+    },
+    icon: { source: { kind: 'none' } },
   },
   {
     id: 'in-progress',
     label: 'In progress',
     char: '/',
-    iconSquare: 'square-dot',
-    iconCircle: 'circle-dot',
+    isDone: false,
+    shell: {
+      shape: 'circle',
+      background: { kind: 'token', var: '--text-faint' },
+      border: null,
+    },
+    icon: { source: { kind: 'none' } },
   },
   {
     id: 'done',
     label: 'Done',
     char: 'x',
-    iconSquare: 'square-check',
-    iconCircle: 'circle-check',
+    isDone: true,
+    shell: {
+      shape: 'circle',
+      background: { kind: 'token', var: '--color-green' },
+      border: null,
+    },
+    icon: {
+      source: { kind: 'lucide', name: 'check' },
+      color: { kind: 'token', var: '--text-on-accent' },
+      inset: 0.7,
+    },
   },
   {
     id: 'migrated',
     label: 'Migrated',
     char: '>',
-    iconSquare: 'square-chevron-right',
-    iconCircle: 'circle-chevron-right',
+    isDone: true,
+    shell: { shape: 'none' },
+    icon: {
+      source: { kind: 'lucide', name: 'corner-up-right' },
+      color: { kind: 'token', var: '--color-blue' },
+    },
   },
   {
     id: 'cancelled',
     label: 'Cancelled',
     char: '-',
-    iconSquare: 'square-x',
-    iconCircle: 'circle-x',
+    isDone: true,
+    shell: {
+      shape: 'circle',
+      background: { kind: 'token', var: '--color-red' },
+      border: null,
+    },
+    icon: {
+      source: { kind: 'lucide', name: 'x' },
+      color: { kind: 'token', var: '--text-on-accent' },
+      inset: 0.7,
+    },
   },
 ]
-
-const DONE_STATUSES: ReadonlySet<TaskStatusId> = new Set([
-  'done',
-  'migrated',
-  'cancelled',
-])
 
 function statusForChar(char: string): TaskStatus | undefined {
   const lower = char.toLowerCase()
@@ -101,7 +132,7 @@ export const bulletJournalTaskModel: TaskModel = {
     return `[${entry.char}]`
   },
   isDone(status) {
-    return DONE_STATUSES.has(status)
+    return statusForId(status)?.isDone ?? false
   },
   nextStatus(current) {
     return CYCLE[current] ?? 'open'

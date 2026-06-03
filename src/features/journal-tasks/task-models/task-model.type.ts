@@ -20,17 +20,66 @@ import type { TaskStatusId } from '../../../data-access/journal-task'
 
 export type { TaskStatusId }
 
+// A colour reference — prefer the `token` form so the icon follows
+// the active theme automatically. `literal` is the escape hatch for
+// users who insist on a specific RGB value.
+export type ColorRef =
+  | { kind: 'token'; var: string }     // CSS variable name, e.g. '--color-green'
+  | { kind: 'literal'; value: string } // raw CSS colour, e.g. '#34a853'
+
+// Where the inner glyph comes from. `none` lets the shell stand on
+// its own (an empty ring, a filled dot) without an icon inside.
+// A `svg` kind is intentionally omitted for now — accepting raw
+// SVG markup needs a sanitiser (XSS sink via `innerHTML`); we'll
+// reintroduce it through `DOMParser` + an allow-list when the
+// per-status editor UI lands.
+export type IconSource =
+  | { kind: 'none' }
+  | { kind: 'lucide'; name: string }
+  | { kind: 'emoji'; emoji: string }
+  | { kind: 'image'; url: string }
+
+export interface IconSpec {
+  source: IconSource
+  // Foreground colour for monochrome glyphs (Lucide, monochrome SVG).
+  // Ignored for emoji / colour images. Default if omitted: inherit.
+  color?: ColorRef
+  // How much of the shell the inner icon fills, as a fraction (0..1).
+  // Default ~0.7 — leaves a small ring of background around the
+  // glyph so a check / X reads cleanly inside a filled circle.
+  inset?: number
+}
+
+export type ShellShape = 'none' | 'circle' | 'square' | 'rounded-square'
+
+export interface ShellAppearance {
+  shape: ShellShape
+  // null / undefined → transparent. Pair with `border` for an
+  // outlined look (open status), or set a colour for a fill
+  // (done / cancelled).
+  background?: ColorRef
+  // null / undefined → no border. Set both fields for an outlined
+  // ring (open status). The width is in CSS pixels and is applied
+  // uniformly on every side.
+  border?: { color: ColorRef; width: number } | null
+}
+
 export interface TaskStatus {
   id: TaskStatusId
   label: string
-  // The on-disk character that appears between the brackets (e.g. ' ',
-  // 'x', '/', '>', '-'). Stored on the status so a single table drives
-  // both parsing and the status-menu UI.
+  // On-disk character (`' '`, `'x'`, `'/'`, `'>'`, `'-'`). Mandatory —
+  // this is what the model parses out of the markdown source and
+  // writes back when a status cycles.
   char: string
-  // Lucide icon names — `iconSquare` is rendered when the global
-  // `taskCheckboxStyle` is `'square'`, `iconCircle` when `'circle'`.
-  iconSquare: string
-  iconCircle: string
+  // Drives the *Show / Hide completed* filter on the task panels.
+  // True for any status the user considers "completed-equivalent"
+  // (typically done / migrated / cancelled).
+  isDone: boolean
+  // Visual record split into a shell (the frame) and an icon (the
+  // glyph drawn inside the frame). Either can be `'none'`-equivalent
+  // for shape-only (no icon) or icon-only (no shell) statuses.
+  shell: ShellAppearance
+  icon: IconSpec
 }
 
 export interface TaskModel {
@@ -42,12 +91,25 @@ export interface TaskModel {
   // Returns the full bracketed token (`'[x]'`) for the given status,
   // including the brackets so callers don't have to assemble it.
   serializeStatus(status: TaskStatusId): string
-  // Drives the *Show / Hide completed* filter — true for any status that
-  // shouldn't appear when the user has hidden completed tasks.
+  // Drives the *Show / Hide completed* filter — true for any status
+  // that shouldn't appear when the user has hidden completed tasks.
   isDone(status: TaskStatusId): boolean
   // The left-click cycle target for the current status. Only the
   // primary cycle is exposed here; access to other statuses goes
   // through the right-click / long-press status menu, which lists
   // every entry in `statuses`.
   nextStatus(current: TaskStatusId): TaskStatusId
+}
+
+// ---------------- helpers ----------------------------------------
+
+// Resolves a ColorRef to a CSS value string suitable for inline
+// styles or computed CSS. Tokens become `var(--name)`, literals pass
+// through verbatim. Used by both the Svelte renderer and the
+// document-side TS renderers so a single source of truth governs
+// how a `ColorRef` lands on the page.
+export function colorRefToCss(ref: ColorRef | undefined): string | null {
+  if (!ref) return null
+  if (ref.kind === 'token') return `var(${ref.var})`
+  return ref.value
 }

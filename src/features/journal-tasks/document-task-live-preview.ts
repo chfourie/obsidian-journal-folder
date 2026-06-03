@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, Menu, setIcon } from 'obsidian'
+import { type App, Menu } from 'obsidian'
 import { type Extension } from '@codemirror/state'
 import {
   EditorView,
@@ -25,16 +25,15 @@ import {
 } from '@codemirror/view'
 import type {
   TaskCheckboxRendering,
-  TaskCheckboxStyle,
   TaskStatusId,
 } from '../../data-access'
-import type { TaskModel, TaskStatus } from './task-models'
+import type { TaskModel } from './task-models'
 import { setTaskStatus, type TaskMutationTarget } from './task-transition'
+import { renderStatusIconById } from './render-status-icon'
 
 export interface LivePreviewTaskContext {
   app: App
   resolveModel: () => TaskModel
-  resolveCheckboxStyle: () => TaskCheckboxStyle
   resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
@@ -258,12 +257,8 @@ class LivePreviewPlugin implements PluginValue {
       input.removeAttribute('aria-hidden')
       return
     }
-    const checkboxStyle = this.ctx.resolveCheckboxStyle()
-    const status = findStatus(model, parsed.status)
-    icon.setAttribute('data-task', status?.char ?? ' ')
     icon.setAttribute('aria-label', `Task status: ${parsed.status}`)
-    icon.empty()
-    setIcon(icon, iconNameFor(status, checkboxStyle))
+    renderStatusIconById(icon, parsed.status, model)
   }
 
   private buildIcon(
@@ -272,14 +267,10 @@ class LivePreviewPlugin implements PluginValue {
   ): HTMLElement {
     const span = document.createElement('span')
     span.setAttribute(ICON_ATTR, '')
-    span.className = 'journal-folder-document-task-icon'
     span.setAttribute('role', 'button')
     span.setAttribute('tabindex', '0')
     span.setAttribute('aria-label', `Task status: ${statusId}`)
-    const checkboxStyle = this.ctx.resolveCheckboxStyle()
-    const status = findStatus(model, statusId)
-    span.setAttribute('data-task', status?.char ?? ' ')
-    setIcon(span, iconNameFor(status, checkboxStyle))
+    renderStatusIconById(span, statusId, model)
     return span
   }
 
@@ -309,19 +300,3 @@ class LivePreviewPlugin implements PluginValue {
 // scheduleScan via the MutationObserver naturally. See
 // `JournalTasksFeature.useSettings` for the wiring.
 
-// ---------- helpers ------------------------------------------------
-
-function iconNameFor(
-  status: TaskStatus | undefined,
-  checkboxStyle: TaskCheckboxStyle
-): string {
-  if (!status) return checkboxStyle === 'circle' ? 'circle' : 'square'
-  return checkboxStyle === 'circle' ? status.iconCircle : status.iconSquare
-}
-
-function findStatus(
-  model: TaskModel,
-  statusId: TaskStatusId
-): TaskStatus | undefined {
-  return model.statuses.find((s) => s.id === statusId)
-}

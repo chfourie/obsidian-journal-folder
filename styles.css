@@ -1026,3 +1026,56 @@ li.task-list-item[data-task="-"] {
 	color: var(--text-muted);
 	text-decoration: line-through;
 }
+
+/* Status icon shell — the outer span every plugin-rendered status
+ * icon paints into. The data attributes (`data-status`,
+ * `data-task`, `data-model`) give power users a stable selector
+ * surface for CSS overrides without rebuilding the plugin. Inline
+ * styles drive the shell's shape / background / border (each model
+ * provides those via `TaskStatus.shell`); the inner `.jf-task-status-icon`
+ * carries the glyph and its colour. */
+.jf-task-status {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.1em;
+	height: 1.1em;
+	flex: 0 0 auto;
+	cursor: pointer;
+	box-sizing: border-box;
+	vertical-align: -0.15em;
+	user-select: none;
+	transition: transform 0.05s ease-out;
+}
+
+.jf-task-status:active {
+	transform: scale(0.94);
+}
+
+.jf-task-status:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.jf-task-status-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	/* Inner glyph size is driven by the `inset` field on
+	 * `TaskStatus.icon` — the renderer sets width/height inline as
+	 * a percentage of the shell. The svg ridiculously fills its box,
+	 * so width/height percent gives us proportional sizing. */
+}
+
+.jf-task-status-icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Inside the panel rows the shell sits next to text — needs the
+ * same fixed gutter as the old icon class so row spacing stays
+ * consistent across the migration. */
+.journal-folder-tasks-row .jf-task-status {
+	margin-right: 0.1em;
+}

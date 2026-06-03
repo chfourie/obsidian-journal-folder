@@ -355,7 +355,6 @@ class SettingsFormBuilder {
             'home.'
         )
       this.createTaskModelSetting(settings)
-      this.createTaskCheckboxStyleSetting(settings)
       this.createTasksMaxItemsSetting(settings)
       this.createTaskInteractionScopeSetting(settings)
       this.createTaskCheckboxRenderingSetting(settings)
@@ -755,36 +754,6 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.taskModel)
             onChange(DEFAULT_SETTINGS.taskModel)
-          })
-      })
-  }
-
-  createTaskCheckboxStyleSetting(settings: JournalFolderSettings): Setting {
-    let component: DropdownComponent
-
-    const onChange = (value: string) => {
-      settings.taskCheckboxStyle =
-        value as JournalFolderSettings['taskCheckboxStyle']
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Checkbox style')
-      .setDesc('Pick between square and circle status icons.')
-      .addDropdown((dropdown) => {
-        component = dropdown
-        dropdown.addOption('square', 'Square')
-        dropdown.addOption('circle', 'Circle')
-        dropdown.setValue(settings.taskCheckboxStyle).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.taskCheckboxStyle)
-            onChange(DEFAULT_SETTINGS.taskCheckboxStyle)
           })
       })
   }

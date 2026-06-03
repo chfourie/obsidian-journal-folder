@@ -19,20 +19,37 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import type { TaskModel, TaskStatus, TaskStatusId } from './task-model.type'
 import { TASK_LINE_REGEX } from './task-line-regex'
 
+// Two-state look: outline ring for open, filled accent circle with a
+// white check for done. Pairs cleanly with most themes and reads
+// well at the panel font sizes the plugin renders at.
 const STATUSES: TaskStatus[] = [
   {
     id: 'open',
     label: 'Open',
     char: ' ',
-    iconSquare: 'square',
-    iconCircle: 'circle',
+    isDone: false,
+    shell: {
+      shape: 'circle',
+      background: undefined,
+      border: { color: { kind: 'token', var: '--text-faint' }, width: 2 },
+    },
+    icon: { source: { kind: 'none' } },
   },
   {
     id: 'done',
     label: 'Done',
     char: 'x',
-    iconSquare: 'square-check',
-    iconCircle: 'circle-check',
+    isDone: true,
+    shell: {
+      shape: 'circle',
+      background: { kind: 'token', var: '--color-green' },
+      border: null,
+    },
+    icon: {
+      source: { kind: 'lucide', name: 'check' },
+      color: { kind: 'token', var: '--text-on-accent' },
+      inset: 0.7,
+    },
   },
 ]
 
@@ -61,7 +78,7 @@ export const simpleTaskModel: TaskModel = {
     return `[${entry.char}]`
   },
   isDone(status) {
-    return status === 'done'
+    return statusForId(status)?.isDone ?? false
   },
   nextStatus(current) {
     return current === 'open' ? 'done' : 'open'

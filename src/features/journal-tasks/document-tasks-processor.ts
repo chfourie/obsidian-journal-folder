@@ -19,28 +19,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import {
   type App,
   type MarkdownPostProcessorContext,
-  setIcon,
   TFile,
 } from 'obsidian'
-import type {
-  TaskCheckboxRendering,
-  TaskCheckboxStyle,
-  TaskStatusId,
-} from '../../data-access'
-import type { TaskModel, TaskStatus } from './task-models'
+import type { TaskCheckboxRendering } from '../../data-access'
+import type { TaskModel } from './task-models'
 import {
   cycleTaskStatus,
   type TaskMutationTarget,
 } from './task-transition'
 import { findDocumentTaskLines } from './document-task-line-map'
 import { showStatusMenuAt } from './document-task-menu'
+import { renderStatusIconById } from './render-status-icon'
 
 export interface DocumentTasksContext {
   app: App
   // Lazy-resolved so the processor always sees the live model/style
   // even when settings change while a note is open.
   resolveModel: () => TaskModel
-  resolveCheckboxStyle: () => TaskCheckboxStyle
   resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
@@ -67,7 +62,6 @@ export function processDocumentTasks(
   if (!(sourceFile instanceof TFile)) return
 
   const model = context.resolveModel()
-  const checkboxStyle = context.resolveCheckboxStyle()
   const rendering = context.resolveRendering()
   const taskLines = findDocumentTaskLines(
     section.text,
@@ -84,15 +78,16 @@ export function processDocumentTasks(
       sourceLine: entry.line,
       status: entry.status,
     }
-    // Always mirror the parsed status onto the parent li's data-task
-    // so themes that style the row by attribute keep firing — even
-    // when our model recognises a status Obsidian's default renderer
-    // doesn't (e.g. `[/]`).
-    li.setAttribute('data-task', statusChar(model, entry.status))
+    // Mirror the parsed status onto the parent li so themes that
+    // style the row by attribute keep firing — even when our model
+    // recognises a status Obsidian's default renderer doesn't (e.g.
+    // `[/]`).
+    const status = model.statuses.find((s) => s.id === entry.status)
+    li.setAttribute('data-task', status?.char ?? ' ')
     if (rendering === 'theme') {
       attachHandlersToNativeCheckbox(li, target, model, context.app)
     } else {
-      swapCheckbox(li, target, model, checkboxStyle, context.app)
+      swapCheckbox(li, target, model, context.app)
     }
   })
 }
@@ -130,7 +125,6 @@ function swapCheckbox(
   li: HTMLElement,
   target: TaskMutationTarget,
   model: TaskModel,
-  checkboxStyle: TaskCheckboxStyle,
   app: App
 ): void {
   const input = li.querySelector<HTMLInputElement>(
@@ -138,12 +132,10 @@ function swapCheckbox(
   )
   if (!input) return
   const iconEl = document.createElement('span')
-  iconEl.className = 'journal-folder-document-task-icon'
   iconEl.setAttribute('role', 'button')
   iconEl.setAttribute('tabindex', '0')
   iconEl.setAttribute('aria-label', `Task status: ${target.status}`)
-  iconEl.setAttribute('data-task', statusChar(model, target.status))
-  setIcon(iconEl, iconNameFor(model, target.status, checkboxStyle))
+  renderStatusIconById(iconEl, target.status, model)
 
   iconEl.addEventListener('click', (evt) => {
     evt.preventDefault()
@@ -165,26 +157,4 @@ function swapCheckbox(
   })
 
   input.replaceWith(iconEl)
-}
-
-function iconNameFor(
-  model: TaskModel,
-  statusId: TaskStatusId,
-  checkboxStyle: TaskCheckboxStyle
-): string {
-  const status = findStatus(model, statusId)
-  if (!status) return checkboxStyle === 'circle' ? 'circle' : 'square'
-  return checkboxStyle === 'circle' ? status.iconCircle : status.iconSquare
-}
-
-function statusChar(model: TaskModel, statusId: TaskStatusId): string {
-  const status = findStatus(model, statusId)
-  return status?.char ?? ' '
-}
-
-function findStatus(
-  model: TaskModel,
-  statusId: TaskStatusId
-): TaskStatus | undefined {
-  return model.statuses.find((s) => s.id === statusId)
 }

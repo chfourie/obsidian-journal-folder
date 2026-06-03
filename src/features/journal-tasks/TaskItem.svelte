@@ -25,12 +25,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   type Props = {
     task: JournalTask
     model: TaskModel
-    checkboxStyle: 'square' | 'circle'
     rendering: 'plugin' | 'theme'
     app: App
   }
 
-  const { task, model, checkboxStyle, rendering, app }: Props = $props()
+  const { task, model, rendering, app }: Props = $props()
 
   const isDone = $derived(model.isDone(task.status))
   const statusChar = $derived(
@@ -77,7 +76,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <StatusIcon
     status={task.status}
     model={model}
-    checkboxStyle={checkboxStyle}
     rendering={rendering}
     onClick={onIconClick}
     onContextMenu={onIconContextMenu}

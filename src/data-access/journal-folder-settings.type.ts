@@ -129,10 +129,6 @@ export type JournalFolderSettings = {
   // checkbox alphabet. **Global only** — task semantics shouldn't
   // diverge across folders.
   taskModel: TaskModelSetting
-  // Icon variant the status indicator uses. `'square'` uses Lucide
-  // `square`/`square-check`/etc.; `'circle'` uses the circle variants.
-  // **Global only** — purely cosmetic and process-wide.
-  taskCheckboxStyle: TaskCheckboxStyle
   // Scope of the plugin's task interactions (left-click cycle,
   // right-click status menu, custom status icon):
   //   `'lists'`       — interactions are wired in the plugin's own
@@ -164,7 +160,6 @@ export type TaskCheckboxRendering = 'plugin' | 'theme'
 
 export type TasksSidebarReference = 'today' | 'dynamic'
 export type TaskModelSetting = 'simple' | 'bullet-journal'
-export type TaskCheckboxStyle = 'square' | 'circle'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -217,7 +212,6 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksShowCompleted: true,
   tasksMaxItems: 200,
   taskModel: 'simple',
-  taskCheckboxStyle: 'square',
   taskInteractionScope: 'everywhere',
   taskCheckboxRendering: 'plugin',
 }

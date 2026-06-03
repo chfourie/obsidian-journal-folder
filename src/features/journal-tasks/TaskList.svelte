@@ -25,7 +25,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   type Props = {
     tasks: JournalTask[]
     model: TaskModel
-    checkboxStyle: 'square' | 'circle'
     rendering: 'plugin' | 'theme'
     app: App
     showCompleted: boolean
@@ -51,7 +50,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const {
     tasks,
     model,
-    checkboxStyle,
     rendering,
     app,
     showCompleted,
@@ -224,7 +222,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
               <TaskItem
                 task={task}
                 model={model}
-                checkboxStyle={checkboxStyle}
                 rendering={rendering}
                 app={app}
               />

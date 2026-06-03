@@ -16,16 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
-  import { setIcon } from 'obsidian'
   import type {
     TaskModel,
     TaskStatusId,
   } from './task-models'
+  import { renderStatusIconById } from './render-status-icon'
 
   type Props = {
     status: TaskStatusId
     model: TaskModel
-    checkboxStyle: 'square' | 'circle'
     rendering: 'plugin' | 'theme'
     onClick: (evt: MouseEvent) => void
     onContextMenu: (evt: MouseEvent) => void
@@ -34,13 +33,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const {
     status,
     model,
-    checkboxStyle,
     rendering,
     onClick,
     onContextMenu,
   }: Props = $props()
-
-  let iconEl: HTMLSpanElement | undefined = $state(undefined)
 
   const statusEntry = $derived(model.statuses.find((s) => s.id === status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
@@ -48,34 +44,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // checked for every status whose char isn't a literal space.
   // Themes (AnuPpuccin et al.) hang their per-status `[data-task="X"]`
   // styling off `input[type=checkbox]:checked`, so an unchecked
-  // input for, say, `[/]` would skip the theme rule entirely and
-  // fall back to the default browser checkbox.
+  // input for, say, `[/]` would skip the theme rule entirely.
   const isChecked = $derived(statusChar !== ' ')
-  const iconName = $derived.by(() => {
-    if (!statusEntry) return checkboxStyle === 'circle' ? 'circle' : 'square'
-    return checkboxStyle === 'circle'
-      ? statusEntry.iconCircle
-      : statusEntry.iconSquare
-  })
+
+  let pluginShellEl: HTMLSpanElement | undefined = $state(undefined)
 
   $effect(() => {
-    if (rendering === 'plugin' && iconEl) {
-      iconEl.empty()
-      setIcon(iconEl, iconName)
+    if (rendering === 'plugin' && pluginShellEl) {
+      renderStatusIconById(pluginShellEl, status, model)
     }
   })
 </script>
 
 {#if rendering === 'theme'}
-  <!--
-    Theme mode — render Obsidian's native checkbox markup so themes
-    (Minimal, Things, AnuPpuccin, …) that target
-    `input.task-list-item-checkbox[data-task="X"]` style it. The plugin
-    still owns the cycle / context-menu by intercepting click +
-    contextmenu and preventing the native toggle. `checked` is bound
-    declaratively from `isDone` so re-renders after a cycle land back
-    at the correct state.
-  -->
   <input
     type="checkbox"
     class="task-list-item-checkbox"
@@ -93,10 +74,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   />
 {:else}
   <span
-    bind:this={iconEl}
+    bind:this={pluginShellEl}
     role="button"
     tabindex="0"
-    class="journal-folder-tasks-status-icon"
     aria-label={`Status: ${status}`}
     onclick={onClick}
     oncontextmenu={(e) => {

@@ -90,7 +90,7 @@ describe('processDocumentTasks', () => {
         isEnabled: () => true,
       }
     )
-    const icons = el.querySelectorAll('.journal-folder-document-task-icon')
+    const icons = el.querySelectorAll('.jf-task-status')
     expect(icons.length).toBe(2)
     expect(el.querySelector('input.task-list-item-checkbox')).toBeNull()
   })
@@ -137,7 +137,7 @@ describe('processDocumentTasks', () => {
     )
     expect(el.querySelector('input.task-list-item-checkbox')).not.toBeNull()
     expect(
-      el.querySelector('.journal-folder-document-task-icon')
+      el.querySelector('.jf-task-status')
     ).toBeNull()
   })
 
@@ -210,7 +210,7 @@ describe('processDocumentTasks', () => {
       }
     )
     const icon = el.querySelector(
-      '.journal-folder-document-task-icon'
+      '.jf-task-status'
     ) as HTMLElement
     icon.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     // The click handler awaits an async write internally; let microtasks flush.

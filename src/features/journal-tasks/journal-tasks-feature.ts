@@ -79,10 +79,9 @@ export class JournalTasksFeature extends PluginFeature {
     const documentTaskCtx = {
       app: this.plugin.app,
       resolveModel: () => resolveTaskModel(this.globalSettings),
-      resolveCheckboxStyle: () => this.globalSettings.taskCheckboxStyle,
       resolveRendering: () => this.globalSettings.taskCheckboxRendering,
       // Document interception fires only on the `'everywhere'` scope;
-      // `'lists'` and `'off'` both leave Obsidian's checkbox alone.
+      // `'lists'` leaves Obsidian's checkbox alone.
       isEnabled: () =>
         this.globalSettings.taskInteractionScope === 'everywhere',
     }
@@ -151,7 +150,7 @@ export class JournalTasksFeature extends PluginFeature {
     this.#cache.clear()
     // Force open CodeMirror editors to re-run their ViewPlugin
     // updates so toggles of `taskInteractionScope` / `taskModel` /
-    // `taskCheckboxStyle` take effect without requiring the user
+    // `taskCheckboxRendering` take effect without requiring the user
     // to type. `updateOptions()` re-applies extensions across all
     // editors; the per-editor MutationObserver inside each plugin
     // also re-scans whenever Obsidian re-renders content.
@@ -357,7 +356,6 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       props: {
         tasks: filtered,
         model,
-        checkboxStyle: settings.taskCheckboxStyle,
         rendering: settings.taskCheckboxRendering,
         app: this.plugin.app,
         showCompleted: this.showCompleted,
