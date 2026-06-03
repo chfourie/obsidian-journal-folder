@@ -32,7 +32,7 @@ const STATUSES: TaskStatus[] = [
       shape: 'circle',
       background: undefined,
       border: {
-        color: { kind: 'token', var: '--background-modifier-border-hover' },
+        color: { kind: 'token', var: '--checkbox-border-color' },
         width: 1,
       },
     },
