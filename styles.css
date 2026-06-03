@@ -870,6 +870,9 @@ body.journal-folder-hide-config-notes
 }
 
 .journal-folder-tasks-group-heading {
+	display: flex;
+	align-items: baseline;
+	gap: .35em;
 	font-size: var(--font-ui-smaller);
 	font-weight: 600;
 	color: var(--text-muted);
@@ -881,6 +884,35 @@ body.journal-folder-hide-config-notes
 
 .journal-folder-tasks-group-heading:hover {
 	color: var(--text-accent);
+}
+
+/* Fixed-width caret so the title text doesn't shift left/right by a
+ * pixel as the user toggles the group. The character itself swaps
+ * between ▾ (expanded) and ▸ (collapsed). */
+.journal-folder-tasks-group-caret {
+	display: inline-block;
+	width: 1em;
+	text-align: center;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.journal-folder-tasks-group-heading:hover .journal-folder-tasks-group-caret {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-group-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.journal-folder-tasks-group-count {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-weight: 500;
 }
 
 .journal-folder-tasks-row {

@@ -15,6 +15,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
+<script module lang="ts">
+  import { SvelteSet } from 'svelte/reactivity'
+
+  // Module-level set so a user's collapse choices survive both
+  // sidebar re-renders (driven by `setTaskPanelSnapshot`) and
+  // in-note block remounts (driven by every vault mutation). Keyed
+  // by source-note path so the same note collapses in lockstep
+  // across both surfaces — usually what the user expects.
+  // `SvelteSet` is the reactive variant from `svelte/reactivity`,
+  // so reading from it inside `$derived` auto-tracks.
+  const collapsedNotePaths = new SvelteSet<string>()
+</script>
+
 <script lang="ts">
   import type { App } from 'obsidian'
   import type { JournalTask } from '../../data-access'
@@ -113,6 +126,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function openGroupNote(path: string) {
     app.workspace.openLinkText(path, '', false)
   }
+
+  function isCollapsed(path: string): boolean {
+    return collapsedNotePaths.has(path)
+  }
+
+  function toggleCollapsed(path: string) {
+    if (collapsedNotePaths.has(path)) collapsedNotePaths.delete(path)
+    else collapsedNotePaths.add(path)
+  }
+
+  // Plain click on a heading toggles the group; cmd/ctrl-click jumps
+  // to the source note instead (a fast way out when every task in
+  // the group is already collapsed).
+  function onHeadingClick(path: string, evt: MouseEvent) {
+    if (evt.metaKey || evt.ctrlKey) {
+      openGroupNote(path)
+    } else {
+      toggleCollapsed(path)
+    }
+  }
 </script>
 
 <div class="journal-folder-tasks">
@@ -169,30 +202,49 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <p class="journal-folder-tasks-empty">No tasks in range.</p>
   {:else}
     {#each groups as group (group.path)}
-      <div class="journal-folder-tasks-group">
+      {@const collapsed = isCollapsed(group.path)}
+      <div
+        class="journal-folder-tasks-group"
+        class:is-collapsed={collapsed}
+      >
         <div
           class="journal-folder-tasks-group-heading"
           role="button"
           tabindex="0"
-          onclick={() => openGroupNote(group.path)}
-          onkeydown={activate(() => openGroupNote(group.path))}
+          aria-expanded={!collapsed}
+          title={`Click to collapse / expand. ${
+            navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
+          }-click to open the note.`}
+          onclick={(e) => onHeadingClick(group.path, e)}
+          onkeydown={activate(() => toggleCollapsed(group.path))}
         >
-          {group.title}
+          <span
+            class="journal-folder-tasks-group-caret"
+            aria-hidden="true"
+          >{collapsed ? '▸' : '▾'}</span>
+          <span class="journal-folder-tasks-group-title">{group.title}</span>
+          {#if collapsed}
+            <span class="journal-folder-tasks-group-count">
+              ({group.tasks.length})
+            </span>
+          {/if}
         </div>
-        <div
-          class="journal-folder-tasks-list"
-          class:contains-task-list={rendering === 'theme'}
-        >
-          {#each group.tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
-            <TaskItem
-              task={task}
-              model={model}
-              checkboxStyle={checkboxStyle}
-              rendering={rendering}
-              app={app}
-            />
-          {/each}
-        </div>
+        {#if !collapsed}
+          <div
+            class="journal-folder-tasks-list"
+            class:contains-task-list={rendering === 'theme'}
+          >
+            {#each group.tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
+              <TaskItem
+                task={task}
+                model={model}
+                checkboxStyle={checkboxStyle}
+                rendering={rendering}
+                app={app}
+              />
+            {/each}
+          </div>
+        {/if}
       </div>
     {/each}
   {/if}
