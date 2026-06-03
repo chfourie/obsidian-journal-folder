@@ -779,6 +779,23 @@ body.journal-folder-hide-config-notes
 	font-size: var(--font-ui-smaller);
 }
 
+/* When the sidebar widens, keep the calendar grid centred but the
+ * prev/next arrows immediately adjacent to it. The in-note calendar
+ * lets `.journal-folder-calendar-body` grow with `flex: 1 1 auto`
+ * (so a multi-month layout can fill the viewport); in the sidebar
+ * that growth pushes the arrows to the column edges and the user
+ * sees them floating far from the grid. Locking the body to
+ * `fit-content` width and centring the outer flex pulls the arrows
+ * back next to the calendar at any sidebar width. */
+.journal-folder-sidebar .jf-sidebar-calendar {
+	justify-content: center;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar .journal-folder-calendar-body {
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
 .journal-folder-sidebar .jf-sidebar-actions {
 	border-top: 1px solid var(--background-modifier-border);
 	padding-top: .75em;
