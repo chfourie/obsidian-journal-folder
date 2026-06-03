@@ -33,7 +33,10 @@ const STATUSES: TaskStatus[] = [
     shell: {
       shape: 'circle',
       background: undefined,
-      border: { color: { kind: 'token', var: '--text-faint' }, width: 2 },
+      border: {
+        color: { kind: 'token', var: '--background-modifier-border' },
+        width: 1.5,
+      },
     },
     icon: { source: { kind: 'none' } },
   },
@@ -44,7 +47,7 @@ const STATUSES: TaskStatus[] = [
     isDone: false,
     shell: {
       shape: 'circle',
-      background: { kind: 'token', var: '--text-faint' },
+      background: { kind: 'token', var: '--background-modifier-border' },
       border: null,
     },
     icon: { source: { kind: 'none' } },
@@ -72,8 +75,14 @@ const STATUSES: TaskStatus[] = [
     isDone: true,
     shell: { shape: 'none' },
     icon: {
-      source: { kind: 'lucide', name: 'corner-up-right' },
+      // `redo-2` is a thick curved-forward arrow — reads as
+      // "moved on" more strongly than the small `corner-up-right`
+      // stair-step chevron. No shell, so inset 1 fills the whole
+      // shell box for parity in size with the filled circles next
+      // to it.
+      source: { kind: 'lucide', name: 'redo-2' },
       color: { kind: 'token', var: '--color-blue' },
+      inset: 1,
     },
   },
   {
