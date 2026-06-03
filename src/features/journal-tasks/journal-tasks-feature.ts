@@ -81,7 +81,10 @@ export class JournalTasksFeature extends PluginFeature {
       resolveModel: () => resolveTaskModel(this.globalSettings),
       resolveCheckboxStyle: () => this.globalSettings.taskCheckboxStyle,
       resolveRendering: () => this.globalSettings.taskCheckboxRendering,
-      isEnabled: () => !!this.globalSettings.documentTasksEnabled,
+      // Document interception fires only on the `'everywhere'` scope;
+      // `'lists'` and `'off'` both leave Obsidian's checkbox alone.
+      isEnabled: () =>
+        this.globalSettings.taskInteractionScope === 'everywhere',
     }
 
     this.plugin.registerMarkdownPostProcessor((el, ctx) => {
@@ -106,7 +109,7 @@ export class JournalTasksFeature extends PluginFeature {
     // recognises.
     this.plugin.registerEvent(
       this.plugin.app.workspace.on('editor-menu', (menu, editor, view) => {
-        if (!this.globalSettings.documentTasksEnabled) return
+        if (this.globalSettings.taskInteractionScope !== 'everywhere') return
         if (!(view instanceof MarkdownView)) return
         const file = view.file
         if (!file) return
@@ -147,7 +150,7 @@ export class JournalTasksFeature extends PluginFeature {
     // their parsed status IDs are model-specific.
     this.#cache.clear()
     // Force open CodeMirror editors to re-run their ViewPlugin
-    // updates so toggles of `documentTasksEnabled` / `taskModel` /
+    // updates so toggles of `taskInteractionScope` / `taskModel` /
     // `taskCheckboxStyle` take effect without requiring the user
     // to type. `updateOptions()` re-applies extensions across all
     // editors; the per-editor MutationObserver inside each plugin
@@ -356,6 +359,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         model,
         checkboxStyle: settings.taskCheckboxStyle,
         rendering: settings.taskCheckboxRendering,
+        interactionsEnabled: settings.taskInteractionScope !== 'off',
         app: this.plugin.app,
         showCompleted: this.showCompleted,
         hiddenCompletedCount: hiddenCount,

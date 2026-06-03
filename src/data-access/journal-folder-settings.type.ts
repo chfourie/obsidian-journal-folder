@@ -133,16 +133,27 @@ export type JournalFolderSettings = {
   // `square`/`square-check`/etc.; `'circle'` uses the circle variants.
   // **Global only** — purely cosmetic and process-wide.
   taskCheckboxStyle: TaskCheckboxStyle
-  // When true, every task checkbox in the rendered document (reading
-  // view + live preview) is replaced with a `TaskModel`-aware status
-  // icon: left-click cycles, right-click opens the status menu, and
-  // unusual statuses (`[/]` / `[>]` / `[-]`) render their proper
-  // icon variant. **Off by default** so existing tasks-plugin /
-  // theme behaviour isn't clobbered for users who don't want it.
-  // **Global only** — interception happens at the markdown post-
-  // processor layer, which is process-wide.
-  documentTasksEnabled: boolean
-  // Drives how `documentTasksEnabled` paints task checkboxes:
+  // Scope of the plugin's task interactions (left-click cycle,
+  // right-click status menu, custom status icon):
+  //   `'off'`         — disabled everywhere. Plugin task lists still
+  //                     display tasks but cycling / menu handlers are
+  //                     no-ops, leaving Obsidian or other plugins
+  //                     (e.g. Tasks) fully in charge.
+  //   `'lists'`       — interactions are wired in the plugin's own
+  //                     task lists only (the sidebar panel, the
+  //                     tasks-only sidebar, the in-note `journal-
+  //                     tasks` block). Document-body checkboxes are
+  //                     left to Obsidian. **Default.**
+  //   `'everywhere'`  — also intercept every task checkbox in the
+  //                     rendered document (reading view + live
+  //                     preview). Pick this when you want the same
+  //                     model-aware cycle / menu inline as you have
+  //                     in the task panels.
+  // **Global only** — interception happens at process-wide layers
+  // (markdown post-processor, editor extension, settings tab).
+  taskInteractionScope: TaskInteractionScope
+  // Drives how `taskInteractionScope === 'everywhere'` paints
+  // document task checkboxes (and what the task panels render):
   //   `'plugin'` — replace the native checkbox with our Lucide icon
   //     (consistent across themes; bullet-journal statuses always
   //     render correctly).
@@ -151,10 +162,11 @@ export type JournalFolderSettings = {
   //     the plugin still owns left-click cycle + right-click menu
   //     against the unmodified checkbox.
   // **Global only** — purely cosmetic and process-wide. Has no
-  // effect when `documentTasksEnabled` is off.
+  // effect when `taskInteractionScope` is `'off'`.
   taskCheckboxRendering: TaskCheckboxRendering
 }
 
+export type TaskInteractionScope = 'off' | 'lists' | 'everywhere'
 export type TaskCheckboxRendering = 'plugin' | 'theme'
 
 export type TasksSidebarReference = 'today' | 'dynamic'
@@ -213,6 +225,6 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksMaxItems: 200,
   taskModel: 'simple',
   taskCheckboxStyle: 'square',
-  documentTasksEnabled: false,
+  taskInteractionScope: 'lists',
   taskCheckboxRendering: 'plugin',
 }

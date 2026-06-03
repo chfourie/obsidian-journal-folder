@@ -37,7 +37,7 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'tasksMaxItems',
   'taskModel',
   'taskCheckboxStyle',
-  'documentTasksEnabled',
+  'taskInteractionScope',
   'taskCheckboxRendering',
 ])
 

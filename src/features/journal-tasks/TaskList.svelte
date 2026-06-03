@@ -27,6 +27,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     model: TaskModel
     checkboxStyle: 'square' | 'circle'
     rendering: 'plugin' | 'theme'
+    // When false, task rows are passive — no cycle on click, no
+    // status menu on right-click. Set by the caller from
+    // `taskInteractionScope !== 'off'`. Navigation (clicking task
+    // text to open the source note) still works regardless.
+    interactionsEnabled: boolean
     app: App
     showCompleted: boolean
     hiddenCompletedCount: number
@@ -53,6 +58,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     model,
     checkboxStyle,
     rendering,
+    interactionsEnabled,
     app,
     showCompleted,
     hiddenCompletedCount,
@@ -226,6 +232,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                 model={model}
                 checkboxStyle={checkboxStyle}
                 rendering={rendering}
+                interactionsEnabled={interactionsEnabled}
                 app={app}
               />
             {/each}

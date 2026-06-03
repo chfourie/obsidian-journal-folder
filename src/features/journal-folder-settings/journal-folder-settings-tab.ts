@@ -357,7 +357,7 @@ class SettingsFormBuilder {
       this.createTaskModelSetting(settings)
       this.createTaskCheckboxStyleSetting(settings)
       this.createTasksMaxItemsSetting(settings)
-      this.createDocumentTasksEnabledSetting(settings)
+      this.createTaskInteractionScopeSetting(settings)
       this.createTaskCheckboxRenderingSetting(settings)
 
       new Setting(this.containerEl).setName('Reset').setHeading()
@@ -789,36 +789,45 @@ class SettingsFormBuilder {
       })
   }
 
-  createDocumentTasksEnabledSetting(
+  createTaskInteractionScopeSetting(
     settings: JournalFolderSettings
   ): Setting {
-    let component: ToggleComponent
+    let component: DropdownComponent
 
-    const onChange = (value: boolean) => {
-      settings.documentTasksEnabled = value
+    const onChange = (value: string) => {
+      settings.taskInteractionScope =
+        value as JournalFolderSettings['taskInteractionScope']
       // noinspection JSIgnoredPromiseFromCall
       this.saveSettings(settings)
     }
 
     return new Setting(this.containerEl)
-      .setName('Cycle / render document tasks')
+      .setName('Cycle / render tasks')
       .setDesc(
-        'When on, every task checkbox in the rendered document gets the ' +
-          'same status icon and cycle / right-click menu the sidebar uses. ' +
-          'Leave off to defer to Obsidian’s built-in checkboxes (or the ' +
-          'Tasks plugin) for in-document interactions.'
+        'Off — plugin task interactions are disabled everywhere; the task ' +
+          'panels still display tasks but cycling / context menus are ' +
+          'no-ops. Task lists only — wire the cycle and right-click status ' +
+          'menu in the plugin’s own task panels (sidebar, tasks-only ' +
+          'sidebar, in-note journal-tasks block) and leave document ' +
+          'checkboxes to Obsidian. Everywhere — additionally intercept ' +
+          'every task checkbox in the rendered document (reading view + ' +
+          'live preview); pick this only when no other plugin (e.g. Tasks) ' +
+          'is handling in-document interactions.'
       )
-      .addToggle((toggle) => {
-        component = toggle
-        toggle.setValue(settings.documentTasksEnabled).onChange(onChange)
+      .addDropdown((dropdown) => {
+        component = dropdown
+        dropdown.addOption('off', 'Off')
+        dropdown.addOption('lists', 'Task lists only')
+        dropdown.addOption('everywhere', 'Everywhere')
+        dropdown.setValue(settings.taskInteractionScope).onChange(onChange)
       })
       .addExtraButton((btn) => {
         btn
           .setIcon('reset')
           .setTooltip('Reset to default value')
           .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.documentTasksEnabled)
-            onChange(DEFAULT_SETTINGS.documentTasksEnabled)
+            component.setValue(DEFAULT_SETTINGS.taskInteractionScope)
+            onChange(DEFAULT_SETTINGS.taskInteractionScope)
           })
       })
   }
