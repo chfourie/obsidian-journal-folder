@@ -354,7 +354,6 @@ class SettingsFormBuilder {
             '— this section only carries settings that don’t have a sidebar ' +
             'home.'
         )
-      this.createTasksSidebarEnabledSetting(settings)
       this.createTaskModelSetting(settings)
       this.createTaskCheckboxStyleSetting(settings)
       this.createTasksMaxItemsSetting(settings)
@@ -724,36 +723,6 @@ class SettingsFormBuilder {
           'untouched. Selecting an explicit day overrides the locale so week ' +
           '1 of any year is the week containing January 1.'
       )
-  }
-
-  createTasksSidebarEnabledSetting(settings: JournalFolderSettings): Setting {
-    let component: ToggleComponent
-
-    const onChange = (value: boolean) => {
-      settings.tasksSidebarEnabled = value
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Show task panel in sidebar')
-      .setDesc(
-        'When enabled, the sidebar gains a Tasks panel below the calendar ' +
-          'that lists open tasks in the current reference range.'
-      )
-      .addToggle((toggle) => {
-        component = toggle
-        toggle.setValue(settings.tasksSidebarEnabled).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.tasksSidebarEnabled)
-            onChange(DEFAULT_SETTINGS.tasksSidebarEnabled)
-          })
-      })
   }
 
   createTaskModelSetting(settings: JournalFolderSettings): Setting {

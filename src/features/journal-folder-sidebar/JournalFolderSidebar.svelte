@@ -318,6 +318,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     }
 
     items.push({ kind: 'separator' })
+    items.push({
+      kind: 'item',
+      title: settings.tasksSidebarEnabled
+        ? 'Hide task panel'
+        : 'Show task panel',
+      icon: settings.tasksSidebarEnabled ? 'eye-off' : 'eye',
+      onClick: toggleTasksPanel,
+    })
+
+    items.push({ kind: 'separator' })
     if (knownFolders.includes(selected)) {
       items.push({
         kind: 'item',
@@ -334,6 +344,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     })
 
     return items
+  }
+
+  async function toggleTasksPanel() {
+    await saveSettings({
+      ...settings,
+      tasksSidebarEnabled: !settings.tasksSidebarEnabled,
+    })
   }
 
   function openMoreMenu(evt: MouseEvent | KeyboardEvent) {
