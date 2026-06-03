@@ -7,6 +7,31 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [Unreleased]
+
+### Added
+- **Task management.** Surfaces Markdown tasks from journal notes in two new
+  places: a *Tasks* panel below the sidebar's calendar, and an in-note
+  `journal-tasks` code block (analogous to `journal-header`).
+  - Two task models behind a shared interface: **Simple** (`[ ]` ↔ `[x]`)
+    and **Bullet Journal** (`[ ] [/] [x] [>] [-]`, with `[>]` migrated and
+    `[-]` cancelled treated as done for filtering). Pick one in
+    *Settings → Tasks → Task model*.
+  - **Square / circle** checkbox styling — purely cosmetic, swaps the
+    Lucide icon variant used for every status.
+  - Sidebar quick toggles: **Today / Dynamic** (reference range) and
+    **Show / Hide completed**. Both write back to global settings; the
+    *⋯* menu narrows the *Today* scope to a subset of folders.
+  - In-note block accepts `folders:`, `units:`, `show-completed:`, and
+    `max-items:` keys. `show-completed` is view-local and does not
+    persist.
+  - Left-click the status icon to cycle to the next status; right-click
+    (or long-press) opens a status menu with every option in the active
+    model. Writes go through `vault.process` with a line-match guard so
+    a stale cache aborts safely with a Notice.
+  - `tasksMaxItems` cap (default **200**) with a "Showing N of M —
+    increase limit in settings" footer when truncated.
+
 ## [2.1.1]
 
 ### Changed

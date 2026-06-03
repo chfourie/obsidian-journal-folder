@@ -22,6 +22,7 @@ import { JournalHeaderFeature } from '../features/journal-header'
 import { JournalFolderSettingsFeature } from '../features/journal-folder-settings'
 import { JournalAutoTemplateFeature } from '../features/journal-auto-template'
 import { JournalFolderSidebarFeature } from '../features/journal-folder-sidebar'
+import { JournalTasksFeature } from '../features/journal-tasks'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -33,12 +34,18 @@ export default class JournalFolderPlugin extends Plugin {
       this,
       this.#features.useSettings
     )
+    const tasksFeature = new JournalTasksFeature(this)
     this.#features
       .addFeature(settingsFeature)
       .addFeature(new JournalHeaderFeature(this))
+      .addFeature(tasksFeature)
       .addFeature(new JournalAutoTemplateFeature(this))
       .addFeature(
-        new JournalFolderSidebarFeature(this, settingsFeature.saveSettings)
+        new JournalFolderSidebarFeature(
+          this,
+          settingsFeature.saveSettings,
+          tasksFeature.cache
+        )
       )
   }
 

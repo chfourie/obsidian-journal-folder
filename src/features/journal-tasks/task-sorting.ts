@@ -16,12 +16,18 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
-export * from './journal-task'
+import type { JournalTask } from '../../data-access'
+
+// Sorts ascending by source-note range length so daily tasks always come
+// before weekly ones, then weekly before monthly, etc. Tie-breaks on
+// `folderPath` then `sourceLine` to keep ordering stable across runs.
+export function sortTasks(tasks: JournalTask[]): JournalTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.noteRangeDays !== b.noteRangeDays) {
+      return a.noteRangeDays - b.noteRangeDays
+    }
+    const folderCmp = a.folderPath.localeCompare(b.folderPath)
+    if (folderCmp !== 0) return folderCmp
+    return a.sourceLine - b.sourceLine
+  })
+}

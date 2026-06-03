@@ -16,12 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
-export * from './journal-task'
+export * from './task-model.type'
+export * from './simple-model'
+export * from './bullet-journal-model'
+export * from './resolve-model'

@@ -16,12 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
-export * from './journal-task'
+// Captures (leading-whitespace + bullet + space, status-char, rest-of-line).
+// Matches both numbered and bulleted lists is *not* required for v1 — the
+// design only commits to `-`, `*`, `+` list bullets.
+export const TASK_LINE_REGEX = /^(\s*[-*+]\s+)\[(.)\]\s?(.*)$/

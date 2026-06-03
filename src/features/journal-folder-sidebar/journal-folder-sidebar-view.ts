@@ -16,13 +16,30 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ItemView, Menu, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
+import {
+  ItemView,
+  Menu,
+  type Plugin,
+  TFile,
+  type WorkspaceLeaf,
+} from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
   configPathFor,
   findJournalFolderPaths,
   type JournalFolderSettings,
+  type JournalTask,
+  isJournalFileBasename,
+  journalNoteFactoryWithSettings,
 } from '../../data-access'
+import {
+  buildReferenceRange,
+  effectiveUnits,
+  findTaskCandidates,
+  resolveTaskModel,
+  sortTasks,
+  type TaskCache,
+} from '../journal-tasks'
 import { VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR } from './journal-folder-sidebar-feature'
 import JournalFolderSidebar from './JournalFolderSidebar.svelte'
 import {
@@ -56,6 +73,12 @@ export type SidebarUpdateApi = {
   // existence-flag accuracy after a deletion or rename requires us to
   // rebuild the anchor.
   bumpVault: () => void
+  setTaskPanelSnapshot: (snapshot: TaskPanelSnapshot) => void
+}
+
+export interface TaskPanelSnapshot {
+  tasks: JournalTask[]
+  totalBeforeCap: number
 }
 
 export type ActiveFileSnapshot = {
@@ -88,6 +111,7 @@ export class JournalFolderSidebarView extends ItemView {
     private readonly plugin: Plugin,
     private readonly getSettings: () => JournalFolderSettings,
     private readonly saveSettings: (s: JournalFolderSettings) => Promise<void>,
+    private readonly taskCache: TaskCache,
     private readonly registry: ViewRegistry
   ) {
     super(leaf)
@@ -117,10 +141,17 @@ export class JournalFolderSidebarView extends ItemView {
         initialSettings: this.getSettings(),
         initialKnownFolders: findJournalFolderPaths(this.plugin.app),
         initialActiveFile: this.snapshotActiveFile(),
+        initialTaskPanel: { tasks: [], totalBeforeCap: 0 },
         saveSettings: (s: JournalFolderSettings) => this.saveSettings(s),
         registerApi: (api: SidebarUpdateApi) => {
           this.#api = api
+          // Kick off an initial scan once the component has wired up.
+          // noinspection JSIgnoredPromiseFromCall
+          this.refreshTaskPanel()
         },
+        openTaskScopeMenu: (trigger: MenuTrigger) =>
+          this.openTaskScopeMenu(trigger),
+        openPluginSettings: () => this.openPluginSettings(),
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
@@ -135,6 +166,7 @@ export class JournalFolderSidebarView extends ItemView {
           ),
         confirmCreate: (basename: string) =>
           confirmCreateNote(this.plugin.app, basename),
+        obsidianApp: this.plugin.app,
         navigate: (url: string, sourceFolderPath: string) => {
           // `openLinkText` resolves relative-ish links against a source
           // path. Use the selected folder's `journal-folder.md` as the
@@ -166,6 +198,19 @@ export class JournalFolderSidebarView extends ItemView {
     this.registerEvent(
       this.plugin.app.workspace.on('active-leaf-change', () => {
         this.#api?.setActiveFile(this.snapshotActiveFile())
+        // Dynamic-reference scope follows the active leaf, so refresh.
+        // noinspection JSIgnoredPromiseFromCall
+        this.refreshTaskPanel()
+      })
+    )
+
+    // Vault content edits don't trigger create/delete/rename — listen
+    // separately for `modify` so a task ticked off in another pane
+    // re-renders here without delay.
+    this.registerEvent(
+      this.plugin.app.vault.on('modify', () => {
+        // noinspection JSIgnoredPromiseFromCall
+        this.refreshTaskPanel()
       })
     )
   }
@@ -186,6 +231,110 @@ export class JournalFolderSidebarView extends ItemView {
 
   onSettingsChanged(settings: JournalFolderSettings): void {
     this.#api?.setSettings(settings)
+    // noinspection JSIgnoredPromiseFromCall
+    this.refreshTaskPanel()
+  }
+
+  private async refreshTaskPanel(): Promise<void> {
+    if (!this.#api) return
+    const settings = this.getSettings()
+    if (!settings.tasksSidebarEnabled) {
+      this.#api.setTaskPanelSnapshot({ tasks: [], totalBeforeCap: 0 })
+      return
+    }
+    const activeFile = this.plugin.app.workspace.getActiveFile?.()
+    const factory = journalNoteFactoryWithSettings(settings)
+    const activeNote =
+      activeFile instanceof TFile &&
+      isJournalFileBasename(activeFile.basename, !!settings.quartersEnabled)
+        ? (() => {
+            try {
+              return factory(activeFile)
+            } catch {
+              return null
+            }
+          })()
+        : null
+
+    const referenceRange = buildReferenceRange({
+      host: 'sidebar',
+      referenceMode: settings.tasksSidebarReference,
+      activeNote,
+    })
+
+    const folders =
+      settings.tasksSidebarReference === 'dynamic' && activeNote
+        ? [activeFile?.parent?.path ?? '']
+        : settings.tasksSidebarFolders.length > 0
+          ? settings.tasksSidebarFolders
+          : findJournalFolderPaths(this.plugin.app)
+
+    const candidates = findTaskCandidates({
+      app: this.plugin.app,
+      folders,
+      units: effectiveUnits(settings),
+      referenceRange,
+      settings,
+    })
+    const model = resolveTaskModel(settings)
+    const collected: JournalTask[] = []
+    for (const candidate of candidates) {
+      const tasks = await this.taskCache.getTasks(
+        candidate.file,
+        model,
+        candidate.note
+      )
+      for (const t of tasks) collected.push(t)
+    }
+    const sorted = sortTasks(collected)
+    const totalBeforeCap = sorted.length
+    const capped = sorted.slice(0, settings.tasksMaxItems)
+    this.#api.setTaskPanelSnapshot({
+      tasks: capped,
+      totalBeforeCap,
+    })
+  }
+
+  private openPluginSettings(): void {
+    // @ts-ignore — `setting` is on the runtime App object but not in the
+    // public TypeScript surface.
+    this.plugin.app.setting?.open?.()
+    // @ts-ignore
+    this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
+  }
+
+  private openTaskScopeMenu(trigger: MenuTrigger): void {
+    const settings = this.getSettings()
+    const known = findJournalFolderPaths(this.plugin.app).filter(
+      (p) => p !== '' && p !== '/'
+    )
+    const selected = new Set(settings.tasksSidebarFolders)
+    const menu = new Menu()
+    menu.addItem((mi) => {
+      mi.setTitle('All journal folders')
+      if (selected.size === 0) mi.setIcon('check')
+      mi.onClick(async () => {
+        await this.saveSettings({ ...settings, tasksSidebarFolders: [] })
+      })
+    })
+    if (known.length > 0) menu.addSeparator()
+    for (const folder of known) {
+      menu.addItem((mi) => {
+        mi.setTitle(folder)
+        if (selected.has(folder)) mi.setIcon('check')
+        mi.onClick(async () => {
+          const next = new Set(selected)
+          if (next.has(folder)) next.delete(folder)
+          else next.add(folder)
+          await this.saveSettings({
+            ...settings,
+            tasksSidebarFolders: [...next].sort(),
+          })
+        })
+      })
+    }
+    if (trigger.kind === 'mouse') menu.showAtMouseEvent(trigger.event)
+    else menu.showAtPosition({ x: trigger.rect.left, y: trigger.rect.bottom })
   }
 
   private refreshKnownFolders(): void {
@@ -195,6 +344,8 @@ export class JournalFolderSidebarView extends ItemView {
   private onVaultMutation(): void {
     this.refreshKnownFolders()
     this.#api?.bumpVault()
+    // noinspection JSIgnoredPromiseFromCall
+    this.refreshTaskPanel()
   }
 
   private openFolderConfigModal(folderPath: string): void {

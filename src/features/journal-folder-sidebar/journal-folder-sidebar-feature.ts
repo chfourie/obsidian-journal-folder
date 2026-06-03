@@ -21,6 +21,7 @@ import {
   type JournalFolderSettings,
   PluginFeature,
 } from '../../data-access'
+import type { TaskCache } from '../journal-tasks'
 import { JournalFolderSidebarView } from './journal-folder-sidebar-view'
 
 export const VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR = 'journal-folder-sidebar'
@@ -32,7 +33,8 @@ export class JournalFolderSidebarFeature extends PluginFeature {
     plugin: Plugin,
     private readonly saveSettingsFn: (
       settings: JournalFolderSettings
-    ) => Promise<void>
+    ) => Promise<void>,
+    private readonly taskCache: TaskCache
   ) {
     super(plugin)
   }
@@ -46,6 +48,7 @@ export class JournalFolderSidebarFeature extends PluginFeature {
           this.plugin,
           () => this.globalSettings,
           this.saveSettingsFn,
+          this.taskCache,
           {
             register: (v) => this.#views.add(v),
             unregister: (v) => this.#views.delete(v),

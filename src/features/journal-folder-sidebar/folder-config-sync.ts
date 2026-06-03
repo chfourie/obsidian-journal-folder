@@ -20,8 +20,9 @@ import { type JournalFolderSettings, kebabCase } from '../../data-access'
 
 // The fields a user can override per-folder. The remaining members of
 // `JournalFolderSettings` (`startOfWeek`, `defaultJournalFolder`,
-// `hideJournalFolderNotes`, `sidebarMode`) are global-only — see the
-// JSDoc on each field in `journal-folder-settings.type.ts`.
+// `hideJournalFolderNotes`, `sidebarMode`, and every `tasks*` /
+// `task*` field) are global-only — see the JSDoc on each field in
+// `journal-folder-settings.type.ts`.
 export const PER_FOLDER_FIELDS = [
   'dailyNoteTitlePattern',
   'dailyNoteShortTitlePattern',

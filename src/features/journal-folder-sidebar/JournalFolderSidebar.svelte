@@ -31,8 +31,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     MenuTrigger,
     SidebarMenuItem,
     SidebarUpdateApi,
+    TaskPanelSnapshot,
   } from './journal-folder-sidebar-view'
   import SidebarCalendar from './SidebarCalendar.svelte'
+  import TaskList from '../journal-tasks/TaskList.svelte'
+  import { resolveTaskModel } from '../journal-tasks'
   import { todayDailyBasename } from './sidebar-anchor'
   import {
     anchorMonth,
@@ -45,10 +48,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     initialSettings: JournalFolderSettings
     initialKnownFolders: string[]
     initialActiveFile: ActiveFileSnapshot | null
+    initialTaskPanel: TaskPanelSnapshot
     saveSettings: (s: JournalFolderSettings) => Promise<void>
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
+    openTaskScopeMenu: (trigger: MenuTrigger) => void
+    openPluginSettings: () => void
     showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
       folderPath: string,
@@ -56,6 +62,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     ) => JournalNote | null
     confirmCreate: (basename: string) => Promise<boolean>
     navigate: (url: string, sourceFolderPath: string) => void
+    obsidianApp: import('obsidian').App
   }
 
   // svelte-ignore state_referenced_locally
@@ -63,14 +70,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     initialSettings,
     initialKnownFolders,
     initialActiveFile,
+    initialTaskPanel,
     saveSettings,
     registerApi,
     onInitJournalFolder,
     onEditFolderConfig,
+    openTaskScopeMenu,
+    openPluginSettings,
     showMenu,
     buildAnchorNote,
     confirmCreate,
     navigate,
+    obsidianApp,
   }: Props = $props()
 
   // svelte-ignore state_referenced_locally
@@ -101,7 +112,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   let vaultTick = $state<number>(0)
 
   // svelte-ignore state_referenced_locally
+  let taskPanel = $state<TaskPanelSnapshot>(initialTaskPanel)
+
+  // svelte-ignore state_referenced_locally
   registerApi({
+    setTaskPanelSnapshot: (snapshot) => {
+      taskPanel = snapshot
+    },
     setSettings: (s) => {
       settings = s
       // If the user changed the default folder externally and the picker
@@ -345,6 +362,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     }))
   }
 
+  const taskModel = $derived(resolveTaskModel(settings))
+  const visibleTasks = $derived(
+    settings.tasksShowCompleted
+      ? taskPanel.tasks
+      : taskPanel.tasks.filter((t) => !taskModel.isDone(t.status))
+  )
+  const hiddenCompletedCount = $derived(
+    taskPanel.tasks.length - visibleTasks.length
+  )
+
+  async function toggleTasksReference() {
+    const next =
+      settings.tasksSidebarReference === 'today' ? 'dynamic' : 'today'
+    await saveSettings({ ...settings, tasksSidebarReference: next })
+  }
+
+  async function toggleTasksShowCompleted() {
+    await saveSettings({
+      ...settings,
+      tasksShowCompleted: !settings.tasksShowCompleted,
+    })
+  }
+
   function openFolderMenu(evt: MouseEvent | KeyboardEvent) {
     if (evt instanceof MouseEvent) {
       showMenu({ kind: 'mouse', event: evt }, buildFolderMenuItems())
@@ -440,4 +480,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       </p>
     {/if}
   </div>
+
+  {#if settings.tasksSidebarEnabled}
+    <hr class="jf-sidebar-divider" />
+    <div class="jf-sidebar-section">
+      <TaskList
+        tasks={visibleTasks}
+        model={taskModel}
+        checkboxStyle={settings.taskCheckboxStyle}
+        app={obsidianApp}
+        showCompleted={settings.tasksShowCompleted}
+        hiddenCompletedCount={hiddenCompletedCount}
+        totalBeforeCap={taskPanel.totalBeforeCap}
+        header="sidebar"
+        referenceMode={settings.tasksSidebarReference}
+        onToggleReference={toggleTasksReference}
+        onToggleShowCompleted={toggleTasksShowCompleted}
+        onOpenScopeMenu={(e) => openTaskScopeMenu(
+          e instanceof MouseEvent
+            ? { kind: 'mouse', event: e }
+            : { kind: 'keyboard', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }
+        )}
+        onOpenSettings={openPluginSettings}
+      />
+    </div>
+  {/if}
 </div>

@@ -344,6 +344,21 @@ class SettingsFormBuilder {
     ).setDesc('Used for compact in-line links to yearly notes.')
 
     if (!isFolder) {
+      new Setting(this.containerEl)
+        .setName('Tasks')
+        .setHeading()
+        .setDesc(
+          'Surfaces Markdown tasks from journal notes in the sidebar and via ' +
+            'the journal-tasks code block. The Today / Dynamic and ' +
+            'Show / Hide completed quick toggles live on the sidebar itself ' +
+            '— this section only carries settings that don’t have a sidebar ' +
+            'home.'
+        )
+      this.createTasksSidebarEnabledSetting(settings)
+      this.createTaskModelSetting(settings)
+      this.createTaskCheckboxStyleSetting(settings)
+      this.createTasksMaxItemsSetting(settings)
+
       new Setting(this.containerEl).setName('Reset').setHeading()
       new Setting(this.containerEl)
         .setName('Reset all to default values')
@@ -707,6 +722,135 @@ class SettingsFormBuilder {
           'untouched. Selecting an explicit day overrides the locale so week ' +
           '1 of any year is the week containing January 1.'
       )
+  }
+
+  createTasksSidebarEnabledSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.tasksSidebarEnabled = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Show task panel in sidebar')
+      .setDesc(
+        'When enabled, the sidebar gains a Tasks panel below the calendar ' +
+          'that lists open tasks in the current reference range.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.tasksSidebarEnabled).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.tasksSidebarEnabled)
+            onChange(DEFAULT_SETTINGS.tasksSidebarEnabled)
+          })
+      })
+  }
+
+  createTaskModelSetting(settings: JournalFolderSettings): Setting {
+    let component: DropdownComponent
+
+    const onChange = (value: string) => {
+      settings.taskModel = value as JournalFolderSettings['taskModel']
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Task model')
+      .setDesc(
+        'Simple — only [ ] open and [x] done. Bullet Journal — adds ' +
+          '[/] in progress, [>] migrated, [-] cancelled. Switching is ' +
+          'non-destructive: both models share the community-conventional ' +
+          'checkbox alphabet.'
+      )
+      .addDropdown((dropdown) => {
+        component = dropdown
+        dropdown.addOption('simple', 'Simple')
+        dropdown.addOption('bullet-journal', 'Bullet Journal')
+        dropdown.setValue(settings.taskModel).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.taskModel)
+            onChange(DEFAULT_SETTINGS.taskModel)
+          })
+      })
+  }
+
+  createTaskCheckboxStyleSetting(settings: JournalFolderSettings): Setting {
+    let component: DropdownComponent
+
+    const onChange = (value: string) => {
+      settings.taskCheckboxStyle =
+        value as JournalFolderSettings['taskCheckboxStyle']
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Checkbox style')
+      .setDesc('Pick between square and circle status icons.')
+      .addDropdown((dropdown) => {
+        component = dropdown
+        dropdown.addOption('square', 'Square')
+        dropdown.addOption('circle', 'Circle')
+        dropdown.setValue(settings.taskCheckboxStyle).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.taskCheckboxStyle)
+            onChange(DEFAULT_SETTINGS.taskCheckboxStyle)
+          })
+      })
+  }
+
+  createTasksMaxItemsSetting(settings: JournalFolderSettings): Setting {
+    let component: TextComponent
+
+    const onChange = (raw: string) => {
+      const parsed = parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) return
+      settings.tasksMaxItems = parsed
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Maximum tasks shown')
+      .setDesc(
+        'Hard cap on the number of tasks rendered in the sidebar and ' +
+          'in-note blocks. When exceeded, a footer appears with a link ' +
+          'back here to increase the limit.'
+      )
+      .addText((text) => {
+        component = text
+        text.setValue(String(settings.tasksMaxItems)).onChange(
+          debounce(onChange, 250, true)
+        )
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(String(DEFAULT_SETTINGS.tasksMaxItems))
+            onChange(String(DEFAULT_SETTINGS.tasksMaxItems))
+          })
+      })
   }
 
   createDefaultCalendarVisibleSetting(

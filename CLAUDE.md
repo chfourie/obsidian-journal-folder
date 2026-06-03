@@ -24,12 +24,13 @@ Tests live in `tests/` and mirror the `src/` layout. ESLint and Prettier configs
 
 ### Plugin shell → feature set
 
-Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginFeatureSet` and registers four features in order:
+Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginFeatureSet` and registers five features in order:
 
 - `JournalFolderSettingsFeature` — owns the global settings, persists them via `plugin.saveData`/`loadData`, registers the settings tab, propagates settings to the other features, and applies global side-effects (`applyStartOfWeek`, the body class for *Hide journal-folder.md in file explorer*). Its `saveSettings` is `public readonly` so the sidebar feature can mutate global settings (e.g. *Set as default*) through the same pipeline.
 - `JournalHeaderFeature` — registers the `journal-header` markdown code block processor that mounts the in-note header + calendar.
+- `JournalTasksFeature` — registers the `journal-tasks` markdown code block processor and owns a shared `TaskCache` that the sidebar's task panel also consumes. See the *Tasks* subsection below and [docs/tasks-design.md](docs/tasks-design.md).
 - `JournalAutoTemplateFeature` — listens to `vault.on('create')` (after `workspace.onLayoutReady`) and seeds new journal notes with a template body when the global/folder `auto-template-enabled` setting is on. See [docs/auto-template.md](docs/auto-template.md).
-- `JournalFolderSidebarFeature` — registers the `journal-folder-sidebar` view type and the calendar ribbon icon. The sidebar is the entry point for folder selection, the calendar, the inline configuration editor, and the *Initialise a new journal folder* action. See [docs/sidebar.md](docs/sidebar.md).
+- `JournalFolderSidebarFeature` — registers the `journal-folder-sidebar` view type and the calendar ribbon icon. The sidebar is the entry point for folder selection, the calendar, the inline configuration editor, the *Initialise a new journal folder* action, and (when `tasksSidebarEnabled` is on) the task panel that shares `JournalTasksFeature`'s cache. See [docs/sidebar.md](docs/sidebar.md).
 
 `PluginFeatureSet` (`src/plugin/plugin-feature-set.ts`) is a tiny lifecycle multiplexer: `load`, `unload`, `useSettings`, and `onExternalSettingsChange` fan out to every registered feature with try/catch around each. Adding a new feature = create a `PluginFeature` subclass and `addFeature(...)` it in the plugin constructor.
 
@@ -37,7 +38,7 @@ Entry point is `src/plugin/journal-folder-plugin.ts`. It instantiates a `PluginF
 
 All features extend `PluginFeature` and resolve settings through three layers (later overrides earlier): global settings → folder front-matter (`journal-folder.md` in the same folder as the file) → embedded `key: value` config in the current `journal-header` code block. To add a configurable behavior, add the field to `JournalFolderSettings` + `DEFAULT_SETTINGS` in `src/data-access/journal-folder-settings.type.ts` — the resolver picks it up automatically.
 
-Global-only fields (`startOfWeek`, `defaultJournalFolder`, `hideJournalFolderNotes`, `sidebarMode`) are intentionally not honoured at the folder/embedded layers — see the per-field JSDoc for the rationale (locale singletons, UI preferences, etc.).
+Global-only fields (`startOfWeek`, `defaultJournalFolder`, `hideJournalFolderNotes`, `sidebarMode`, and every `tasksSidebar*` / `task*` field) are intentionally not honoured at the folder/embedded layers — see the per-field JSDoc for the rationale (locale singletons, UI preferences, task model is process-wide, etc.).
 
 `PER_FOLDER_FIELDS` in `src/features/journal-folder-sidebar/folder-config-sync.ts` is the canonical list of fields the per-folder modal lets users edit; it's typed as `const satisfies ReadonlyArray<keyof JournalFolderSettings>` so the type system catches drift if a new field is added without an entry. `kebabCase` (in `data-access/string-utils.ts`) is the inverse of the existing `camelCase` and is used when writing per-folder overrides to YAML front matter.
 
@@ -69,6 +70,12 @@ The picker trigger label is the literal **Year/Month** in both calendars; the ac
 
 See [docs/calendar.md](docs/calendar.md) for the deep details: month-window placement and `pickVisibleMonthCount` constants, fixed-width day cells, the dedicated divider grid track, cell-class stamping (and why we don't trust Obsidian's link-resolution pass), the date-picker popover behaviour, the desktop/mobile spacing split, and the platform-specific visibility defaults.
 
+### Tasks
+
+`JournalTasksFeature` registers a `journal-tasks` markdown code-block processor and owns the `TaskCache` that both surfaces share. A task is any line matching `/^(\s*[-*+]\s+)\[(.)\]\s?(.*)$/` whose status character is recognised by the active `TaskModel` — `simpleTaskModel` (`[ ]` / `[x]`) or `bulletJournalTaskModel` (`[ ] [/] [x] [>] [-]`). Resolution goes through `resolveTaskModel(settings)`; the `TaskModel` interface is the strategy seam for a future Tasks-plugin model.
+
+Filtering is **present-only** via `buildReferenceRange` — sidebar Today is `[today, today]`, sidebar Dynamic follows the active journal note (falls back to today for non-journal leaves), in-note blocks follow the host's range (or `[today, today]` for non-journal hosts). `findTaskCandidates` walks the configured folder(s) and keeps files whose `JournalNote` range intersects the reference range. `sortTasks` orders ascending by source-note range length so daily tasks always appear first. Status mutations go through `task-transition.ts` which uses `vault.process` with a line-match guard — a stale cache aborts with a `Notice` rather than blind-writing. View-local `showCompleted` toggling in the in-note block does not persist; the sidebar's identically-named toggle does. See [docs/tasks-design.md](docs/tasks-design.md).
+
 ### Sidebar
 
 `JournalFolderSidebarFeature` registers a view of type `journal-folder-sidebar` plus a `calendar-days` ribbon icon. The view (`JournalFolderSidebarView extends ItemView`) mounts `JournalFolderSidebar.svelte` and exposes a `SidebarUpdateApi` (`setSettings`, `setKnownFolders`, `setActiveFile`, `setSelected`, `bumpVault`) that the component registers at mount; the view pushes settings updates and active-leaf snapshots into the component's reactive `$state` without re-mounting. `bumpVault` is fired on every vault `create`/`delete`/`rename` so the synthetic anchor `JournalNote` (built once from a duck-typed TFile via `buildAnchorNote`) rebuilds — its `noteNames` snapshot would otherwise go stale on file mutations.
@@ -98,6 +105,9 @@ src/
     journal-auto-template/     # vault-create listener that seeds new journal notes
     journal-folder-sidebar/    # sidebar view, picker, calendar embed, init modal,
                                #   folder-config modal
+    journal-tasks/             # journal-tasks code block, task panel components,
+                               #   task models (simple, bullet-journal), cache,
+                               #   reference range, scope, sorting, transitions
   ui/             # shared Svelte components (NoteLink, ErrorMessage)
 docs/             # architecture deep-dives, screenshots, demo vault, developer notes
 ```

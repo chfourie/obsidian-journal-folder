@@ -786,3 +786,127 @@ body.journal-folder-hide-config-notes
 	flex-direction: column;
 	gap: .5em;
 }
+
+/* Task panel — used by both the sidebar (`header: 'sidebar'`) and the
+ * `journal-tasks` code block (`header: 'note'`). Layout is minimal so
+ * the panel inherits Obsidian's theme everywhere it can. */
+.journal-folder-tasks {
+	display: flex;
+	flex-direction: column;
+	gap: .35em;
+}
+
+.journal-folder-tasks-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .25em .6em;
+	font-size: var(--font-ui-smaller);
+}
+
+.journal-folder-tasks-header-label {
+	font-weight: 600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.journal-folder-tasks-header-controls {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: .25em .4em;
+}
+
+.journal-folder-tasks-link {
+	color: var(--text-accent);
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-tasks-link:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+	text-decoration: underline;
+}
+
+.journal-folder-tasks-sep {
+	color: var(--text-muted);
+}
+
+.journal-folder-tasks-list {
+	display: flex;
+	flex-direction: column;
+	gap: .15em;
+}
+
+.journal-folder-tasks-row {
+	display: flex;
+	align-items: center;
+	gap: .4em;
+	min-width: 0;
+	font-size: var(--font-ui-small);
+}
+
+.journal-folder-tasks-status-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: var(--text-normal);
+	flex: 0 0 auto;
+}
+
+.journal-folder-tasks-status-icon:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-tasks-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+	color: var(--text-normal);
+}
+
+.journal-folder-tasks-text:hover {
+	text-decoration: underline;
+}
+
+.journal-folder-tasks-chip {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.journal-folder-tasks-chip:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-done .journal-folder-tasks-text {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
+.journal-folder-tasks-empty {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.journal-folder-tasks-footer {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: .35em;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.jf-sidebar-divider {
+	border: none;
+	border-top: 1px solid var(--background-modifier-border);
+	margin: .75em 0;
+}

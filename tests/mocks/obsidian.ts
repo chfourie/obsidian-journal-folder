@@ -136,8 +136,22 @@ export class Vault {
     return this.contents.get(file.path) ?? ''
   }
 
+  async cachedRead(file: TFile): Promise<string> {
+    return this.contents.get(file.path) ?? ''
+  }
+
   async modify(file: TFile, content: string): Promise<void> {
     this.contents.set(file.path, content)
+  }
+
+  async process(
+    file: TFile,
+    fn: (content: string) => string
+  ): Promise<string> {
+    const current = this.contents.get(file.path) ?? ''
+    const next = fn(current)
+    this.contents.set(file.path, next)
+    return next
   }
 
   on(name: string, cb: (...args: unknown[]) => unknown): EventRef {
@@ -447,6 +461,14 @@ export class MomentFormatComponent {
     return this
   }
   onChanged(): void {}
+}
+
+// Tests can read the most recent Notice message via `Notice.lastMessage`.
+export class Notice {
+  static lastMessage: string | null = null
+  constructor(message: string) {
+    Notice.lastMessage = message
+  }
 }
 
 export function debounce<Args extends unknown[], R>(

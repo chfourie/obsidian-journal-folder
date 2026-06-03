@@ -97,7 +97,47 @@ export type JournalFolderSettings = {
   // — the sidebar only moves when the user picks a folder explicitly.
   // **Global only** because the sidebar is a singleton view.
   sidebarMode: SidebarMode
+  // Master toggle for the sidebar's task panel. Off by default so the
+  // sidebar stays minimal for users who don't journal with tasks.
+  // **Global only** — the sidebar is a singleton view.
+  tasksSidebarEnabled: boolean
+  // Reference range the sidebar task panel uses. `'today'` lists tasks
+  // whose source note's period covers today; `'dynamic'` follows the
+  // active journal note (falls back to today when the active leaf is
+  // not a journal note). Persisted from the sidebar's inline link toggle.
+  // **Global only** — the toggle *is* the control.
+  tasksSidebarReference: TasksSidebarReference
+  // Folders the sidebar's `Today` reference scope considers. Empty
+  // array means "every known journal folder". `Dynamic` reference
+  // always uses the active note's folder regardless of this list.
+  // **Global only** — scope is a UI preference for the singleton view.
+  tasksSidebarFolders: string[]
+  // View-side filter — when false, tasks satisfying `model.isDone` are
+  // hidden and the panel header surfaces the hidden count. Persisted
+  // from the sidebar's inline link toggle. **Global only** — the
+  // in-note `journal-tasks` block has its own view-local toggle that
+  // does not persist.
+  tasksShowCompleted: boolean
+  // Hard cap on the number of tasks rendered (sidebar + in-note). When
+  // exceeded, a footer shows "Showing N of M — increase limit in
+  // settings". **Global only** — protects render perf in long-range
+  // notes; per-folder overrides aren't useful here.
+  tasksMaxItems: number
+  // Active task model. `'simple'` recognises `[ ]` / `[x]`; `'bullet-
+  // journal'` adds in-progress, migrated, cancelled. Switching is
+  // non-destructive because both models share the community-conventional
+  // checkbox alphabet. **Global only** — task semantics shouldn't
+  // diverge across folders.
+  taskModel: TaskModelSetting
+  // Icon variant the status indicator uses. `'square'` uses Lucide
+  // `square`/`square-check`/etc.; `'circle'` uses the circle variants.
+  // **Global only** — purely cosmetic and process-wide.
+  taskCheckboxStyle: TaskCheckboxStyle
 }
+
+export type TasksSidebarReference = 'today' | 'dynamic'
+export type TaskModelSetting = 'simple' | 'bullet-journal'
+export type TaskCheckboxStyle = 'square' | 'circle'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -144,4 +184,11 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultJournalFolder: '',
   hideJournalFolderNotes: true,
   sidebarMode: 'dynamic',
+  tasksSidebarEnabled: false,
+  tasksSidebarReference: 'dynamic',
+  tasksSidebarFolders: [],
+  tasksShowCompleted: true,
+  tasksMaxItems: 200,
+  taskModel: 'simple',
+  taskCheckboxStyle: 'square',
 }

@@ -30,6 +30,13 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'defaultJournalFolder',
   'hideJournalFolderNotes',
   'sidebarMode',
+  'tasksSidebarEnabled',
+  'tasksSidebarReference',
+  'tasksSidebarFolders',
+  'tasksShowCompleted',
+  'tasksMaxItems',
+  'taskModel',
+  'taskCheckboxStyle',
 ])
 
 export class FolderSettingsResolver {
