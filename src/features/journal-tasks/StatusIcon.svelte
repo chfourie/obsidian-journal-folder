@@ -44,7 +44,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   const statusEntry = $derived(model.statuses.find((s) => s.id === status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
-  const isDone = $derived(model.isDone(status))
+  // Mirror Obsidian's own convention: the `<input>` is rendered
+  // checked for every status whose char isn't a literal space.
+  // Themes (AnuPpuccin et al.) hang their per-status `[data-task="X"]`
+  // styling off `input[type=checkbox]:checked`, so an unchecked
+  // input for, say, `[/]` would skip the theme rule entirely and
+  // fall back to the default browser checkbox.
+  const isChecked = $derived(statusChar !== ' ')
   const iconName = $derived.by(() => {
     if (!statusEntry) return checkboxStyle === 'circle' ? 'circle' : 'square'
     return checkboxStyle === 'circle'
@@ -74,7 +80,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     type="checkbox"
     class="task-list-item-checkbox"
     data-task={statusChar}
-    checked={isDone}
+    checked={isChecked}
     aria-label={`Status: ${status}`}
     onclick={(e) => {
       e.preventDefault()
