@@ -30,6 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount: number
     totalBeforeCap: number
     header: 'sidebar' | 'note'
+    caption?: string
     referenceMode?: 'today' | 'dynamic'
     onToggleReference?: () => void
     onToggleShowCompleted?: () => void
@@ -46,6 +47,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount,
     totalBeforeCap,
     header,
+    caption,
     referenceMode,
     onToggleReference,
     onToggleShowCompleted,
@@ -53,12 +55,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     onOpenSettings,
   }: Props = $props()
 
+  const captionText = $derived(caption && caption.trim() ? caption : 'TASKS')
   const headerLabel = $derived.by(() => {
-    if (showCompleted) return `TASKS (${tasks.length})`
-    return `TASKS (${tasks.length} · ${hiddenCompletedCount} ✓ hidden)`
+    if (showCompleted) return `${captionText} (${tasks.length})`
+    return `${captionText} (${tasks.length} · ${hiddenCompletedCount} ✓ hidden)`
   })
 
   const truncated = $derived(totalBeforeCap > tasks.length)
+
+  // The scope menu only narrows the `Today` reference — it has no effect
+  // in Dynamic mode (which always follows the active note's folder), so
+  // we hide the link entirely there to avoid suggesting otherwise.
+  const showScopeLink = $derived(
+    header === 'sidebar' &&
+      !!onOpenScopeMenu &&
+      referenceMode === 'today'
+  )
 
   function activate(handler?: () => void) {
     return (e: KeyboardEvent) => {
@@ -73,7 +85,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <div class="journal-folder-tasks">
   <div class="journal-folder-tasks-header">
     <span class="journal-folder-tasks-header-label">{headerLabel}</span>
-    <span class="journal-folder-tasks-header-controls">
+  </div>
+  {#if header === 'sidebar' || onToggleShowCompleted}
+    <div class="journal-folder-tasks-controls">
       {#if header === 'sidebar' && onToggleReference}
         <span
           role="button"
@@ -83,7 +97,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           onclick={onToggleReference}
           onkeydown={activate(onToggleReference)}
         >
-          {referenceMode === 'today' ? 'Dynamic' : 'Today'}
+          {referenceMode === 'today' ? 'Today' : 'Dynamic'}
         </span>
         <span class="journal-folder-tasks-sep">·</span>
       {/if}
@@ -92,31 +106,31 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           role="button"
           tabindex="0"
           class="journal-folder-tasks-link"
-          aria-pressed={!showCompleted}
+          aria-pressed={showCompleted}
           onclick={onToggleShowCompleted}
           onkeydown={activate(onToggleShowCompleted)}
         >
-          {showCompleted ? 'Hide completed' : 'Show completed'}
+          {showCompleted ? 'All tasks' : 'Active tasks'}
         </span>
       {/if}
-      {#if header === 'sidebar' && onOpenScopeMenu}
+      {#if showScopeLink}
         <span class="journal-folder-tasks-sep">·</span>
         <span
           role="button"
           tabindex="0"
           class="journal-folder-tasks-link"
           aria-haspopup="menu"
-          onclick={(e) => onOpenScopeMenu(e)}
+          onclick={(e) => onOpenScopeMenu!(e)}
           onkeydown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()
-              onOpenScopeMenu(e)
+              onOpenScopeMenu!(e)
             }
           }}
-        >⋯</span>
+        >Folders</span>
       {/if}
-    </span>
-  </div>
+    </div>
+  {/if}
 
   {#if tasks.length === 0}
     <p class="journal-folder-tasks-empty">No tasks in range.</p>

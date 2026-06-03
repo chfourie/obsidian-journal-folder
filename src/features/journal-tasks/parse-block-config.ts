@@ -23,6 +23,10 @@ export interface JournalTasksBlockConfig {
   units?: JournalTimeUnit[]
   showCompleted?: boolean
   maxItems?: number
+  // Overrides the `TASKS` header label. Rendered verbatim — the
+  // existing CSS uppercases the heading, so a caption typed in mixed
+  // case still renders all-caps.
+  caption?: string
 }
 
 const UNIT_ALIASES: Record<string, JournalTimeUnit> = {
@@ -74,6 +78,9 @@ export function parseJournalTasksBlock(source: string): JournalTasksBlockConfig 
         if (Number.isFinite(n) && n > 0) config.maxItems = n
         break
       }
+      case 'caption':
+        config.caption = value
+        break
     }
   }
   return config

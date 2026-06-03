@@ -133,6 +133,15 @@ export type JournalFolderSettings = {
   // `square`/`square-check`/etc.; `'circle'` uses the circle variants.
   // **Global only** — purely cosmetic and process-wide.
   taskCheckboxStyle: TaskCheckboxStyle
+  // When true, every task checkbox in the rendered document (reading
+  // view + live preview) is replaced with a `TaskModel`-aware status
+  // icon: left-click cycles, right-click opens the status menu, and
+  // unusual statuses (`[/]` / `[>]` / `[-]`) render their proper
+  // icon variant. **Off by default** so existing tasks-plugin /
+  // theme behaviour isn't clobbered for users who don't want it.
+  // **Global only** — interception happens at the markdown post-
+  // processor layer, which is process-wide.
+  documentTasksEnabled: boolean
 }
 
 export type TasksSidebarReference = 'today' | 'dynamic'
@@ -191,4 +200,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksMaxItems: 200,
   taskModel: 'simple',
   taskCheckboxStyle: 'square',
+  documentTasksEnabled: false,
 }

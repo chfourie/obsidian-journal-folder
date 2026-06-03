@@ -358,6 +358,7 @@ class SettingsFormBuilder {
       this.createTaskModelSetting(settings)
       this.createTaskCheckboxStyleSetting(settings)
       this.createTasksMaxItemsSetting(settings)
+      this.createDocumentTasksEnabledSetting(settings)
 
       new Setting(this.containerEl).setName('Reset').setHeading()
       new Setting(this.containerEl)
@@ -814,6 +815,40 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.taskCheckboxStyle)
             onChange(DEFAULT_SETTINGS.taskCheckboxStyle)
+          })
+      })
+  }
+
+  createDocumentTasksEnabledSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.documentTasksEnabled = value
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Cycle / render document tasks')
+      .setDesc(
+        'When on, every task checkbox in the rendered document gets the ' +
+          'same status icon and cycle / right-click menu the sidebar uses. ' +
+          'Leave off to defer to Obsidian’s built-in checkboxes (or the ' +
+          'Tasks plugin) for in-document interactions.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.documentTasksEnabled).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.documentTasksEnabled)
+            onChange(DEFAULT_SETTINGS.documentTasksEnabled)
           })
       })
   }

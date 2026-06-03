@@ -797,11 +797,6 @@ body.journal-folder-hide-config-notes
 }
 
 .journal-folder-tasks-header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: .25em .6em;
 	font-size: var(--font-ui-smaller);
 }
 
@@ -812,11 +807,13 @@ body.journal-folder-hide-config-notes
 	color: var(--text-muted);
 }
 
-.journal-folder-tasks-header-controls {
-	display: inline-flex;
+.journal-folder-tasks-controls {
+	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
 	gap: .25em .4em;
+	font-size: var(--font-ui-smaller);
+	margin-bottom: .2em;
 }
 
 .journal-folder-tasks-link {
@@ -909,4 +906,43 @@ body.journal-folder-hide-config-notes
 	border: none;
 	border-top: 1px solid var(--background-modifier-border);
 	margin: .75em 0;
+}
+
+/* Document-level task icon: replaces Obsidian's native checkbox in
+ * reading view and live preview when `documentTasksEnabled` is on.
+ * Sized to roughly match the native checkbox so list indentation
+ * doesn't reflow. Inherits theme colour so themes that key off
+ * `[data-task]` on the parent li still drive emphasis. */
+.journal-folder-document-task-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1em;
+	height: 1em;
+	cursor: pointer;
+	vertical-align: -0.15em;
+	margin-inline-end: 0.4em;
+	color: var(--text-normal);
+}
+
+.journal-folder-document-task-icon:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-document-task-icon:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+/* When the row's data-task indicates a "done" status (`x`, `>`, `-`),
+ * fade the text and strike through — mirrors the task-panel rows so
+ * both surfaces feel the same regardless of the active model. Themes
+ * frequently style `[data-task="x"]` already; the rules below are
+ * a defensive baseline for themes that don't. */
+li.task-list-item[data-task="x"],
+li.task-list-item[data-task="X"],
+li.task-list-item[data-task=">"],
+li.task-list-item[data-task="-"] {
+	color: var(--text-muted);
+	text-decoration: line-through;
 }

@@ -16,9 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, Notice } from 'obsidian'
-import type { JournalTask, TaskStatusId } from '../../data-access'
+import { type App, type TFile, Notice } from 'obsidian'
+import type { TaskStatusId } from '../../data-access'
 import type { TaskModel } from './task-models'
+
+// Structural subset of `JournalTask` — enough to locate the on-disk
+// line and verify it hasn't moved since the caller last parsed it.
+// Lets document-level task interactions (where there's no full
+// `JournalNote` context) reuse the same writer.
+export interface TaskMutationTarget {
+  sourceFile: TFile
+  sourceLine: number
+  status: TaskStatusId
+}
 
 const STALE_MESSAGE = 'Task no longer at expected location — refreshing'
 
@@ -29,7 +39,7 @@ const STALE_MESSAGE = 'Task no longer at expected location — refreshing'
 // happen before the user tries again.
 export async function setTaskStatus(
   app: App,
-  task: JournalTask,
+  task: TaskMutationTarget,
   nextStatus: TaskStatusId,
   model: TaskModel
 ): Promise<void> {
@@ -54,7 +64,7 @@ export async function setTaskStatus(
 
 export async function cycleTaskStatus(
   app: App,
-  task: JournalTask,
+  task: TaskMutationTarget,
   model: TaskModel
 ): Promise<void> {
   await setTaskStatus(app, task, model.nextStatus(task.status), model)

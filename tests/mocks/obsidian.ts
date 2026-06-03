@@ -262,6 +262,10 @@ export class Plugin {
     _processor: (source: string, el: HTMLElement, ctx: unknown) => unknown
   ): void {}
 
+  registerMarkdownPostProcessor(
+    _processor: (el: HTMLElement, ctx: unknown) => unknown
+  ): void {}
+
   registerEvent(_ref: EventRef): void {}
 
   registerView(
@@ -362,10 +366,31 @@ export class Setting {
   }
 }
 
+export interface MenuItemSnapshot {
+  title?: string
+  icon?: string
+  click?: () => void
+}
 export class Menu {
-  private items: Array<unknown> = []
-  addItem(_cb: (item: unknown) => unknown): this {
-    this.items.push({})
+  items: Array<MenuItemSnapshot | { separator: true }> = []
+  addItem(cb: (item: unknown) => unknown): this {
+    const snapshot: MenuItemSnapshot = {}
+    const builder = {
+      setTitle: (t: string) => {
+        snapshot.title = t
+        return builder
+      },
+      setIcon: (i: string) => {
+        snapshot.icon = i
+        return builder
+      },
+      onClick: (fn: () => void) => {
+        snapshot.click = fn
+        return builder
+      },
+    }
+    cb(builder)
+    this.items.push(snapshot)
     return this
   }
   addSeparator(): this {
@@ -462,6 +487,9 @@ export class MomentFormatComponent {
   }
   onChanged(): void {}
 }
+
+// Minimal `setIcon` stub — only the call signature matters for tests.
+export function setIcon(_el: HTMLElement, _icon: string): void {}
 
 // Tests can read the most recent Notice message via `Notice.lastMessage`.
 export class Notice {

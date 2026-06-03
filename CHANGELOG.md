@@ -19,9 +19,12 @@ release body).
     *Settings → Tasks → Task model*.
   - **Square / circle** checkbox styling — purely cosmetic, swaps the
     Lucide icon variant used for every status.
-  - Sidebar quick toggles: **Today / Dynamic** (reference range) and
-    **Show / Hide completed**. Both write back to global settings; the
-    *⋯* menu narrows the *Today* scope to a subset of folders.
+  - Sidebar quick toggles below the *TASKS* heading: a reference-range
+    link (label reads **Today** or **Dynamic** to match the current
+    mode) and a completed-filter link (**All tasks** or **Active
+    tasks**). Both write back to global settings; a **Folders** link
+    narrows the *Today* scope to a subset of folders (hidden in
+    Dynamic mode since the scope follows the active note there).
   - In-note block accepts `folders:`, `units:`, `show-completed:`, and
     `max-items:` keys. `show-completed` is view-local and does not
     persist.
@@ -31,6 +34,22 @@ release body).
     a stale cache aborts safely with a Notice.
   - `tasksMaxItems` cap (default **200**) with a "Showing N of M —
     increase limit in settings" footer when truncated.
+  - **Cycle / render document tasks** (off by default). When enabled,
+    every task checkbox in the rendered document is replaced with the
+    same status icon used in the panel: left-click cycles, and unusual
+    statuses (`[/]`, `[>]`, `[-]`) render their proper icon variant
+    rather than falling back to Obsidian's default checkbox. Works
+    in **reading view** (markdown post-processor) and **live preview**
+    (DOM `MutationObserver` that swaps the native checkbox inline as
+    soon as Obsidian renders it — Obsidian's checkbox lives in the
+    rendered widget layer rather than the CodeMirror source range,
+    so a source-level decoration can't suppress it); source mode is
+    left untouched so raw markdown stays editable. In the editor the
+    right-click status options integrate into Obsidian's native
+    editor context menu rather than overriding it. The toggle lives
+    in *Settings → Tasks → Cycle / render document tasks*; leave it
+    off if another plugin (e.g. Tasks) already owns in-document
+    interactions.
 
 ## [2.1.1]
 

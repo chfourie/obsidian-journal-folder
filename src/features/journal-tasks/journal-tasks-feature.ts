@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import {
   MarkdownRenderChild,
+  MarkdownView,
   type Plugin,
   TFile,
 } from 'obsidian'
@@ -38,6 +39,9 @@ import { parseJournalTasksBlock } from './parse-block-config'
 import { buildReferenceRange } from './reference-range'
 import { effectiveUnits, findTaskCandidates } from './task-scope'
 import { sortTasks } from './task-sorting'
+import { processDocumentTasks } from './document-tasks-processor'
+import { documentTaskLivePreviewExtension } from './document-task-live-preview'
+import { appendStatusMenuItems } from './document-task-menu'
 
 export class JournalTasksFeature extends PluginFeature {
   readonly #cache: TaskCache
@@ -71,6 +75,58 @@ export class JournalTasksFeature extends PluginFeature {
       })
     )
 
+    const documentTaskCtx = {
+      app: this.plugin.app,
+      resolveModel: () => resolveTaskModel(this.globalSettings),
+      resolveCheckboxStyle: () => this.globalSettings.taskCheckboxStyle,
+      isEnabled: () => !!this.globalSettings.documentTasksEnabled,
+    }
+
+    this.plugin.registerMarkdownPostProcessor((el, ctx) => {
+      processDocumentTasks(el, ctx, documentTaskCtx)
+    })
+
+    // Live-preview editor surface — a per-editor CodeMirror
+    // ViewPlugin that attaches its own click / context-menu handlers
+    // (via `view.dom`) and runs a MutationObserver to swap the
+    // native checkbox for our icon. Cycling uses `view.dispatch`
+    // rather than `vault.process` so the edit lands inside the
+    // editor's own state machine (this is the pattern obsidian-tasks
+    // uses and the only one that survives Obsidian's checkbox
+    // re-render).
+    this.plugin.registerEditorExtension(
+      documentTaskLivePreviewExtension(documentTaskCtx)
+    )
+
+    // Integrate status options into Obsidian's native editor context
+    // menu rather than overriding right-click. Items only appear when
+    // the cursor is sitting on a task line the active model
+    // recognises.
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on('editor-menu', (menu, editor, view) => {
+        if (!this.globalSettings.documentTasksEnabled) return
+        if (!(view instanceof MarkdownView)) return
+        const file = view.file
+        if (!file) return
+        const cursor = editor.getCursor()
+        const lineText = editor.getLine(cursor.line)
+        const model = resolveTaskModel(this.globalSettings)
+        const parsed = model.parseLine(lineText)
+        if (!parsed) return
+        menu.addSeparator()
+        appendStatusMenuItems(
+          menu,
+          {
+            sourceFile: file,
+            sourceLine: cursor.line,
+            status: parsed.status,
+          },
+          model,
+          this.plugin.app
+        )
+      })
+    )
+
     this.plugin.registerMarkdownCodeBlockProcessor(
       'journal-tasks',
       async (source, el, ctx) => {
@@ -88,6 +144,13 @@ export class JournalTasksFeature extends PluginFeature {
     // Switching the active model invalidates every cached entry —
     // their parsed status IDs are model-specific.
     this.#cache.clear()
+    // Force open CodeMirror editors to re-run their ViewPlugin
+    // updates so toggles of `documentTasksEnabled` / `taskModel` /
+    // `taskCheckboxStyle` take effect without requiring the user
+    // to type. `updateOptions()` re-applies extensions across all
+    // editors; the per-editor MutationObserver inside each plugin
+    // also re-scans whenever Obsidian re-renders content.
+    this.plugin.app.workspace.updateOptions?.()
   }
 
   private async renderBlock(
@@ -181,6 +244,7 @@ export class JournalTasksFeature extends PluginFeature {
           hiddenCompletedCount: hiddenCount,
           totalBeforeCap,
           header: 'note',
+          caption: blockConfig.caption,
           onToggleShowCompleted: () => {
             showCompleted = !showCompleted
             render()
