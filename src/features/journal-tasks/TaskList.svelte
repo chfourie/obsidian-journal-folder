@@ -25,7 +25,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   type Props = {
     tasks: JournalTask[]
     model: TaskModel
-    rendering: 'plugin' | 'theme'
     app: App
     showCompleted: boolean
     hiddenCompletedCount: number
@@ -50,7 +49,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const {
     tasks,
     model,
-    rendering,
     app,
     showCompleted,
     hiddenCompletedCount,
@@ -215,14 +213,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         </div>
         {#if !collapsed}
           <div
-            class="journal-folder-tasks-list"
-            class:contains-task-list={rendering === 'theme'}
+            class="journal-folder-tasks-list contains-task-list"
           >
             {#each group.tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
               <TaskItem
                 task={task}
                 model={model}
-                rendering={rendering}
                 app={app}
               />
             {/each}

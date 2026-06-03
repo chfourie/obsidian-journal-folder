@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { TaskStatusId } from '../../../data-access/journal-task'
+import type { TaskStatusId } from './journal-task'
 
 export type { TaskStatusId }
 
@@ -29,15 +29,15 @@ export type ColorRef =
 
 // Where the inner glyph comes from. `none` lets the shell stand on
 // its own (an empty ring, a filled dot) without an icon inside.
-// A `svg` kind is intentionally omitted for now — accepting raw
-// SVG markup needs a sanitiser (XSS sink via `innerHTML`); we'll
-// reintroduce it through `DOMParser` + an allow-list when the
-// per-status editor UI lands.
+// The `svg` kind accepts raw SVG markup; the renderer pipes it
+// through `sanitizeSvg` before injection so disallowed tags /
+// attributes / `javascript:` URLs are stripped.
 export type IconSource =
   | { kind: 'none' }
   | { kind: 'lucide'; name: string }
   | { kind: 'emoji'; emoji: string }
   | { kind: 'image'; url: string }
+  | { kind: 'svg'; markup: string }
 
 export interface IconSpec {
   source: IconSource
@@ -75,15 +75,40 @@ export interface TaskStatus {
   // True for any status the user considers "completed-equivalent"
   // (typically done / migrated / cancelled).
   isDone: boolean
+  // Per-status forward link — the status the left-click cycle moves
+  // to from here. Lets the user define arbitrary flows (linear,
+  // branching-via-menu, dead-end) without a model-level cycle map.
+  // If the referenced id doesn't exist (e.g. the status was deleted
+  // after this one was authored), the cycle falls back to the first
+  // status in the active flow.
+  next: TaskStatusId
+  // How this status renders in the task panels and document body:
+  //   `'plugin'` — the plugin paints its own shell + icon (custom
+  //     fields below drive the visuals).
+  //   `'theme'`  — Obsidian's native checkbox stays visible so the
+  //     active theme styles it via `data-task="<char>"`. The custom
+  //     shell / icon fields are ignored.
+  // Per-status so a single flow can mix-and-match — themes that
+  // style `[ ]` `[/]` `[x]` but not `[d]` can leave the supported
+  // statuses to the theme and let the plugin paint the rest.
+  rendering: TaskRendering
   // Visual record split into a shell (the frame) and an icon (the
   // glyph drawn inside the frame). Either can be `'none'`-equivalent
   // for shape-only (no icon) or icon-only (no shell) statuses.
+  // Ignored when `rendering === 'theme'`.
   shell: ShellAppearance
   icon: IconSpec
 }
 
+export type TaskRendering = 'plugin' | 'theme'
+
 export interface TaskModel {
-  id: 'simple' | 'bullet-journal' | 'tasks-plugin'
+  // Stable string identifier used for cache invalidation. Built from
+  // the active status alphabet so the cache invalidates when statuses
+  // are added, removed, or have their char / isDone changed — pure
+  // visual edits (colour, shell shape) don't bump the id because they
+  // don't affect parsed `JournalTask` data.
+  id: string
   // Display order — drives both the right-click status menu and the
   // priority used by `parseLine` (first matching char wins).
   statuses: TaskStatus[]
@@ -94,10 +119,9 @@ export interface TaskModel {
   // Drives the *Show / Hide completed* filter — true for any status
   // that shouldn't appear when the user has hidden completed tasks.
   isDone(status: TaskStatusId): boolean
-  // The left-click cycle target for the current status. Only the
-  // primary cycle is exposed here; access to other statuses goes
-  // through the right-click / long-press status menu, which lists
-  // every entry in `statuses`.
+  // The left-click cycle target for the current status. Reads the
+  // per-status `next` field; falls back to the first status when the
+  // target id is missing from the active flow.
   nextStatus(current: TaskStatusId): TaskStatusId
 }
 

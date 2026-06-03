@@ -23,10 +23,7 @@ import {
   type PluginValue,
   ViewPlugin,
 } from '@codemirror/view'
-import type {
-  TaskCheckboxRendering,
-  TaskStatusId,
-} from '../../data-access'
+import type { TaskStatusId } from '../../data-access'
 import type { TaskModel } from './task-models'
 import { setTaskStatus, type TaskMutationTarget } from './task-transition'
 import { renderStatusIconById } from './render-status-icon'
@@ -34,7 +31,6 @@ import { renderStatusIconById } from './render-status-icon'
 export interface LivePreviewTaskContext {
   app: App
   resolveModel: () => TaskModel
-  resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
 
@@ -208,14 +204,6 @@ class LivePreviewPlugin implements PluginValue {
       this.restoreAll()
       return
     }
-    // Theme mode: leave the native checkbox alone so Obsidian + the
-    // active theme render it. Click / contextmenu interception on
-    // `view.dom` still routes the user's interactions through the
-    // active TaskModel — only the visual is delegated.
-    if (this.ctx.resolveRendering() === 'theme') {
-      this.restoreAll()
-      return
-    }
     const inputs = this.view.dom.querySelectorAll<HTMLInputElement>(
       'input.task-list-item-checkbox'
     )
@@ -223,42 +211,49 @@ class LivePreviewPlugin implements PluginValue {
   }
 
   private swapInput(input: HTMLInputElement): void {
-    // Already swapped? Just refresh the icon (status / checkbox-style
-    // may have changed) and bail.
-    const existing = input.nextElementSibling
-    if (
-      input.hasAttribute(SWAPPED_ATTR) &&
-      existing instanceof HTMLElement &&
-      existing.hasAttribute(ICON_ATTR)
-    ) {
-      this.refreshIcon(existing, input)
-      return
-    }
     const pos = this.view.posAtDOM(input)
     const line = this.view.state.doc.lineAt(pos)
     const model = this.ctx.resolveModel()
     const parsed = model.parseLine(line.text)
-    if (!parsed) return
+    const existing = input.nextElementSibling
+    const hasIcon =
+      input.hasAttribute(SWAPPED_ATTR) &&
+      existing instanceof HTMLElement &&
+      existing.hasAttribute(ICON_ATTR)
+
+    // Per-status rendering: theme statuses leave the native checkbox
+    // visible, plugin statuses swap it for our icon. The choice is
+    // per row, so the same editor may contain both kinds of task.
+    const rendering =
+      (parsed &&
+        model.statuses.find((s) => s.id === parsed.status)?.rendering) ??
+      'plugin'
+
+    if (!parsed || rendering === 'theme') {
+      // Restore the native checkbox if we'd previously swapped it
+      // (status was just edited from a plugin-rendered char to a
+      // theme-rendered one).
+      if (hasIcon) {
+        existing!.remove()
+        input.removeAttribute(SWAPPED_ATTR)
+        input.style.display = ''
+        input.removeAttribute('aria-hidden')
+      }
+      return
+    }
+
+    if (hasIcon) {
+      // Already swapped — just refresh the icon (status / visuals
+      // may have changed).
+      existing!.setAttribute('aria-label', `Task status: ${parsed.status}`)
+      renderStatusIconById(existing!, parsed.status, model)
+      return
+    }
+
     input.setAttribute(SWAPPED_ATTR, '')
     input.style.display = 'none'
     input.setAttribute('aria-hidden', 'true')
     input.after(this.buildIcon(parsed.status, model))
-  }
-
-  private refreshIcon(icon: HTMLElement, input: HTMLInputElement): void {
-    const pos = this.view.posAtDOM(input)
-    const line = this.view.state.doc.lineAt(pos)
-    const model = this.ctx.resolveModel()
-    const parsed = model.parseLine(line.text)
-    if (!parsed) {
-      icon.remove()
-      input.removeAttribute(SWAPPED_ATTR)
-      input.style.display = ''
-      input.removeAttribute('aria-hidden')
-      return
-    }
-    icon.setAttribute('aria-label', `Task status: ${parsed.status}`)
-    renderStatusIconById(icon, parsed.status, model)
   }
 
   private buildIcon(

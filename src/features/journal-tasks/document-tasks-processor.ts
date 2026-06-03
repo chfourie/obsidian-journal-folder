@@ -21,7 +21,6 @@ import {
   type MarkdownPostProcessorContext,
   TFile,
 } from 'obsidian'
-import type { TaskCheckboxRendering } from '../../data-access'
 import type { TaskModel } from './task-models'
 import {
   cycleTaskStatus,
@@ -34,9 +33,10 @@ import { renderStatusIconById } from './render-status-icon'
 export interface DocumentTasksContext {
   app: App
   // Lazy-resolved so the processor always sees the live model/style
-  // even when settings change while a note is open.
+  // even when settings change while a note is open. Rendering choice
+  // is read per-status off the model (each `TaskStatus.rendering`)
+  // — there's no global rendering switch.
   resolveModel: () => TaskModel
-  resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
 
@@ -62,7 +62,6 @@ export function processDocumentTasks(
   if (!(sourceFile instanceof TFile)) return
 
   const model = context.resolveModel()
-  const rendering = context.resolveRendering()
   const taskLines = findDocumentTaskLines(
     section.text,
     section.lineStart,
@@ -84,6 +83,9 @@ export function processDocumentTasks(
     // `[/]`).
     const status = model.statuses.find((s) => s.id === entry.status)
     li.setAttribute('data-task', status?.char ?? ' ')
+    // Per-status rendering choice (theme = leave the native checkbox
+    // alone, plugin = swap in our custom shell + icon).
+    const rendering = status?.rendering ?? 'plugin'
     if (rendering === 'theme') {
       attachHandlersToNativeCheckbox(li, target, model, context.app)
     } else {

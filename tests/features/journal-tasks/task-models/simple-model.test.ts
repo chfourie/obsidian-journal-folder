@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { simpleTaskModel } from '../../../../src/features/journal-tasks/task-models/simple-model'
+import { simpleTaskModel } from '../../../../src/features/journal-tasks/task-models'
 
 describe('simpleTaskModel', () => {
   describe('parseLine', () => {

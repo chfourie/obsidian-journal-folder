@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findDocumentTaskLines } from '../../../src/features/journal-tasks/document-task-line-map'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
-import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models/bullet-journal-model'
+import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
+import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 describe('findDocumentTaskLines', () => {
   it('returns absolute line indices for task lines in the section', () => {

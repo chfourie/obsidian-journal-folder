@@ -25,7 +25,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   type Props = {
     status: TaskStatusId
     model: TaskModel
-    rendering: 'plugin' | 'theme'
     onClick: (evt: MouseEvent) => void
     onContextMenu: (evt: MouseEvent) => void
   }
@@ -33,13 +32,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const {
     status,
     model,
-    rendering,
     onClick,
     onContextMenu,
   }: Props = $props()
 
   const statusEntry = $derived(model.statuses.find((s) => s.id === status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
+  // Rendering is a per-status property as of v3; the global setting
+  // is gone. Default to 'plugin' for legacy entries without the
+  // field (migration also stamps `rendering` so this is a belt-and-
+  // braces fallback).
+  const rendering = $derived(statusEntry?.rendering ?? 'plugin')
   // Mirror Obsidian's own convention: the `<input>` is rendered
   // checked for every status whose char isn't a literal space.
   // Themes (AnuPpuccin et al.) hang their per-status `[data-task="X"]`

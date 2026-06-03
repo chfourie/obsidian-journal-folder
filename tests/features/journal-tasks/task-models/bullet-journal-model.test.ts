@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bulletJournalTaskModel } from '../../../../src/features/journal-tasks/task-models/bullet-journal-model'
+import { bulletJournalTaskModel } from '../../../../src/features/journal-tasks/task-models'
 
 describe('bulletJournalTaskModel', () => {
   describe('parseLine', () => {
@@ -10,6 +10,7 @@ describe('bulletJournalTaskModel', () => {
       ['X', 'done'],
       ['>', 'migrated'],
       ['-', 'cancelled'],
+      ['d', 'delegated'],
     ])('parses [%s] as %s', (char, status) => {
       expect(bulletJournalTaskModel.parseLine(`- [${char}] task`)).toEqual({
         status,
@@ -36,10 +37,11 @@ describe('bulletJournalTaskModel', () => {
   })
 
   describe('isDone', () => {
-    it('treats done, migrated, cancelled as done', () => {
+    it('treats done, migrated, cancelled, delegated as done', () => {
       expect(bulletJournalTaskModel.isDone('done')).toBe(true)
       expect(bulletJournalTaskModel.isDone('migrated')).toBe(true)
       expect(bulletJournalTaskModel.isDone('cancelled')).toBe(true)
+      expect(bulletJournalTaskModel.isDone('delegated')).toBe(true)
     })
 
     it('treats open and in-progress as not done', () => {
@@ -55,20 +57,22 @@ describe('bulletJournalTaskModel', () => {
       expect(bulletJournalTaskModel.nextStatus('done')).toBe('open')
     })
 
-    it('routes migrated and cancelled back to open', () => {
+    it('routes migrated, cancelled, delegated back to open', () => {
       expect(bulletJournalTaskModel.nextStatus('migrated')).toBe('open')
       expect(bulletJournalTaskModel.nextStatus('cancelled')).toBe('open')
+      expect(bulletJournalTaskModel.nextStatus('delegated')).toBe('open')
     })
   })
 
   describe('statuses', () => {
-    it('lists all five in display order', () => {
+    it('lists all six in display order', () => {
       expect(bulletJournalTaskModel.statuses.map((s) => s.id)).toEqual([
         'open',
         'in-progress',
         'done',
         'migrated',
         'cancelled',
+        'delegated',
       ])
     })
   })

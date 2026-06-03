@@ -55,3 +55,26 @@ export function configPathFor(folderPath: string): string {
   if (folderPath === '' || folderPath === '/') return FOLDER_CONFIG_FILENAME
   return `${folderPath}/${FOLDER_CONFIG_FILENAME}`
 }
+
+// Returns the folder paths whose `journal-folder.md` declares the given
+// task-flow name in its front matter. Used by the global Tasks settings
+// to warn the user before deleting a flow that's referenced by one or
+// more folders. Reads the `task-flow` front-matter key (kebab-cased to
+// match the resolver convention). Returns paths sorted alphabetically.
+export function findFoldersUsingTaskFlow(
+  app: App,
+  flowName: string
+): string[] {
+  const matches: string[] = []
+  for (const folderPath of findJournalFolderPaths(app)) {
+    const file = app.vault.getAbstractFileByPath(configPathFor(folderPath))
+    if (!(file instanceof TFile)) continue
+    const fm = app.metadataCache.getFileCache(file)?.frontmatter
+    if (!fm) continue
+    const value = fm['task-flow']
+    if (typeof value === 'string' && value.trim() === flowName) {
+      matches.push(folderPath)
+    }
+  }
+  return matches.sort((a, b) => a.localeCompare(b))
+}

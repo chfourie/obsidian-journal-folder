@@ -25,16 +25,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   type Props = {
     task: JournalTask
     model: TaskModel
-    rendering: 'plugin' | 'theme'
     app: App
   }
 
-  const { task, model, rendering, app }: Props = $props()
+  const { task, model, app }: Props = $props()
 
+  const statusEntry = $derived(model.statuses.find((s) => s.id === task.status))
   const isDone = $derived(model.isDone(task.status))
-  const statusChar = $derived(
-    model.statuses.find((s) => s.id === task.status)?.char ?? ' '
-  )
+  const statusChar = $derived(statusEntry?.char ?? ' ')
+  const rendering = $derived(statusEntry?.rendering ?? 'plugin')
 
   function openSourceLine() {
     app.workspace.openLinkText(task.sourceFile.path, '', false)
@@ -76,7 +75,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <StatusIcon
     status={task.status}
     model={model}
-    rendering={rendering}
     onClick={onIconClick}
     onContextMenu={onIconContextMenu}
   />

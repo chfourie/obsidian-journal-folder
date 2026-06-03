@@ -24,6 +24,7 @@ import {
   type TaskStatus,
   type TaskStatusId,
 } from './task-models'
+import { sanitizeSvg } from '../../data-access/sanitize-svg'
 
 // Stamps the given DOM element with the shell + icon visuals for a
 // status. Used everywhere a status icon is painted outside Svelte
@@ -77,6 +78,21 @@ export function renderStatusIcon(
     img.src = src.url
     img.alt = ''
     iconWrapper.appendChild(img)
+  } else if (src.kind === 'svg') {
+    // Always pipe through the allow-list sanitiser before injecting
+    // — settings authors can paste arbitrary SVG markup, so script /
+    // event-handler attrs / `javascript:` URLs must be stripped.
+    const cleaned = sanitizeSvg(src.markup)
+    if (cleaned) {
+      const imported = document.importNode(cleaned, true)
+      // Let the wrapper's width/height drive layout instead of the
+      // raw SVG's intrinsic size.
+      imported.removeAttribute('width')
+      imported.removeAttribute('height')
+      imported.setAttribute('width', '100%')
+      imported.setAttribute('height', '100%')
+      iconWrapper.appendChild(imported)
+    }
   }
   // src.kind === 'none' leaves the wrapper empty — the shell stands
   // on its own (open ring, in-progress filled circle).

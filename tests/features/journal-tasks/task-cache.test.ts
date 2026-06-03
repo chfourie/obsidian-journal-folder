@@ -5,8 +5,8 @@ import {
   journalNoteFactoryWithSettings,
 } from '../../../src/data-access'
 import { TaskCache } from '../../../src/features/journal-tasks/task-cache'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
-import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models/bullet-journal-model'
+import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
+import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 function setup() {
   const app = new App()

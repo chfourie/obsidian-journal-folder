@@ -16,15 +16,22 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
-export * from './journal-task'
-export * from './task-model.type'
-export * from './task-templates'
-export * from './sanitize-svg'
+// Pure array-reorder used by the drag-drop status editor. Returns a
+// new array — the input is not mutated, so callers can pass straight
+// from settings without cloning first. Out-of-range indices yield a
+// shallow copy of the input.
+export function reorder<T>(items: T[], from: number, to: number): T[] {
+  if (
+    from === to ||
+    from < 0 ||
+    from >= items.length ||
+    to < 0 ||
+    to >= items.length
+  ) {
+    return [...items]
+  }
+  const next = [...items]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}

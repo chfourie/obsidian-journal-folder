@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { App, Menu, TFile } from '../../mocks/obsidian'
 import { appendStatusMenuItems } from '../../../src/features/journal-tasks/document-task-menu'
-import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models/bullet-journal-model'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
+import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
+import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 describe('appendStatusMenuItems', () => {
   it('adds one entry per status in display order', () => {
@@ -24,6 +24,7 @@ describe('appendStatusMenuItems', () => {
       'Done',
       'Migrated',
       'Cancelled',
+      'Delegated',
     ])
   })
 

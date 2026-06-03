@@ -5,8 +5,8 @@ import {
   cycleTaskStatus,
   setTaskStatus,
 } from '../../../src/features/journal-tasks/task-transition'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
-import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models/bullet-journal-model'
+import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
+import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 function setup(lines: string[]) {
   Notice.lastMessage = null

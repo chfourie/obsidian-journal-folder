@@ -24,6 +24,7 @@ import {
 } from '../../data-access'
 import type { Plugin } from 'obsidian'
 import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
+import { migrateTaskSettings } from './migrate-task-settings'
 
 export class JournalFolderSettingsFeature extends PluginFeature {
   constructor(
@@ -69,10 +70,11 @@ export class JournalFolderSettingsFeature extends PluginFeature {
   }
 
   readonly updateSettingsFromStorage = async (): Promise<void> => {
-    const settings = {
+    const stored = (await this.plugin.loadData()) ?? {}
+    const settings = migrateTaskSettings({
       ...this.globalSettings,
-      ...(await this.plugin.loadData()),
-    }
+      ...stored,
+    })
     await this.saveSettings(settings)
   }
 

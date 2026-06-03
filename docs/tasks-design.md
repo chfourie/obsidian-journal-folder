@@ -9,54 +9,88 @@ Surface Markdown tasks (`- [ ] ...` / `- [x] ...` / `- [/] ...` / etc.) from jou
 1. A panel below the calendar/notes section of the **sidebar**.
 2. An in-note **`journal-tasks` code block** (analogous to `journal-header`).
 
-The model is intentionally **present-only** — no past/future buckets, no completion-date stamping. Multiple **task models** are supported via a strategy interface: a *Simple* model (vanilla `[ ]`/`[x]`) ships in v1, and a *Bullet Journal* model (five statuses) ships behind the same interface. A future *Tasks-plugin* model is designed-for but not built.
+The model is intentionally **present-only** — no past/future buckets, no completion-date stamping. The task model is **user-configurable** via named **task flows**: a flow is a `TaskStatus[]` (markdown char, label, `isDone`, per-status `next`, rendering choice, shell + icon + colour) stored under a user-chosen name. Four **built-in templates** (Simple, Kanban, Bullet Journal, GTD) ship as read-only starting points — the user applies one to seed or reset a flow.
 
-## Task models
+## Task model
 
-One global setting `taskModel: 'simple' | 'bullet-journal'` selects the active model. No per-folder or per-block override — switching is non-destructive because all models share the same status-character alphabet.
+The active model is **built from `settings.taskFlows[name]`** at runtime via `buildTaskModel(statuses)`. Each folder picks which flow it uses; edits to a flow propagate to every folder pointing at it.
+
+Settings:
+
+| Field | Type | Layer | Purpose |
+|---|---|---|---|
+| `taskFlows` | `Record<string, TaskStatus[]>` | global | Dictionary of named flows. Built-in templates are not stored here (they live in code). |
+| `defaultTaskFlow` | `string` | global | Name of the flow used by folders that haven't set an override; also the fallback when a folder's override names a missing flow. |
+| `taskFlow` | `string` | per-folder | Front-matter `task-flow:` override naming the flow this folder uses. Empty = use `defaultTaskFlow`. |
+
+**Resolution chain** (`resolveTaskModel`): folder override `taskFlow` → `defaultTaskFlow` → built-in Simple template as ultimate fallback.
+
+**Migration** (`migrateTaskSettings`, idempotent, runs on every settings load) handles three legacy shapes:
+- v0 (`taskModel: 'simple' | 'bullet-journal'`) → promoted to a flow named after the template label
+- v1 (`taskStatuses` + `taskTemplates` + `currentTaskTemplate`) → user templates copied into `taskFlows`; the live `taskStatuses` array becomes the default flow
+- v2 (global `taskCheckboxRendering`) → stamped onto every status's per-status `rendering` field
+
+**Deletion warning** — `findFoldersUsingTaskFlow(app, name)` scans every `journal-folder.md` for the `task-flow:` key; the delete-flow modal lists affected folders. Folders pointing at a deleted flow automatically fall back to the default via the resolver — no front-matter cleanup needed.
 
 ### Status character convention
 
-Plugin standardises on the community-conventional checkbox alphabet (used by Tasks plugin, Minimal/Things themes, and others):
+Built-in templates draw from the community-conventional checkbox alphabet (used by Tasks plugin, Minimal/Things themes, and others) so notes stay interoperable across the Obsidian ecosystem:
 
-| Char | Meaning |
+| Char | Built-in meaning |
 |---|---|
 | `[ ]` | open |
-| `[/]` | in progress |
+| `[/]` | in progress / next action |
 | `[x]` | done |
 | `[>]` | migrated (handled as done for filtering) |
 | `[-]` | cancelled (handled as done for filtering) |
+| `[d]` | delegated (Bullet Journal template) |
+| `[?]` | waiting (GTD template) |
 
-This keeps notes interoperable with the wider Obsidian ecosystem and forward-compatible with a future Tasks-plugin model.
+Users may pick any single character per status when editing the flow. Themes that don't recognise a custom character render it as a plain checkbox — the plugin's own icon rendering remains accurate either way.
 
-### `TaskModel` interface
+### `TaskStatus` and `TaskModel`
 
 ```ts
-type TaskStatusId = string   // model-defined; core treats as opaque
+type TaskStatusId = string
+type TaskRendering = 'plugin' | 'theme'
 
 interface TaskStatus {
   id: TaskStatusId
   label: string
-  iconSquare: string   // Lucide icon name
-  iconCircle: string   // Lucide icon name
+  char: string                  // on-disk character inside [ ]
+  isDone: boolean               // drives Hide-completed filter
+  next: TaskStatusId            // per-status forward link for left-click cycle
+  rendering: TaskRendering      // per-status: 'plugin' = custom shell/icon; 'theme' = native checkbox
+  shell: ShellAppearance        // frame: shape + bg + border + colour (ignored when rendering = 'theme')
+  icon: IconSpec                // inner glyph + colour + inset (ignored when rendering = 'theme')
 }
 
 interface TaskModel {
-  id: 'simple' | 'bullet-journal' | 'tasks-plugin'
-  statuses: TaskStatus[]                                    // display order
+  id: string                    // signature over (char, isDone, next) — drives cache invalidation
+  statuses: TaskStatus[]
   parseLine(line: string): { status: TaskStatusId; text: string } | null
-  serializeStatus(status: TaskStatusId): string             // returns e.g. '[ ]', '[x]'
-  isDone(status: TaskStatusId): boolean                     // drives Hide-completed filter
-  nextStatus(current: TaskStatusId): TaskStatusId           // click-to-cycle
+  serializeStatus(id: TaskStatusId): string
+  isDone(id: TaskStatusId): boolean
+  nextStatus(current: TaskStatusId): TaskStatusId   // reads per-status `next`; falls back to first status on dangling refs
 }
 ```
 
-- **Simple**: statuses = `[open, done]`. Cycle: `open → done → open`.
-- **Bullet Journal**: statuses = `[open, in-progress, done, migrated, cancelled]`. Cycle: `open → in-progress → done → open`. Migrated/cancelled are accessible via the row's right-click / long-press status menu. `isDone` returns true for `done`, `migrated`, `cancelled`.
+`buildTaskModel(statuses)` is the only constructor — it builds a model from a status array. There's no "model singleton" anymore; the same function backs the built-in templates and every named flow.
 
-### Tasks-plugin model (future, design-only)
+**Per-status rendering** lets a single flow mix theme-styled and plugin-styled checkboxes. Themes that support `[ ]` `[/]` `[x]` but not `[d]` can leave the supported chars to the theme and let the plugin paint the rest. `StatusIcon.svelte`, the document post-processor, and the live-preview extension all look up `statusEntry.rendering` per row — there's no global rendering setting.
 
-The interface is shaped to accommodate it: `isDone` is a method (Tasks plugin allows user-defined statuses), `TaskStatusId` is opaque string, and parse/serialize live entirely inside the model. Drop-in addition when the time comes.
+### Built-in templates
+
+Four templates ship in code at `src/data-access/task-templates.ts`:
+
+| Template | Statuses | Notes |
+|---|---|---|
+| **Simple** | `[ ]` `[x]` | Two-state replacement for the original Simple model. |
+| **Kanban** | `[ ]` `[/]` `[x]` | Three-lane linear cycle. |
+| **Bullet Journal** | `[ ]` `[/]` `[x]` `[>]` `[-]` `[d]` | Original BuJo plus the user-requested **Delegated** entry. |
+| **GTD** | `[ ]` `[/]` `[?]` `[x]` | Inbox → next action → waiting → done. |
+
+Primary left-click cycles stay short (typically open → in-progress → done → open); secondary statuses route back to `open` and are reached via the right-click / long-press status menu.
 
 ## Conceptual model (model-agnostic)
 
@@ -99,10 +133,11 @@ A `tasksShowCompleted` boolean. When false, tasks whose status satisfies `model.
 | `tasksSidebarFolders` | `string[]` | global-only | Sidebar More... → edit scope folders |
 | `tasksShowCompleted` | `boolean` | global-only | Sidebar link toggle |
 | `tasksMaxItems` | `number` | global-only | Settings tab (default 200) |
-| `taskModel` | `'simple' \| 'bullet-journal'` | global-only | Settings tab |
-| `taskCheckboxStyle` | `'square' \| 'circle'` | global-only | Settings tab |
+| `taskFlows` | `Record<string, TaskStatus[]>` | global-only | Tasks tab → flow detail (Apply template / Save as / Delete / Add status / drag-reorder / drill into status) |
+| `defaultTaskFlow` | `string` | global-only | Tasks tab overview (dropdown next to Add new flow) |
+| `taskFlow` | `string` | per-folder | Per-folder modal Tasks tab — single dropdown (`Use default` + every named flow). Front-matter key `task-flow:`. |
 
-No per-folder overrides. No `tasksUnitsInScope` setting (code-block only).
+`taskFlow` is the only task-related field a folder may override; everything else (`taskFlows`, `defaultTaskFlow`, all sidebar/interaction settings) stays global.
 
 ## Code-block keys (`journal-tasks`)
 
@@ -158,7 +193,7 @@ TASKS (5 · 3 ✓ hidden)          Today · Show completed · ⋯
 
 ### Row
 
-- Leading status affordance: Lucide icon via `setIcon`. Icon name comes from the active model's `statuses[].iconSquare` or `iconCircle` based on `taskCheckboxStyle`.
+- Leading status affordance: rendered by `StatusIcon.svelte` based on the status's `rendering` field — either Obsidian's native `<input type="checkbox" data-task="...">` (theme styling) or a custom shell + Lucide / emoji / image / sanitised SVG glyph.
 - **Left click** the status icon → `model.nextStatus(current)`, written via `vault.process`.
 - **Right click / long-press** the status icon → Obsidian `Menu` of all statuses for the active model (check mark on current).
 - Task text with internal links live (delegated click handler, same approach as portaled header content).
@@ -198,17 +233,32 @@ src/features/journal-tasks/
   task-sorting.ts               # pure
   task-transition.ts            # vault.process status writer (model-aware)
   task-models/
-    task-model.type.ts          # TaskModel, TaskStatus, TaskStatusId
-    simple-model.ts
-    bullet-journal-model.ts
-    resolve-model.ts            # settings → active TaskModel
-    index.ts
+    build-task-model.ts         # buildTaskModel(statuses) — the only constructor
+    resolve-model.ts            # settings → buildTaskModel(taskFlows[taskFlow ?? defaultTaskFlow])
+    task-line-regex.ts          # shared `- [x] text` matcher
+    index.ts                    # barrel; re-exports type + templates from data-access
   TaskList.svelte
   TaskItem.svelte
-  StatusIcon.svelte             # setIcon wrapper; picks square/circle variant
+  StatusIcon.svelte             # per-status: native checkbox (theme) or custom shell (plugin)
+  render-status-icon.ts         # DOM-side shell + icon paint for the 'plugin' rendering path
   index.ts
 
-src/data-access/journal-task.ts # JournalTask type (no parser — model owns it)
+src/features/journal-folder-settings/
+  task-flow-editor.ts           # Tasks-tab overview + flow detail (drill-down via breadcrumb)
+  status-detail-editor.ts       # inline status editor (Basics / Icon / Background / Border nav)
+  color-picker.ts               # three-tab ColorRef picker (Semantic / Palette / Custom)
+  icon-pickers.ts               # paginated Lucide + emoji pickers with keyword search
+  icon-picker-data.ts           # curated Lucide shortcuts + ~180-entry emoji palette
+  reorder-statuses.ts           # pure array reorder used by drag-drop
+  migrate-task-settings.ts      # v0/v1/v2 → v3 settings migration (idempotent)
+
+src/data-access/
+  journal-task.ts               # JournalTask type
+  task-model.type.ts            # TaskStatus, TaskModel, TaskRendering, ShellAppearance,
+                                #   IconSpec, IconSource = none | lucide | emoji | image | svg
+  task-templates.ts             # BUILTIN_TEMPLATES (read-only), cloneTemplate, DEFAULT_TEMPLATE_ID
+  sanitize-svg.ts               # DOMParser + allow-list sanitiser for the `'svg'` IconSource kind
+  journal-folder-detection.ts   # …plus findFoldersUsingTaskFlow(app, name) for delete-flow warnings
 ```
 
 Sidebar feature gains a panel slot below its existing content; imports `TaskList` and helpers from `journal-tasks`. No reverse dependency.
@@ -221,9 +271,39 @@ Sidebar feature gains a panel slot below its existing content; imports `TaskList
 
 ## Tests (mandatory per project convention)
 
-- `tests/features/journal-tasks/task-models/simple-model.test.ts` — parse, serialize, cycle, isDone.
-- `tests/features/journal-tasks/task-models/bullet-journal-model.test.ts` — same surface, all five statuses.
-- `tests/features/journal-tasks/task-models/resolve-model.test.ts` — settings → active model.
+- `tests/features/journal-tasks/task-models/build-task-model.test.ts` — `next` cycle, dangling-ref fallback, model-id signature, first-char-wins on duplicates.
+- `tests/features/journal-tasks/task-models/built-in-templates.test.ts` — template count, all `next` links resolve, delegated present in BuJo, GTD waiting char, kanban linearity.
+- `tests/features/journal-tasks/task-models/simple-model.test.ts` — parse, serialize, cycle, isDone (backwards-compat via `simpleTaskModel` singleton).
+- `tests/features/journal-tasks/task-models/bullet-journal-model.test.ts` — same surface, all six statuses including delegated.
+- `tests/features/journal-tasks/task-models/resolve-model.test.ts` — folder `taskFlow` override wins; falls back to `defaultTaskFlow`; ultimate Simple-template fallback.
+- `tests/features/journal-folder-settings/migrate-task-settings.test.ts` — v0 → v3, v1 → v3 (user templates promoted, live statuses become a flow), v2 → v3 (`taskCheckboxRendering` stamped onto every status), idempotent on v3.
+- `tests/features/journal-folder-settings/reorder-statuses.test.ts` — pure array reorder used by drag-drop (forward / backward / no-op / out-of-range / non-mutating).
+- `tests/data-access/sanitize-svg.test.ts` — allow-list sanitiser (keeps shapes, strips `<script>` / `onclick` / `javascript:` URLs / unknown attrs).
+
+## Settings tab UI
+
+The plugin settings tab uses a top tab strip (General / New-note template / Note patterns / Tasks / Reset). The **Tasks** tab is a three-level drill-down with a breadcrumb at every level beyond the first:
+
+- **Level 1 — Tasks overview** (no breadcrumb): "General task settings" heading (max items, interaction scope) followed by "Task flows" — default-flow dropdown + Add new flow button, then one Obsidian-style `Setting` row per flow (name + status count, "Default" pill on the default, chevron). Click anywhere on a row to drill into Level 2. State persists across in-page re-renders via `editingFlow` / `editingStatusId` / `activeStatusSection` fields on the form builder.
+- **Level 2 — Flow detail** (`Tasks › <flow>`): Apply template / Save as / Delete actions (Delete scans for affected folders and lists them in the confirm modal). Below that, the status list — drag-reorder, Add status, per-row Edit (drills to Level 3) and Remove.
+- **Level 3 — Status detail** (`Tasks › <flow> › <status>`): the inline editor (no modal). Sticky preview at top showing the painted icon (or theme native checkbox when `rendering: 'theme'`); left nav with Basics / Icon / Background / Border; right detail panel. Every change auto-persists; the breadcrumb is the way back.
+
+Section gating in the status detail:
+- **Basics** always available — label, character, Active toggle, Next status, **Rendering** (`plugin` ↔ `theme`).
+- **Icon** disabled when rendering is `theme`. Source kind + payload picker (Lucide grid with search + pagination, emoji grid with search + pagination, image URL, monospaced SVG textarea). Icon colour / inset hide for kinds where they don't apply.
+- **Background** + **Border** disabled when shape is `none` or rendering is `theme`.
+
+The per-folder modal uses the same tabbed form via `mode: 'folder'` — folder-only fields (no global-only sections, no Reset). The Tasks tab in folder mode is a single dropdown selecting which flow this folder uses.
+
+The colour picker (`color-picker.ts`) is three tabs:
+
+- **Semantic** — purpose-driven tokens (`--text-normal`, `--text-accent`, `--checkbox-border-color`, …) that follow the active theme.
+- **Palette** — fixed accent hues (`--color-red` through `--color-pink`).
+- **Custom** — `<input type="color">` for hex plus a free-text input for any CSS colour string.
+
+The active tab is inferred from the current `ColorRef`. A "Clear" affordance emits `undefined` (rendered as transparent / inherit).
+
+SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser parses with `DOMParser`, drops every element outside the allow-list (script, foreignObject, iframe, image, …), strips every `on*` attribute, and removes `href` / `xlink:href` values starting with `javascript:`, `data:`, or `vbscript:`.
 - `tests/features/journal-tasks/reference-range.test.ts` — all four host-type/reference scenarios.
 - `tests/features/journal-tasks/task-scope.test.ts` — folder + unit filter, intersection rule.
 - `tests/features/journal-tasks/task-sorting.test.ts` — sort order, tie-breaking.
@@ -234,8 +314,9 @@ Sidebar feature gains a panel slot below its existing content; imports `TaskList
 ## Decisions captured
 
 - **Present-only** model (no past/future).
-- **Status-character alphabet** is `[ ] [/] [x] [>] [-]` — community standard.
-- **Task model is global**, not per-folder or per-block.
+- **Status-character alphabet** built-ins draw from `[ ] [/] [x] [>] [-] [d] [?]` — community standard. User flows may use any char per status.
+- **Built-in templates are read-only**; user-managed entities are named **task flows**. Folders pick which flow they use; edits propagate to every folder pointing at the same flow.
+- **Per-status rendering** (`plugin` ↔ `theme`) lets a single flow mix theme-styled and custom-painted checkboxes — useful when a theme supports some chars but not others.
 - **Status transitions** via left-click cycle + right-click menu, delegated to active `TaskModel`.
 - **Migrated / cancelled** treated identically to completed for filtering (`isDone` returns true).
 - **Migration is syntactic only** in v1 — plugin doesn't auto-copy tasks to a future note; user marks `[>]` manually.

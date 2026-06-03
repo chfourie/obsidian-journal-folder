@@ -511,7 +511,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <TaskList
         tasks={visibleTasks}
         model={taskModel}
-        rendering={settings.taskCheckboxRendering}
         app={obsidianApp}
         showCompleted={settings.tasksShowCompleted}
         hiddenCompletedCount={hiddenCompletedCount}

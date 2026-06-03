@@ -16,16 +16,45 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { TaskModel } from './task-model.type'
-import { simpleTaskModel } from './simple-model'
-import { bulletJournalTaskModel } from './bullet-journal-model'
+import type {
+  TaskModel,
+  TaskStatus,
+} from '../../../data-access/task-model.type'
+import {
+  BUILTIN_TEMPLATES,
+  DEFAULT_TEMPLATE_ID,
+} from '../../../data-access/task-templates'
+import { buildTaskModel } from './build-task-model'
 
-export type TaskModelId = 'simple' | 'bullet-journal'
-
+// Resolves the active TaskModel from settings.
+//
+// Resolution chain:
+//   1. If `settings.taskFlow` is set (folder-level override) and
+//      names an existing flow → use that flow's statuses.
+//   2. Otherwise → use the flow named by `settings.defaultTaskFlow`.
+//   3. If the default flow is also missing → fall back to the
+//      built-in Simple template so the model is never empty.
 export function resolveTaskModel(settings: {
-  taskModel: TaskModelId | string
+  taskFlows?: Record<string, TaskStatus[]>
+  defaultTaskFlow?: string
+  taskFlow?: string
 }): TaskModel {
-  return settings.taskModel === 'bullet-journal'
-    ? bulletJournalTaskModel
-    : simpleTaskModel
+  return buildTaskModel(pickStatuses(settings))
+}
+
+function pickStatuses(settings: {
+  taskFlows?: Record<string, TaskStatus[]>
+  defaultTaskFlow?: string
+  taskFlow?: string
+}): TaskStatus[] {
+  const flows = settings.taskFlows ?? {}
+  const folderPick = settings.taskFlow?.trim() ?? ''
+  if (folderPick && flows[folderPick] && flows[folderPick].length > 0) {
+    return flows[folderPick]
+  }
+  const defaultPick = settings.defaultTaskFlow ?? ''
+  if (defaultPick && flows[defaultPick] && flows[defaultPick].length > 0) {
+    return flows[defaultPick]
+  }
+  return BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]
 }

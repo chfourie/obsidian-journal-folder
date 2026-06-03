@@ -16,7 +16,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './task-model.type'
-export * from './simple-model'
-export * from './bullet-journal-model'
+// Re-export the type + templates from data-access so existing
+// consumers that import from `task-models` keep working.
+export * from '../../../data-access/task-model.type'
+export * from '../../../data-access/task-templates'
+export * from './build-task-model'
 export * from './resolve-model'
+
+// Backward-compat singletons — pre-built models for the two original
+// hardcoded flows. Kept so existing call sites (tests, document
+// processors) that import a ready-made model still work. New code
+// should call `buildTaskModel(settings.taskStatuses)` instead.
+import { buildTaskModel } from './build-task-model'
+import { BUILTIN_TEMPLATES } from '../../../data-access/task-templates'
+
+export const simpleTaskModel = buildTaskModel(BUILTIN_TEMPLATES.simple)
+export const bulletJournalTaskModel = buildTaskModel(
+  BUILTIN_TEMPLATES['bullet-journal']
+)

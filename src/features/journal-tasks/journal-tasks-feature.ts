@@ -79,9 +79,9 @@ export class JournalTasksFeature extends PluginFeature {
     const documentTaskCtx = {
       app: this.plugin.app,
       resolveModel: () => resolveTaskModel(this.globalSettings),
-      resolveRendering: () => this.globalSettings.taskCheckboxRendering,
       // Document interception fires only on the `'everywhere'` scope;
-      // `'lists'` leaves Obsidian's checkbox alone.
+      // `'lists'` leaves Obsidian's checkbox alone. Rendering is
+      // per-status (TaskStatus.rendering) — no global switch.
       isEnabled: () =>
         this.globalSettings.taskInteractionScope === 'everywhere',
     }
@@ -149,11 +149,11 @@ export class JournalTasksFeature extends PluginFeature {
     // their parsed status IDs are model-specific.
     this.#cache.clear()
     // Force open CodeMirror editors to re-run their ViewPlugin
-    // updates so toggles of `taskInteractionScope` / `taskModel` /
-    // `taskCheckboxRendering` take effect without requiring the user
-    // to type. `updateOptions()` re-applies extensions across all
-    // editors; the per-editor MutationObserver inside each plugin
-    // also re-scans whenever Obsidian re-renders content.
+    // updates so toggles of `taskInteractionScope` and edits to the
+    // active flow take effect without requiring the user to type.
+    // `updateOptions()` re-applies extensions across all editors;
+    // the per-editor MutationObserver inside each plugin also
+    // re-scans whenever Obsidian re-renders content.
     this.plugin.app.workspace.updateOptions?.()
   }
 
@@ -356,7 +356,6 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       props: {
         tasks: filtered,
         model,
-        rendering: settings.taskCheckboxRendering,
         app: this.plugin.app,
         showCompleted: this.showCompleted,
         hiddenCompletedCount: hiddenCount,

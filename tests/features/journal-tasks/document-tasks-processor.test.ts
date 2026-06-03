@@ -1,8 +1,31 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App, TFile, TFolder } from '../../mocks/obsidian'
 import { processDocumentTasks } from '../../../src/features/journal-tasks/document-tasks-processor'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
-import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models/bullet-journal-model'
+import {
+  buildTaskModel,
+  BUILTIN_TEMPLATES,
+  cloneTemplate,
+  simpleTaskModel,
+  type TaskModel,
+  type TaskRendering,
+} from '../../../src/features/journal-tasks/task-models'
+import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
+
+// Builds a copy of a built-in template with every status forced
+// onto the given rendering kind. Lets us exercise both rendering
+// paths through `processDocumentTasks` without standing up a full
+// flow definition per test.
+function modelWith(
+  templateKey: keyof typeof BUILTIN_TEMPLATES,
+  rendering: TaskRendering
+): TaskModel {
+  return buildTaskModel(
+    cloneTemplate(BUILTIN_TEMPLATES[templateKey]).map((s) => ({
+      ...s,
+      rendering,
+    }))
+  )
+}
 
 function buildSection(text: string) {
   return {
@@ -64,15 +87,13 @@ describe('processDocumentTasks', () => {
       {
         app,
         resolveModel: () => simpleTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'plugin',
         isEnabled: () => false,
       }
     )
     expect(el.querySelector('input.task-list-item-checkbox')).not.toBeNull()
   })
 
-  it('swaps every task checkbox for an icon span', () => {
+  it('swaps every plugin-rendered task checkbox for an icon span', () => {
     const text = ['- [ ] one', '- [x] two'].join('\n')
     const { app } = setupApp(text)
     const el = buildEl(2)
@@ -85,8 +106,6 @@ describe('processDocumentTasks', () => {
       {
         app,
         resolveModel: () => simpleTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )
@@ -108,8 +127,6 @@ describe('processDocumentTasks', () => {
       {
         app,
         resolveModel: () => bulletJournalTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )
@@ -117,7 +134,7 @@ describe('processDocumentTasks', () => {
     expect(li?.getAttribute('data-task')).toBe('/')
   })
 
-  it('theme mode leaves the native checkbox in place', () => {
+  it('theme-rendered statuses leave the native checkbox in place', () => {
     const text = '- [ ] one'
     const { app } = setupApp(text)
     const el = buildEl(1)
@@ -129,19 +146,15 @@ describe('processDocumentTasks', () => {
       } as any,
       {
         app,
-        resolveModel: () => simpleTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'theme',
+        resolveModel: () => modelWith('simple', 'theme'),
         isEnabled: () => true,
       }
     )
     expect(el.querySelector('input.task-list-item-checkbox')).not.toBeNull()
-    expect(
-      el.querySelector('.jf-task-status')
-    ).toBeNull()
+    expect(el.querySelector('.jf-task-status')).toBeNull()
   })
 
-  it('theme mode still mirrors data-task onto the parent li', () => {
+  it('theme-rendered statuses still mirror data-task onto the parent li', () => {
     const text = '- [/] mid'
     const { app } = setupApp(text)
     const el = buildEl(1)
@@ -153,9 +166,7 @@ describe('processDocumentTasks', () => {
       } as any,
       {
         app,
-        resolveModel: () => bulletJournalTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'theme',
+        resolveModel: () => modelWith('bullet-journal', 'theme'),
         isEnabled: () => true,
       }
     )
@@ -164,7 +175,7 @@ describe('processDocumentTasks', () => {
     ).toBe('/')
   })
 
-  it('theme mode left-click on the native checkbox writes the next status', async () => {
+  it('theme-rendered left-click on the native checkbox writes the next status', async () => {
     const text = '- [ ] one'
     const { app, file } = setupApp(text)
     const el = buildEl(1)
@@ -176,9 +187,7 @@ describe('processDocumentTasks', () => {
       } as any,
       {
         app,
-        resolveModel: () => simpleTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'theme',
+        resolveModel: () => modelWith('simple', 'theme'),
         isEnabled: () => true,
       }
     )
@@ -204,18 +213,40 @@ describe('processDocumentTasks', () => {
       {
         app,
         resolveModel: () => simpleTaskModel,
-        resolveCheckboxStyle: () => 'square',
-        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )
-    const icon = el.querySelector(
-      '.jf-task-status'
-    ) as HTMLElement
+    const icon = el.querySelector('.jf-task-status') as HTMLElement
     icon.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    // The click handler awaits an async write internally; let microtasks flush.
     await Promise.resolve()
     await Promise.resolve()
     expect(await app.vault.read(file)).toBe('- [x] one')
+  })
+
+  it('mixed-rendering flow: theme statuses keep input, plugin statuses swap', () => {
+    // Build a flow where `[ ]` renders via theme and `[x]` via plugin.
+    const mixed = buildTaskModel(
+      cloneTemplate(BUILTIN_TEMPLATES.simple).map((s) => ({
+        ...s,
+        rendering: (s.id === 'open' ? 'theme' : 'plugin') as TaskRendering,
+      }))
+    )
+    const text = ['- [ ] one', '- [x] two'].join('\n')
+    const { app } = setupApp(text)
+    const el = buildEl(2)
+    processDocumentTasks(
+      el,
+      {
+        sourcePath: 'Notes/note.md',
+        getSectionInfo: () => buildSection(text),
+      } as any,
+      {
+        app,
+        resolveModel: () => mixed,
+        isEnabled: () => true,
+      }
+    )
+    expect(el.querySelectorAll('input.task-list-item-checkbox').length).toBe(1)
+    expect(el.querySelectorAll('.jf-task-status').length).toBe(1)
   })
 })

@@ -5,7 +5,7 @@ import {
   journalNoteFactoryWithSettings,
 } from '../../../src/data-access'
 import { extractTasks } from '../../../src/features/journal-tasks/extract-tasks'
-import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models/simple-model'
+import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 function buildDailyNote(basename = '2026-06-03') {
   const folder = new TFolder()
