@@ -26,12 +26,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     task: JournalTask
     model: TaskModel
     checkboxStyle: 'square' | 'circle'
+    rendering: 'plugin' | 'theme'
     app: App
   }
 
-  const { task, model, checkboxStyle, app }: Props = $props()
+  const { task, model, checkboxStyle, rendering, app }: Props = $props()
 
   const isDone = $derived(model.isDone(task.status))
+  const statusChar = $derived(
+    model.statuses.find((s) => s.id === task.status)?.char ?? ' '
+  )
 
   function openSourceLine() {
     app.workspace.openLinkText(task.sourceFile.path, '', false)
@@ -66,12 +70,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <div
   class="journal-folder-tasks-row"
   class:journal-folder-tasks-done={isDone}
+  class:task-list-item={rendering === 'theme'}
+  data-task={rendering === 'theme' ? statusChar : undefined}
   title={titleAttr}
 >
   <StatusIcon
     status={task.status}
     model={model}
     checkboxStyle={checkboxStyle}
+    rendering={rendering}
     onClick={onIconClick}
     onContextMenu={onIconContextMenu}
   />

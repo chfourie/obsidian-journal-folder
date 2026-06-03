@@ -240,6 +240,7 @@ export class JournalTasksFeature extends PluginFeature {
           tasks: filtered,
           model,
           checkboxStyle: settings.taskCheckboxStyle,
+          rendering: settings.taskCheckboxRendering,
           app,
           showCompleted,
           hiddenCompletedCount: hiddenCount,

@@ -26,44 +26,82 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     status: TaskStatusId
     model: TaskModel
     checkboxStyle: 'square' | 'circle'
+    rendering: 'plugin' | 'theme'
     onClick: (evt: MouseEvent) => void
     onContextMenu: (evt: MouseEvent) => void
   }
 
-  const { status, model, checkboxStyle, onClick, onContextMenu }: Props =
-    $props()
+  const {
+    status,
+    model,
+    checkboxStyle,
+    rendering,
+    onClick,
+    onContextMenu,
+  }: Props = $props()
 
-  let el: HTMLSpanElement | undefined = $state(undefined)
+  let iconEl: HTMLSpanElement | undefined = $state(undefined)
 
+  const statusEntry = $derived(model.statuses.find((s) => s.id === status))
+  const statusChar = $derived(statusEntry?.char ?? ' ')
+  const isDone = $derived(model.isDone(status))
   const iconName = $derived.by(() => {
-    const entry = model.statuses.find((s) => s.id === status)
-    if (!entry) return checkboxStyle === 'circle' ? 'circle' : 'square'
-    return checkboxStyle === 'circle' ? entry.iconCircle : entry.iconSquare
+    if (!statusEntry) return checkboxStyle === 'circle' ? 'circle' : 'square'
+    return checkboxStyle === 'circle'
+      ? statusEntry.iconCircle
+      : statusEntry.iconSquare
   })
 
   $effect(() => {
-    if (el) {
-      el.empty()
-      setIcon(el, iconName)
+    if (rendering === 'plugin' && iconEl) {
+      iconEl.empty()
+      setIcon(iconEl, iconName)
     }
   })
 </script>
 
-<span
-  bind:this={el}
-  role="button"
-  tabindex="0"
-  class="journal-folder-tasks-status-icon"
-  aria-label={`Status: ${status}`}
-  onclick={onClick}
-  oncontextmenu={(e) => {
-    e.preventDefault()
-    onContextMenu(e)
-  }}
-  onkeydown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+{#if rendering === 'theme'}
+  <!--
+    Theme mode — render Obsidian's native checkbox markup so themes
+    (Minimal, Things, AnuPpuccin, …) that target
+    `input.task-list-item-checkbox[data-task="X"]` style it. The plugin
+    still owns the cycle / context-menu by intercepting click +
+    contextmenu and preventing the native toggle. `checked` is bound
+    declaratively from `isDone` so re-renders after a cycle land back
+    at the correct state.
+  -->
+  <input
+    type="checkbox"
+    class="task-list-item-checkbox"
+    data-task={statusChar}
+    checked={isDone}
+    aria-label={`Status: ${status}`}
+    onclick={(e) => {
       e.preventDefault()
-      onClick(e as unknown as MouseEvent)
-    }
-  }}
-></span>
+      onClick(e)
+    }}
+    oncontextmenu={(e) => {
+      e.preventDefault()
+      onContextMenu(e)
+    }}
+  />
+{:else}
+  <span
+    bind:this={iconEl}
+    role="button"
+    tabindex="0"
+    class="journal-folder-tasks-status-icon"
+    aria-label={`Status: ${status}`}
+    onclick={onClick}
+    oncontextmenu={(e) => {
+      e.preventDefault()
+      onContextMenu(e)
+    }}
+    onkeydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onClick(e as unknown as MouseEvent)
+      }
+    }}
+  ></span>
+{/if}

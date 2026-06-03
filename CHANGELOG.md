@@ -57,6 +57,11 @@ release body).
     menu. The parent `<li>`'s `data-task` attribute is mirrored
     from the parsed status in both modes so theme rules keyed on
     it keep firing for non-standard statuses (`[/]`, `[>]`, `[-]`).
+    Applies to the sidebar task panel and the in-note
+    `journal-tasks` block too: in theme mode each row renders an
+    actual `input.task-list-item-checkbox[data-task="X"]` inside
+    a `.task-list-item` row inside a `.contains-task-list`
+    wrapper, so theme rules that scope to those selectors apply.
 
 ## [2.1.1]
 

@@ -25,6 +25,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     tasks: JournalTask[]
     model: TaskModel
     checkboxStyle: 'square' | 'circle'
+    rendering: 'plugin' | 'theme'
     app: App
     showCompleted: boolean
     hiddenCompletedCount: number
@@ -42,6 +43,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     tasks,
     model,
     checkboxStyle,
+    rendering,
     app,
     showCompleted,
     hiddenCompletedCount,
@@ -135,12 +137,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   {#if tasks.length === 0}
     <p class="journal-folder-tasks-empty">No tasks in range.</p>
   {:else}
-    <div class="journal-folder-tasks-list">
+    <div
+      class="journal-folder-tasks-list"
+      class:contains-task-list={rendering === 'theme'}
+    >
       {#each tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
         <TaskItem
           task={task}
           model={model}
           checkboxStyle={checkboxStyle}
+          rendering={rendering}
           app={app}
         />
       {/each}

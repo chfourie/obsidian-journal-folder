@@ -488,6 +488,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         tasks={visibleTasks}
         model={taskModel}
         checkboxStyle={settings.taskCheckboxStyle}
+        rendering={settings.taskCheckboxRendering}
         app={obsidianApp}
         showCompleted={settings.tasksShowCompleted}
         hiddenCompletedCount={hiddenCompletedCount}
