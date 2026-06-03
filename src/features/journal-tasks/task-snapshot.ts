@@ -23,6 +23,7 @@ import {
   type JournalFolderSettings,
   type JournalNote,
   type JournalTask,
+  type TasksSidebarReference,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
 import { buildReferenceRange } from './reference-range'
@@ -34,6 +35,7 @@ import type { TaskCache } from './task-cache'
 export interface TaskPanelSnapshot {
   tasks: JournalTask[]
   totalBeforeCap: number
+  truncated: boolean
 }
 
 // Shared computation used by both the combined journal sidebar and
@@ -45,7 +47,13 @@ export interface TaskPanelSnapshot {
 export async function computeTaskSnapshot(
   app: App,
   settings: JournalFolderSettings,
-  taskCache: TaskCache
+  taskCache: TaskCache,
+  // Reference mode is panel-local: the combined sidebar tasks panel and
+  // the tasks-only sidebar each track their own toggle. Callers pass
+  // whichever field they own (`tasksSidebarReference` /
+  // `tasksOnlySidebarReference`); the snapshot doesn't reach into
+  // settings for it.
+  referenceMode: TasksSidebarReference = settings.tasksSidebarReference
 ): Promise<TaskPanelSnapshot> {
   const activeFile = app.workspace.getActiveFile?.()
   const factory = journalNoteFactoryWithSettings(settings)
@@ -63,12 +71,12 @@ export async function computeTaskSnapshot(
 
   const referenceRange = buildReferenceRange({
     host: 'sidebar',
-    referenceMode: settings.tasksSidebarReference,
+    referenceMode,
     activeNote,
   })
 
   const folders =
-    settings.tasksSidebarReference === 'dynamic' && activeNote
+    referenceMode === 'dynamic' && activeNote
       ? [activeFile?.parent?.path ?? '']
       : settings.tasksSidebarFolders.length > 0
         ? settings.tasksSidebarFolders
@@ -95,5 +103,9 @@ export async function computeTaskSnapshot(
   const sorted = sortTasks(collected)
   const totalBeforeCap = sorted.length
   const capped = sorted.slice(0, settings.tasksMaxItems)
-  return { tasks: capped, totalBeforeCap }
+  return {
+    tasks: capped,
+    totalBeforeCap,
+    truncated: totalBeforeCap > capped.length,
+  }
 }

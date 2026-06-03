@@ -229,13 +229,18 @@ export class JournalFolderSidebarView extends ItemView {
     if (!this.#api) return
     const settings = this.getSettings()
     if (!settings.tasksSidebarEnabled) {
-      this.#api.setTaskPanelSnapshot({ tasks: [], totalBeforeCap: 0 })
+      this.#api.setTaskPanelSnapshot({
+        tasks: [],
+        totalBeforeCap: 0,
+        truncated: false,
+      })
       return
     }
     const snapshot = await computeTaskSnapshot(
       this.plugin.app,
       settings,
-      this.taskCache
+      this.taskCache,
+      settings.tasksSidebarReference
     )
     this.#api.setTaskPanelSnapshot(snapshot)
   }

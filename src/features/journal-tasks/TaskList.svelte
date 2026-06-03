@@ -29,6 +29,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     showCompleted: boolean
     hiddenCompletedCount: number
     totalBeforeCap: number
+    truncated: boolean
     header: 'sidebar' | 'note'
     // Per-instance reactive set the caller owns. Each TaskList caller
     // (the sidebar, every in-note `journal-tasks` block) constructs
@@ -53,6 +54,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     showCompleted,
     hiddenCompletedCount,
     totalBeforeCap,
+    truncated,
     header,
     collapsedNotePaths,
     caption,
@@ -69,7 +71,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     return `${captionText} (${tasks.length} · ${hiddenCompletedCount} ✓ hidden)`
   })
 
-  const truncated = $derived(totalBeforeCap > tasks.length)
+  // `truncated` is supplied by the caller; the snapshot/feature is the
+  // only level that knows the cap was actually hit. Don't derive it
+  // from `totalBeforeCap > tasks.length` here — that conflates the
+  // size cap with the completed-status filter and shows the footer
+  // whenever any task is hidden by *Active tasks*.
 
   // The scope menu only narrows the `Today` reference — it has no effect
   // in Dynamic mode (which always follows the active note's folder), so

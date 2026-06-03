@@ -36,6 +36,8 @@ import {
   type TaskStatus,
 } from '../../data-access'
 import { reorder } from './reorder-statuses'
+import { buildTaskModel } from '../journal-tasks/task-models'
+import { renderStatusIcon } from '../journal-tasks/render-status-icon'
 
 // =============================================================
 // Top-level Tasks overview: list of flows + default-flow picker +
@@ -434,6 +436,9 @@ function renderStatusRow(config: StatusRowConfig): void {
   handleEl.setAttr('aria-hidden', 'true')
   setIcon(handleEl, 'grip-vertical')
 
+  const previewEl = rowEl.createSpan({ cls: 'jf-status-preview' })
+  paintStatusPreview(previewEl, status, flowStatuses)
+
   const charEl = rowEl.createSpan({ cls: 'jf-status-char' })
   charEl.setText(`[${status.char}]`)
 
@@ -535,6 +540,38 @@ function generateUniqueStatusId(statuses: TaskStatus[]): string {
     if (!taken.has(candidate)) return candidate
   }
   return `status-${Date.now()}`
+}
+
+// Paints a faithful preview of the status's rendered checkbox into
+// `el` — the same shell / icon path the live task lists use, so the
+// flow-editor row matches what the user will actually see in their
+// notes. For `rendering: 'theme'` we drop a disabled native checkbox
+// styled by the active theme; for `'plugin'` we go through
+// `renderStatusIcon` against a single-status model built on the spot.
+function paintStatusPreview(
+  el: HTMLElement,
+  status: TaskStatus,
+  flowStatuses: TaskStatus[]
+): void {
+  while (el.firstChild) el.removeChild(el.firstChild)
+  if (status.rendering === 'theme') {
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.className = 'task-list-item-checkbox'
+    input.setAttribute('data-task', status.char)
+    input.checked = status.char !== ' '
+    input.disabled = true
+    el.appendChild(input)
+    return
+  }
+  const iconShell = document.createElement('span')
+  iconShell.className = 'jf-task-status'
+  el.appendChild(iconShell)
+  // The model is only consulted for its `id` (stamped as a data attr
+  // for theming) and the `isDone` map; building one over just this
+  // flow is enough for an accurate preview.
+  const model = buildTaskModel(flowStatuses)
+  renderStatusIcon(iconShell, status, model)
 }
 
 function pickUnusedChar(statuses: TaskStatus[]): string {

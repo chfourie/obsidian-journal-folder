@@ -125,18 +125,24 @@ class LivePreviewPlugin implements PluginValue {
     ) {
       return eventTarget
     }
+    // Walk up to the icon span — clicks land on a Lucide SVG, an
+    // emoji glyph, or the inner `.jf-task-status-icon` wrapper, none
+    // of which carry `ICON_ATTR` themselves.
+    const icon = eventTarget.closest<HTMLElement>(`[${ICON_ATTR}]`)
+    if (!icon) return null
+    const prev = icon.previousElementSibling
     if (
-      eventTarget instanceof HTMLElement &&
-      eventTarget.hasAttribute(ICON_ATTR)
+      prev instanceof HTMLInputElement &&
+      prev.classList.contains('task-list-item-checkbox') &&
+      prev.hasAttribute(SWAPPED_ATTR)
     ) {
-      const prev = eventTarget.previousElementSibling
-      if (
-        prev instanceof HTMLInputElement &&
-        prev.classList.contains('task-list-item-checkbox')
-      ) {
-        return prev
-      }
+      return prev
     }
+    // Orphan icon (the input we used to sit next to is gone). Drop it
+    // rather than routing the click to a neighbour — that's how the
+    // "wrong task got toggled" bug shows up after rapid edit/preview
+    // mode switches.
+    icon.remove()
     return null
   }
 
@@ -204,6 +210,44 @@ class LivePreviewPlugin implements PluginValue {
       this.restoreAll()
       return
     }
+
+    // CodeMirror reuses / rebuilds DOM nodes as the document changes,
+    // which can leave our injected icons paired with the *wrong*
+    // input (or no input at all) after a status edit followed by a
+    // mode switch. If we don't notice, clicking the icon routes
+    // through `posAtDOM` of the wrong input and we write to a
+    // different task line. Sweep orphans before swapping so every
+    // icon that survives the scan is guaranteed to sit right after
+    // a real task checkbox.
+    this.view.dom
+      .querySelectorAll<HTMLElement>(`[${ICON_ATTR}]`)
+      .forEach((icon) => {
+        const prev = icon.previousElementSibling
+        const ownerOk =
+          prev instanceof HTMLInputElement &&
+          prev.classList.contains('task-list-item-checkbox') &&
+          prev.hasAttribute(SWAPPED_ATTR)
+        if (!ownerOk) icon.remove()
+      })
+
+    // Also clear `SWAPPED_ATTR` on inputs whose paired icon is gone —
+    // either the orphan sweep above removed it, or CodeMirror dropped
+    // it during a re-render. Without this, `swapInput` sees the marker
+    // and skips re-installing, leaving an invisible (display: none)
+    // input the user can't interact with.
+    this.view.dom
+      .querySelectorAll<HTMLInputElement>(`input[${SWAPPED_ATTR}]`)
+      .forEach((input) => {
+        const next = input.nextElementSibling
+        const hasIcon =
+          next instanceof HTMLElement && next.hasAttribute(ICON_ATTR)
+        if (!hasIcon) {
+          input.removeAttribute(SWAPPED_ATTR)
+          input.style.display = ''
+          input.removeAttribute('aria-hidden')
+        }
+      })
+
     const inputs = this.view.dom.querySelectorAll<HTMLInputElement>(
       'input.task-list-item-checkbox'
     )
@@ -215,11 +259,19 @@ class LivePreviewPlugin implements PluginValue {
     const line = this.view.state.doc.lineAt(pos)
     const model = this.ctx.resolveModel()
     const parsed = model.parseLine(line.text)
+
+    // CodeMirror reuses input DOM nodes across edits — `posAtDOM` can
+    // momentarily map an input to a position whose status no longer
+    // matches what the icon was painted for, leaving the user staring
+    // at a green check next to a `[>]` line. The cheapest defence is
+    // to drop the existing icon on every scan and rebuild it from the
+    // freshly parsed line. The `requestAnimationFrame` debounce
+    // already coalesces bursts of mutations, so the rebuild cost is
+    // bounded.
     const existing = input.nextElementSibling
-    const hasIcon =
-      input.hasAttribute(SWAPPED_ATTR) &&
-      existing instanceof HTMLElement &&
-      existing.hasAttribute(ICON_ATTR)
+    if (existing instanceof HTMLElement && existing.hasAttribute(ICON_ATTR)) {
+      existing.remove()
+    }
 
     // Per-status rendering: theme statuses leave the native checkbox
     // visible, plugin statuses swap it for our icon. The choice is
@@ -233,20 +285,11 @@ class LivePreviewPlugin implements PluginValue {
       // Restore the native checkbox if we'd previously swapped it
       // (status was just edited from a plugin-rendered char to a
       // theme-rendered one).
-      if (hasIcon) {
-        existing!.remove()
+      if (input.hasAttribute(SWAPPED_ATTR)) {
         input.removeAttribute(SWAPPED_ATTR)
         input.style.display = ''
         input.removeAttribute('aria-hidden')
       }
-      return
-    }
-
-    if (hasIcon) {
-      // Already swapped — just refresh the icon (status / visuals
-      // may have changed).
-      existing!.setAttribute('aria-label', `Task status: ${parsed.status}`)
-      renderStatusIconById(existing!, parsed.status, model)
       return
     }
 

@@ -343,6 +343,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
     const maxItems = this.blockConfig.maxItems ?? settings.tasksMaxItems
     const totalBeforeCap = sorted.length
     const capped = sorted.slice(0, maxItems)
+    const truncated = totalBeforeCap > capped.length
     const filtered = this.showCompleted
       ? capped
       : capped.filter((t) => !model.isDone(t.status))
@@ -360,6 +361,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         showCompleted: this.showCompleted,
         hiddenCompletedCount: hiddenCount,
         totalBeforeCap,
+        truncated,
         header: 'note',
         collapsedNotePaths: this.collapsedNotePaths,
         caption: this.blockConfig.caption,

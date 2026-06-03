@@ -37,16 +37,16 @@ describe('bulletJournalTaskModel', () => {
   })
 
   describe('isDone', () => {
-    it('treats done, migrated, cancelled, delegated as done', () => {
+    it('treats done, migrated, cancelled as done', () => {
       expect(bulletJournalTaskModel.isDone('done')).toBe(true)
       expect(bulletJournalTaskModel.isDone('migrated')).toBe(true)
       expect(bulletJournalTaskModel.isDone('cancelled')).toBe(true)
-      expect(bulletJournalTaskModel.isDone('delegated')).toBe(true)
     })
 
-    it('treats open and in-progress as not done', () => {
+    it('treats open, in-progress, delegated as not done', () => {
       expect(bulletJournalTaskModel.isDone('open')).toBe(false)
       expect(bulletJournalTaskModel.isDone('in-progress')).toBe(false)
+      expect(bulletJournalTaskModel.isDone('delegated')).toBe(false)
     })
   })
 

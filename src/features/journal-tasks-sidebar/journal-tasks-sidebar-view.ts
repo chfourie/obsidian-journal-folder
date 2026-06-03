@@ -166,7 +166,8 @@ export class JournalTasksSidebarView extends ItemView {
     const snapshot = await computeTaskSnapshot(
       this.plugin.app,
       settings,
-      this.taskCache
+      this.taskCache,
+      settings.tasksOnlySidebarReference
     )
     this.#api.setSnapshot(snapshot)
   }

@@ -71,7 +71,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   const taskModel = $derived(resolveTaskModel(settings))
   const visibleTasks = $derived(
-    settings.tasksShowCompleted
+    settings.tasksOnlySidebarShowCompleted
       ? snapshot.tasks
       : snapshot.tasks.filter((t) => !taskModel.isDone(t.status))
   )
@@ -81,14 +81,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   async function toggleReference() {
     const next =
-      settings.tasksSidebarReference === 'today' ? 'dynamic' : 'today'
-    await saveSettings({ ...settings, tasksSidebarReference: next })
+      settings.tasksOnlySidebarReference === 'today' ? 'dynamic' : 'today'
+    await saveSettings({ ...settings, tasksOnlySidebarReference: next })
   }
 
   async function toggleShowCompleted() {
     await saveSettings({
       ...settings,
-      tasksShowCompleted: !settings.tasksShowCompleted,
+      tasksOnlySidebarShowCompleted: !settings.tasksOnlySidebarShowCompleted,
     })
   }
 </script>
@@ -98,12 +98,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     tasks={visibleTasks}
     model={taskModel}
     app={obsidianApp}
-    showCompleted={settings.tasksShowCompleted}
+    showCompleted={settings.tasksOnlySidebarShowCompleted}
     hiddenCompletedCount={hiddenCompletedCount}
     totalBeforeCap={snapshot.totalBeforeCap}
+    truncated={snapshot.truncated}
     header="sidebar"
     collapsedNotePaths={collapsedNotePaths}
-    referenceMode={settings.tasksSidebarReference}
+    referenceMode={settings.tasksOnlySidebarReference}
     onToggleReference={toggleReference}
     onToggleShowCompleted={toggleShowCompleted}
     onOpenScopeMenu={(e) => openTaskScopeMenu(

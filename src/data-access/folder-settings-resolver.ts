@@ -34,6 +34,8 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'tasksSidebarReference',
   'tasksSidebarFolders',
   'tasksShowCompleted',
+  'tasksOnlySidebarReference',
+  'tasksOnlySidebarShowCompleted',
   'tasksMaxItems',
   'taskFlows',
   'defaultTaskFlow',

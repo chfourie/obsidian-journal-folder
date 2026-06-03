@@ -1105,6 +1105,32 @@ li.task-list-item:has(> .jf-task-status) {
 	grid-template-columns: auto 1fr;
 	align-items: center;
 	column-gap: var(--list-marker-gap, 0.5em);
+	list-style: none;
+	margin-inline-start: 0;
+	padding-inline-start: 0;
+}
+
+/* Drop the bullet-column padding-inline-start the browser adds to any
+ * UL holding plugin-rendered task LIs. Native theme checkboxes have
+ * their own absolute / negative-margin positioning that visually
+ * crosses into the bullet space; our `.jf-task-status` span doesn't,
+ * so without this reset the icons end up indented by the whole marker
+ * column relative to surrounding body text. The theme default has
+ * high specificity so `!important` is needed to win. */
+ul:has(> li.task-list-item > .jf-task-status) {
+	padding-inline-start: 0 !important;
+}
+
+/* …but keep the natural indent on NESTED task lists so sub-tasks
+ * visibly sit below their parent. The rule above just flattened the
+ * nested UL too; restore a fixed marker-width offset (matching the
+ * one Obsidian's own theme uses for native nested checkbox lists)
+ * scoped to UL/OLs whose parent is itself a plugin-rendered task LI.
+ * `1.6em` lines up with the parent's `auto 1fr` icon column + gap
+ * across the moonstone, minimal, and AnuPpuccin defaults. */
+li.task-list-item:has(> .jf-task-status) > ul,
+li.task-list-item:has(> .jf-task-status) > ol {
+	padding-inline-start: 1.6em !important;
 }
 
 li.task-list-item:has(> .jf-task-status) > ul,
@@ -1167,6 +1193,23 @@ li.task-list-item:has(> .jf-task-status) > .jf-task-status {
 .jf-status-handle {
 	display: inline-flex;
 	color: var(--text-faint);
+}
+
+/* Live checkbox preview pinned between the drag handle and the
+ * monospaced [c] character text. Renders the same shell/icon the
+ * task lists use so the row visually matches the on-page result. */
+.jf-status-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--checkbox-size, 1.1em);
+	height: var(--checkbox-size, 1.1em);
+	flex-shrink: 0;
+}
+
+.jf-status-preview .jf-task-status,
+.jf-status-preview .task-list-item-checkbox {
+	margin: 0;
 }
 
 .jf-status-char {

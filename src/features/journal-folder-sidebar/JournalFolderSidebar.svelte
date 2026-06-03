@@ -515,6 +515,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         showCompleted={settings.tasksShowCompleted}
         hiddenCompletedCount={hiddenCompletedCount}
         totalBeforeCap={taskPanel.totalBeforeCap}
+        truncated={taskPanel.truncated}
         header="sidebar"
         collapsedNotePaths={sidebarCollapsedPaths}
         referenceMode={settings.tasksSidebarReference}

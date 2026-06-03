@@ -140,7 +140,7 @@ const delegatedStatus = (next: string): TaskStatus => ({
   id: 'delegated',
   label: 'Delegated',
   char: 'd',
-  isDone: true,
+  isDone: false,
   next,
   rendering: 'plugin',
   shell: { shape: 'none' },

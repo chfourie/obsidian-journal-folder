@@ -118,6 +118,14 @@ export type JournalFolderSettings = {
   // in-note `journal-tasks` block has its own view-local toggle that
   // does not persist.
   tasksShowCompleted: boolean
+  // Independent reference / completed-filter state for the **tasks-only
+  // sidebar view** (the standalone tasks ribbon icon). Kept separate
+  // from the combined sidebar's `tasksSidebarReference` /
+  // `tasksShowCompleted` so toggling one panel doesn't reach across
+  // and change the other. **Global only** — same singleton reasoning
+  // as the combined sidebar.
+  tasksOnlySidebarReference: TasksSidebarReference
+  tasksOnlySidebarShowCompleted: boolean
   // Hard cap on the number of tasks rendered (sidebar + in-note). When
   // exceeded, a footer shows "Showing N of M — increase limit in
   // settings". **Global only** — protects render perf in long-range
@@ -220,6 +228,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksSidebarReference: 'dynamic',
   tasksSidebarFolders: [],
   tasksShowCompleted: true,
+  tasksOnlySidebarReference: 'dynamic',
+  tasksOnlySidebarShowCompleted: true,
   tasksMaxItems: 200,
   taskFlows: { Default: cloneTemplate(BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]) },
   defaultTaskFlow: 'Default',
