@@ -24,6 +24,7 @@ import {
   ViewPlugin,
 } from '@codemirror/view'
 import type {
+  TaskCheckboxRendering,
   TaskCheckboxStyle,
   TaskStatusId,
 } from '../../data-access'
@@ -34,6 +35,7 @@ export interface LivePreviewTaskContext {
   app: App
   resolveModel: () => TaskModel
   resolveCheckboxStyle: () => TaskCheckboxStyle
+  resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
 
@@ -204,6 +206,14 @@ class LivePreviewPlugin implements PluginValue {
 
   private scan(): void {
     if (!this.ctx.isEnabled()) {
+      this.restoreAll()
+      return
+    }
+    // Theme mode: leave the native checkbox alone so Obsidian + the
+    // active theme render it. Click / contextmenu interception on
+    // `view.dom` still routes the user's interactions through the
+    // active TaskModel — only the visual is delegated.
+    if (this.ctx.resolveRendering() === 'theme') {
       this.restoreAll()
       return
     }

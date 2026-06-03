@@ -65,6 +65,7 @@ describe('processDocumentTasks', () => {
         app,
         resolveModel: () => simpleTaskModel,
         resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'plugin',
         isEnabled: () => false,
       }
     )
@@ -85,6 +86,7 @@ describe('processDocumentTasks', () => {
         app,
         resolveModel: () => simpleTaskModel,
         resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )
@@ -107,11 +109,86 @@ describe('processDocumentTasks', () => {
         app,
         resolveModel: () => bulletJournalTaskModel,
         resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )
     const li = el.querySelector('li.task-list-item')
     expect(li?.getAttribute('data-task')).toBe('/')
+  })
+
+  it('theme mode leaves the native checkbox in place', () => {
+    const text = '- [ ] one'
+    const { app } = setupApp(text)
+    const el = buildEl(1)
+    processDocumentTasks(
+      el,
+      {
+        sourcePath: 'Notes/note.md',
+        getSectionInfo: () => buildSection(text),
+      } as any,
+      {
+        app,
+        resolveModel: () => simpleTaskModel,
+        resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'theme',
+        isEnabled: () => true,
+      }
+    )
+    expect(el.querySelector('input.task-list-item-checkbox')).not.toBeNull()
+    expect(
+      el.querySelector('.journal-folder-document-task-icon')
+    ).toBeNull()
+  })
+
+  it('theme mode still mirrors data-task onto the parent li', () => {
+    const text = '- [/] mid'
+    const { app } = setupApp(text)
+    const el = buildEl(1)
+    processDocumentTasks(
+      el,
+      {
+        sourcePath: 'Notes/note.md',
+        getSectionInfo: () => buildSection(text),
+      } as any,
+      {
+        app,
+        resolveModel: () => bulletJournalTaskModel,
+        resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'theme',
+        isEnabled: () => true,
+      }
+    )
+    expect(
+      el.querySelector('li.task-list-item')?.getAttribute('data-task')
+    ).toBe('/')
+  })
+
+  it('theme mode left-click on the native checkbox writes the next status', async () => {
+    const text = '- [ ] one'
+    const { app, file } = setupApp(text)
+    const el = buildEl(1)
+    processDocumentTasks(
+      el,
+      {
+        sourcePath: 'Notes/note.md',
+        getSectionInfo: () => buildSection(text),
+      } as any,
+      {
+        app,
+        resolveModel: () => simpleTaskModel,
+        resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'theme',
+        isEnabled: () => true,
+      }
+    )
+    const input = el.querySelector(
+      'input.task-list-item-checkbox'
+    ) as HTMLInputElement
+    input.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(await app.vault.read(file)).toBe('- [x] one')
   })
 
   it('left-clicking the icon writes the next status to disk', async () => {
@@ -128,6 +205,7 @@ describe('processDocumentTasks', () => {
         app,
         resolveModel: () => simpleTaskModel,
         resolveCheckboxStyle: () => 'square',
+        resolveRendering: () => 'plugin',
         isEnabled: () => true,
       }
     )

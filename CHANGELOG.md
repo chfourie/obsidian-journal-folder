@@ -50,6 +50,13 @@ release body).
     in *Settings → Tasks → Cycle / render document tasks*; leave it
     off if another plugin (e.g. Tasks) already owns in-document
     interactions.
+  - **Status icon rendering** (dropdown, default *Plugin icons*).
+    Pick *Theme checkbox* to keep Obsidian's native checkbox visible
+    so the active theme (Minimal / Things / AnuPpuccin / …) paints
+    it — the plugin still owns left-click cycle and right-click
+    menu. The parent `<li>`'s `data-task` attribute is mirrored
+    from the parsed status in both modes so theme rules keyed on
+    it keep firing for non-standard statuses (`[/]`, `[>]`, `[-]`).
 
 ## [2.1.1]
 

@@ -23,6 +23,7 @@ import {
   TFile,
 } from 'obsidian'
 import type {
+  TaskCheckboxRendering,
   TaskCheckboxStyle,
   TaskStatusId,
 } from '../../data-access'
@@ -31,10 +32,7 @@ import {
   cycleTaskStatus,
   type TaskMutationTarget,
 } from './task-transition'
-import {
-  findDocumentTaskLines,
-  type DocumentTaskLine,
-} from './document-task-line-map'
+import { findDocumentTaskLines } from './document-task-line-map'
 import { showStatusMenuAt } from './document-task-menu'
 
 export interface DocumentTasksContext {
@@ -43,6 +41,7 @@ export interface DocumentTasksContext {
   // even when settings change while a note is open.
   resolveModel: () => TaskModel
   resolveCheckboxStyle: () => TaskCheckboxStyle
+  resolveRendering: () => TaskCheckboxRendering
   isEnabled: () => boolean
 }
 
@@ -69,6 +68,7 @@ export function processDocumentTasks(
 
   const model = context.resolveModel()
   const checkboxStyle = context.resolveCheckboxStyle()
+  const rendering = context.resolveRendering()
   const taskLines = findDocumentTaskLines(
     section.text,
     section.lineStart,
@@ -79,14 +79,56 @@ export function processDocumentTasks(
   items.forEach((li, idx) => {
     const entry = taskLines[idx]
     if (!entry) return
-    swapCheckbox(li, entry, sourceFile, model, checkboxStyle, context.app)
+    const target: TaskMutationTarget = {
+      sourceFile,
+      sourceLine: entry.line,
+      status: entry.status,
+    }
+    // Always mirror the parsed status onto the parent li's data-task
+    // so themes that style the row by attribute keep firing — even
+    // when our model recognises a status Obsidian's default renderer
+    // doesn't (e.g. `[/]`).
+    li.setAttribute('data-task', statusChar(model, entry.status))
+    if (rendering === 'theme') {
+      attachHandlersToNativeCheckbox(li, target, model, context.app)
+    } else {
+      swapCheckbox(li, target, model, checkboxStyle, context.app)
+    }
+  })
+}
+
+// Theme-mode path — Obsidian's native input stays visible (so the
+// theme paints it however it wants), and we only attach the click /
+// contextmenu handlers that route through the active TaskModel. A
+// dataset marker keeps re-renders idempotent.
+function attachHandlersToNativeCheckbox(
+  li: HTMLElement,
+  target: TaskMutationTarget,
+  model: TaskModel,
+  app: App
+): void {
+  const input = li.querySelector<HTMLInputElement>(
+    'input.task-list-item-checkbox'
+  )
+  if (!input) return
+  if (input.dataset.jfTaskHandled === '1') return
+  input.dataset.jfTaskHandled = '1'
+  input.addEventListener('click', (evt) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    // noinspection JSIgnoredPromiseFromCall
+    cycleTaskStatus(app, target, model)
+  })
+  input.addEventListener('contextmenu', (evt) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    showStatusMenuAt(evt, target, model, app)
   })
 }
 
 function swapCheckbox(
   li: HTMLElement,
-  entry: DocumentTaskLine,
-  sourceFile: TFile,
+  target: TaskMutationTarget,
   model: TaskModel,
   checkboxStyle: TaskCheckboxStyle,
   app: App
@@ -95,23 +137,13 @@ function swapCheckbox(
     'input.task-list-item-checkbox'
   )
   if (!input) return
-  // Reuse the same target shape `task-transition` already understands —
-  // no full `JournalTask` needed because the document view doesn't
-  // know (or care about) the host note's tier.
-  const target: TaskMutationTarget = {
-    sourceFile,
-    sourceLine: entry.line,
-    status: entry.status,
-  }
   const iconEl = document.createElement('span')
   iconEl.className = 'journal-folder-document-task-icon'
   iconEl.setAttribute('role', 'button')
   iconEl.setAttribute('tabindex', '0')
-  iconEl.setAttribute('aria-label', `Task status: ${entry.status}`)
-  // Mirror the data-task attribute Obsidian sets on the original
-  // input so theme rules keyed on it still apply.
-  iconEl.setAttribute('data-task', statusChar(model, entry.status))
-  setIcon(iconEl, iconNameFor(model, entry.status, checkboxStyle))
+  iconEl.setAttribute('aria-label', `Task status: ${target.status}`)
+  iconEl.setAttribute('data-task', statusChar(model, target.status))
+  setIcon(iconEl, iconNameFor(model, target.status, checkboxStyle))
 
   iconEl.addEventListener('click', (evt) => {
     evt.preventDefault()
@@ -132,9 +164,6 @@ function swapCheckbox(
     }
   })
 
-  // Also update the parent `li`'s data-task so themes that style the
-  // row (strikethrough on `[x]`, accent on `[/]`) continue to fire.
-  li.setAttribute('data-task', statusChar(model, entry.status))
   input.replaceWith(iconEl)
 }
 

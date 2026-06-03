@@ -79,6 +79,7 @@ export class JournalTasksFeature extends PluginFeature {
       app: this.plugin.app,
       resolveModel: () => resolveTaskModel(this.globalSettings),
       resolveCheckboxStyle: () => this.globalSettings.taskCheckboxStyle,
+      resolveRendering: () => this.globalSettings.taskCheckboxRendering,
       isEnabled: () => !!this.globalSettings.documentTasksEnabled,
     }
 

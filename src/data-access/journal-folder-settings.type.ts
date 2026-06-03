@@ -142,7 +142,20 @@ export type JournalFolderSettings = {
   // **Global only** — interception happens at the markdown post-
   // processor layer, which is process-wide.
   documentTasksEnabled: boolean
+  // Drives how `documentTasksEnabled` paints task checkboxes:
+  //   `'plugin'` — replace the native checkbox with our Lucide icon
+  //     (consistent across themes; bullet-journal statuses always
+  //     render correctly).
+  //   `'theme'` — leave Obsidian's native checkbox visible so the
+  //     active theme (Minimal / Things / AnuPpuccin / …) styles it;
+  //     the plugin still owns left-click cycle + right-click menu
+  //     against the unmodified checkbox.
+  // **Global only** — purely cosmetic and process-wide. Has no
+  // effect when `documentTasksEnabled` is off.
+  taskCheckboxRendering: TaskCheckboxRendering
 }
+
+export type TaskCheckboxRendering = 'plugin' | 'theme'
 
 export type TasksSidebarReference = 'today' | 'dynamic'
 export type TaskModelSetting = 'simple' | 'bullet-journal'
@@ -201,4 +214,5 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   taskModel: 'simple',
   taskCheckboxStyle: 'square',
   documentTasksEnabled: false,
+  taskCheckboxRendering: 'plugin',
 }

@@ -359,6 +359,7 @@ class SettingsFormBuilder {
       this.createTaskCheckboxStyleSetting(settings)
       this.createTasksMaxItemsSetting(settings)
       this.createDocumentTasksEnabledSetting(settings)
+      this.createTaskCheckboxRenderingSetting(settings)
 
       new Setting(this.containerEl).setName('Reset').setHeading()
       new Setting(this.containerEl)
@@ -849,6 +850,45 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.documentTasksEnabled)
             onChange(DEFAULT_SETTINGS.documentTasksEnabled)
+          })
+      })
+  }
+
+  createTaskCheckboxRenderingSetting(
+    settings: JournalFolderSettings
+  ): Setting {
+    let component: DropdownComponent
+
+    const onChange = (value: string) => {
+      settings.taskCheckboxRendering =
+        value as JournalFolderSettings['taskCheckboxRendering']
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Status icon rendering')
+      .setDesc(
+        'Plugin icons — replace every checkbox with the plugin’s Lucide ' +
+          'icon (consistent across themes; bullet-journal statuses always ' +
+          'render correctly). Theme checkbox — leave Obsidian’s native ' +
+          'checkbox visible so the active theme styles it; the plugin still ' +
+          'owns left-click cycle + right-click menu. No effect when the ' +
+          'document-task toggle above is off.'
+      )
+      .addDropdown((dropdown) => {
+        component = dropdown
+        dropdown.addOption('plugin', 'Plugin icons')
+        dropdown.addOption('theme', 'Theme checkbox')
+        dropdown.setValue(settings.taskCheckboxRendering).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.taskCheckboxRendering)
+            onChange(DEFAULT_SETTINGS.taskCheckboxRendering)
           })
       })
   }
