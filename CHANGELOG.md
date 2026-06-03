@@ -7,61 +7,65 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
-## [Unreleased]
+## [2.2.0]
 
 ### Added
-- **Task management.** Surfaces Markdown tasks from journal notes in two new
-  places: a *Tasks* panel below the sidebar's calendar, and an in-note
-  `journal-tasks` code block (analogous to `journal-header`).
-  - Two task models behind a shared interface: **Simple** (`[ ]` ↔ `[x]`)
-    and **Bullet Journal** (`[ ] [/] [x] [>] [-]`, with `[>]` migrated and
-    `[-]` cancelled treated as done for filtering). Pick one in
-    *Settings → Tasks → Task model*.
-  - **Square / circle** checkbox styling — purely cosmetic, swaps the
-    Lucide icon variant used for every status.
-  - Sidebar quick toggles below the *TASKS* heading: a reference-range
-    link (label reads **Today** or **Dynamic** to match the current
-    mode) and a completed-filter link (**All tasks** or **Active
-    tasks**). Both write back to global settings; a **Folders** link
-    narrows the *Today* scope to a subset of folders (hidden in
-    Dynamic mode since the scope follows the active note there).
-  - In-note block accepts `folders:`, `units:`, `show-completed:`, and
-    `max-items:` keys. `show-completed` is view-local and does not
-    persist.
-  - Left-click the status icon to cycle to the next status; right-click
-    (or long-press) opens a status menu with every option in the active
-    model. Writes go through `vault.process` with a line-match guard so
-    a stale cache aborts safely with a Notice.
-  - `tasksMaxItems` cap (default **200**) with a "Showing N of M —
-    increase limit in settings" footer when truncated.
-  - **Cycle / render document tasks** (off by default). When enabled,
-    every task checkbox in the rendered document is replaced with the
-    same status icon used in the panel: left-click cycles, and unusual
-    statuses (`[/]`, `[>]`, `[-]`) render their proper icon variant
-    rather than falling back to Obsidian's default checkbox. Works
-    in **reading view** (markdown post-processor) and **live preview**
-    (DOM `MutationObserver` that swaps the native checkbox inline as
-    soon as Obsidian renders it — Obsidian's checkbox lives in the
-    rendered widget layer rather than the CodeMirror source range,
-    so a source-level decoration can't suppress it); source mode is
-    left untouched so raw markdown stays editable. In the editor the
-    right-click status options integrate into Obsidian's native
-    editor context menu rather than overriding it. The toggle lives
-    in *Settings → Tasks → Cycle / render document tasks*; leave it
-    off if another plugin (e.g. Tasks) already owns in-document
-    interactions.
-  - **Status icon rendering** (dropdown, default *Plugin icons*).
-    Pick *Theme checkbox* to keep Obsidian's native checkbox visible
-    so the active theme (Minimal / Things / AnuPpuccin / …) paints
-    it — the plugin still owns left-click cycle and right-click
-    menu. The parent `<li>`'s `data-task` attribute is mirrored
-    from the parsed status in both modes so theme rules keyed on
-    it keep firing for non-standard statuses (`[/]`, `[>]`, `[-]`).
-    Applies to the sidebar task panel and the in-note
-    `journal-tasks` block too: in theme mode each row renders an
-    actual `input.task-list-item-checkbox[data-task="X"]` inside
-    a `.task-list-item` row inside a `.contains-task-list`
-    wrapper, so theme rules that scope to those selectors apply.
+- **Task management** — a new top-level surface that aggregates Markdown
+  tasks from journal notes in three places: a **Tasks** panel under the
+  combined sidebar's calendar, a slim **Tasks-only sidebar** (separate
+  view, opens via the *list-checks* ribbon), and an in-note
+  **`journal-tasks` code block**. All three share a single cache and
+  re-render on every vault edit, so a task ticked off anywhere updates
+  everywhere immediately.
+- **Named task flows.** A flow is a named set of statuses (label,
+  on-disk character, *active / done* bit, cycle target, and visuals).
+  Built-in starting templates (Simple, Kanban, Bullet Journal, GTD)
+  live in code and are *read-only* — pick one to seed a new flow, then
+  customise. Each folder can pick its own flow via `task-flow:` in
+  front matter, or inherit the global default. Manage flows from a
+  drill-down UI in *Settings → Tasks* (overview → flow detail → status
+  detail) with drag-reorder, breadcrumb navigation, and confirm prompts
+  on destructive actions (apply template, delete flow, remove status).
+- **Per-status visuals.** A status can render with a custom shell
+  (none / circle / square / rounded square), background + border colours
+  pulled from Obsidian's theme tokens (so it follows light/dark mode),
+  and an inner icon from Lucide, an emoji, an image URL, or sanitised
+  raw SVG.
+- **Plugin or theme checkbox rendering**, picked **per flow**. Plugin
+  rendering paints the custom shell + icon defined per status; theme
+  rendering leaves Obsidian's native checkbox visible so the active
+  theme (Minimal, Things, AnuPpuccin, …) styles it via `data-task` —
+  the plugin still owns left-click cycle and right-click menu in both
+  modes. One mode per flow because mixing inside one nested list paints
+  unreliably across themes.
+- **Document task interactions** (*Settings → Tasks → Task interactions*,
+  default *Plugin task lists only*). Opt in to *Everywhere in document*
+  to make every task checkbox in reading view and live preview cycle
+  through the active flow; status options also fold into Obsidian's
+  native editor context menu. Leave it on the default if another
+  plugin (e.g. Tasks) already owns in-document interactions.
+- **Sidebar quick toggles** below the *TASKS* heading: a reference-mode
+  link that reads **Today** or **Dynamic** (Dynamic follows the active
+  journal note's range), a completed filter, and a folder scope picker
+  (hidden in Dynamic mode since the scope already follows the active
+  note). The combined sidebar and tasks-only sidebar each track their
+  own reference mode.
+- **`journal-tasks` code block** accepting `folders:`, `units:`,
+  `show-completed:`, `max-items:`, and `caption:` keys. The
+  `show-completed` toggle is view-local and does not persist.
+- `tasksMaxItems` cap (default **200**) with a *Showing N of M* footer
+  when truncated.
+
+### Fixed
+- The combined sidebar's task-panel completed-hidden count is now
+  reported against the full pre-cap set, not just the slice that
+  survived the truncation cap.
+- Document task processor no longer leaves a stale click handler bound
+  to a checkbox after Obsidian re-renders a section — the next click
+  could otherwise write the new status to a different line if the
+  source had shifted in the meantime.
+- `journal-tasks` `show-completed:` typos (e.g. `treu`) now leave the
+  flag unset instead of silently treating the typo as truthy.
 
 ## [2.1.1]
 
