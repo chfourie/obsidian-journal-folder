@@ -28,18 +28,13 @@ import {
   configPathFor,
   findJournalFolderPaths,
   type JournalFolderSettings,
-  type JournalTask,
-  isJournalFileBasename,
-  journalNoteFactoryWithSettings,
 } from '../../data-access'
 import {
-  buildReferenceRange,
-  effectiveUnits,
-  findTaskCandidates,
-  resolveTaskModel,
-  sortTasks,
+  computeTaskSnapshot,
   type TaskCache,
+  type TaskPanelSnapshot,
 } from '../journal-tasks'
+export type { TaskPanelSnapshot }
 import { VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR } from './journal-folder-sidebar-feature'
 import JournalFolderSidebar from './JournalFolderSidebar.svelte'
 import {
@@ -74,11 +69,6 @@ export type SidebarUpdateApi = {
   // rebuild the anchor.
   bumpVault: () => void
   setTaskPanelSnapshot: (snapshot: TaskPanelSnapshot) => void
-}
-
-export interface TaskPanelSnapshot {
-  tasks: JournalTask[]
-  totalBeforeCap: number
 }
 
 export type ActiveFileSnapshot = {
@@ -242,57 +232,12 @@ export class JournalFolderSidebarView extends ItemView {
       this.#api.setTaskPanelSnapshot({ tasks: [], totalBeforeCap: 0 })
       return
     }
-    const activeFile = this.plugin.app.workspace.getActiveFile?.()
-    const factory = journalNoteFactoryWithSettings(settings)
-    const activeNote =
-      activeFile instanceof TFile &&
-      isJournalFileBasename(activeFile.basename, !!settings.quartersEnabled)
-        ? (() => {
-            try {
-              return factory(activeFile)
-            } catch {
-              return null
-            }
-          })()
-        : null
-
-    const referenceRange = buildReferenceRange({
-      host: 'sidebar',
-      referenceMode: settings.tasksSidebarReference,
-      activeNote,
-    })
-
-    const folders =
-      settings.tasksSidebarReference === 'dynamic' && activeNote
-        ? [activeFile?.parent?.path ?? '']
-        : settings.tasksSidebarFolders.length > 0
-          ? settings.tasksSidebarFolders
-          : findJournalFolderPaths(this.plugin.app)
-
-    const candidates = findTaskCandidates({
-      app: this.plugin.app,
-      folders,
-      units: effectiveUnits(settings),
-      referenceRange,
+    const snapshot = await computeTaskSnapshot(
+      this.plugin.app,
       settings,
-    })
-    const model = resolveTaskModel(settings)
-    const collected: JournalTask[] = []
-    for (const candidate of candidates) {
-      const tasks = await this.taskCache.getTasks(
-        candidate.file,
-        model,
-        candidate.note
-      )
-      for (const t of tasks) collected.push(t)
-    }
-    const sorted = sortTasks(collected)
-    const totalBeforeCap = sorted.length
-    const capped = sorted.slice(0, settings.tasksMaxItems)
-    this.#api.setTaskPanelSnapshot({
-      tasks: capped,
-      totalBeforeCap,
-    })
+      this.taskCache
+    )
+    this.#api.setTaskPanelSnapshot(snapshot)
   }
 
   private openPluginSettings(): void {

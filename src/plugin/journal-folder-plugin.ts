@@ -23,6 +23,7 @@ import { JournalFolderSettingsFeature } from '../features/journal-folder-setting
 import { JournalAutoTemplateFeature } from '../features/journal-auto-template'
 import { JournalFolderSidebarFeature } from '../features/journal-folder-sidebar'
 import { JournalTasksFeature } from '../features/journal-tasks'
+import { JournalTasksSidebarFeature } from '../features/journal-tasks-sidebar'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -42,6 +43,13 @@ export default class JournalFolderPlugin extends Plugin {
       .addFeature(new JournalAutoTemplateFeature(this))
       .addFeature(
         new JournalFolderSidebarFeature(
+          this,
+          settingsFeature.saveSettings,
+          tasksFeature.cache
+        )
+      )
+      .addFeature(
+        new JournalTasksSidebarFeature(
           this,
           settingsFeature.saveSettings,
           tasksFeature.cache

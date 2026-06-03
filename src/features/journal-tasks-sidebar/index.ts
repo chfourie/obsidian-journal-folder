@@ -16,14 +16,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export { JournalTasksFeature } from './journal-tasks-feature'
-export { TaskCache } from './task-cache'
-export { default as TaskList } from './TaskList.svelte'
-export * from './reference-range'
-export * from './task-scope'
-export * from './task-sorting'
-export * from './task-transition'
-export * from './task-models'
-export * from './extract-tasks'
-export * from './parse-block-config'
-export * from './task-snapshot'
+export { JournalTasksSidebarFeature } from './journal-tasks-sidebar-feature'
+export { VIEW_TYPE_JOURNAL_TASKS_SIDEBAR } from './journal-tasks-sidebar-view'
