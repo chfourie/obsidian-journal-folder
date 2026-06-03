@@ -131,14 +131,16 @@ export type JournalFolderSettings = {
   // settings". **Global only** — protects render perf in long-range
   // notes; per-folder overrides aren't useful here.
   tasksMaxItems: number
-  // User-defined task flows. Keyed by display name; each value is the
-  // full status array (label, char, isDone, next, shell, icon, colour)
-  // shared by every folder pointing at this flow. Built-in templates
-  // (Simple, Kanban, Bullet Journal, GTD) are *not* stored here —
-  // they live in code and are applied into a flow to seed it.
-  // **Global only** — the flow dictionary is the source of truth that
-  // folder-level overrides reference by name.
-  taskFlows: Record<string, TaskStatus[]>
+  // User-defined task flows. Keyed by display name; each value bundles
+  // the full status array (label, char, isDone, next, shell, icon,
+  // colour) with the flow's single rendering mode (plugin vs theme).
+  // Rendering is *flow-level* because mixing plugin and theme
+  // rendering inside the same nested list paints unreliably across
+  // themes. Built-in templates (Simple, Kanban, Bullet Journal, GTD)
+  // are *not* stored here — they live in code and are applied into a
+  // flow to seed it. **Global only** — the flow dictionary is the
+  // source of truth that folder-level overrides reference by name.
+  taskFlows: Record<string, TaskFlow>
   // Name of the flow used when no per-folder override is set, or when
   // a folder's override points at a flow that no longer exists.
   // Must be a key in `taskFlows`. **Global only.**
@@ -170,7 +172,7 @@ export type JournalFolderSettings = {
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
 
-import type { TaskStatus } from './task-model.type'
+import type { TaskFlow, TaskStatus } from './task-model.type'
 import {
   BUILTIN_TEMPLATES,
   cloneTemplate,
@@ -231,7 +233,12 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksOnlySidebarReference: 'dynamic',
   tasksOnlySidebarShowCompleted: true,
   tasksMaxItems: 200,
-  taskFlows: { Default: cloneTemplate(BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]) },
+  taskFlows: {
+    Default: {
+      statuses: cloneTemplate(BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]),
+      rendering: 'plugin',
+    },
+  },
   defaultTaskFlow: 'Default',
   taskFlow: '',
   taskInteractionScope: 'lists',

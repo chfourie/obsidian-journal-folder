@@ -81,7 +81,7 @@ export class JournalTasksFeature extends PluginFeature {
       resolveModel: () => resolveTaskModel(this.globalSettings),
       // Document interception fires only on the `'everywhere'` scope;
       // `'lists'` leaves Obsidian's checkbox alone. Rendering is
-      // per-status (TaskStatus.rendering) — no global switch.
+      // flow-level (`TaskFlow.rendering`) — one mode per flow.
       isEnabled: () =>
         this.globalSettings.taskInteractionScope === 'everywhere',
     }
@@ -341,13 +341,19 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
 
     const sorted = sortTasks(allTasks)
     const maxItems = this.blockConfig.maxItems ?? settings.tasksMaxItems
-    const totalBeforeCap = sorted.length
-    const capped = sorted.slice(0, maxItems)
+    // Filter completed *before* the cap so the cap only trims visible
+    // tasks and `hiddenCount` reflects every completed task in scope —
+    // not just the ones that happened to land inside the pre-cap slice.
+    const visible = this.showCompleted
+      ? sorted
+      : sorted.filter((t) => !model.isDone(t.status))
+    const totalBeforeCap = visible.length
+    const capped = visible.slice(0, maxItems)
     const truncated = totalBeforeCap > capped.length
-    const filtered = this.showCompleted
-      ? capped
-      : capped.filter((t) => !model.isDone(t.status))
-    const hiddenCount = capped.length - filtered.length
+    const filtered = capped
+    const hiddenCount = this.showCompleted
+      ? 0
+      : sorted.length - visible.length
 
     this.tearDownComponent()
     this.containerEl.empty()

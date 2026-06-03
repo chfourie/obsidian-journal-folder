@@ -11,20 +11,14 @@ import {
 } from '../../../src/features/journal-tasks/task-models'
 import { bulletJournalTaskModel } from '../../../src/features/journal-tasks/task-models'
 
-// Builds a copy of a built-in template with every status forced
-// onto the given rendering kind. Lets us exercise both rendering
-// paths through `processDocumentTasks` without standing up a full
-// flow definition per test.
+// Builds a model from a built-in template with a chosen flow-level
+// rendering. Rendering is one-mode-per-flow as of v3 — mixing modes
+// inside one nested list paints unreliably across themes.
 function modelWith(
   templateKey: keyof typeof BUILTIN_TEMPLATES,
   rendering: TaskRendering
 ): TaskModel {
-  return buildTaskModel(
-    cloneTemplate(BUILTIN_TEMPLATES[templateKey]).map((s) => ({
-      ...s,
-      rendering,
-    }))
-  )
+  return buildTaskModel(cloneTemplate(BUILTIN_TEMPLATES[templateKey]), rendering)
 }
 
 function buildSection(text: string) {
@@ -223,30 +217,4 @@ describe('processDocumentTasks', () => {
     expect(await app.vault.read(file)).toBe('- [x] one')
   })
 
-  it('mixed-rendering flow: theme statuses keep input, plugin statuses swap', () => {
-    // Build a flow where `[ ]` renders via theme and `[x]` via plugin.
-    const mixed = buildTaskModel(
-      cloneTemplate(BUILTIN_TEMPLATES.simple).map((s) => ({
-        ...s,
-        rendering: (s.id === 'open' ? 'theme' : 'plugin') as TaskRendering,
-      }))
-    )
-    const text = ['- [ ] one', '- [x] two'].join('\n')
-    const { app } = setupApp(text)
-    const el = buildEl(2)
-    processDocumentTasks(
-      el,
-      {
-        sourcePath: 'Notes/note.md',
-        getSectionInfo: () => buildSection(text),
-      } as any,
-      {
-        app,
-        resolveModel: () => mixed,
-        isEnabled: () => true,
-      }
-    )
-    expect(el.querySelectorAll('input.task-list-item-checkbox').length).toBe(1)
-    expect(el.querySelectorAll('.jf-task-status').length).toBe(1)
-  })
 })

@@ -94,7 +94,7 @@ export class JournalTasksSidebarView extends ItemView {
       target,
       props: {
         initialSettings: this.getSettings(),
-        initialSnapshot: { tasks: [], totalBeforeCap: 0 },
+        initialSnapshot: { tasks: [], totalBeforeCap: 0, truncated: false },
         saveSettings: (s: JournalFolderSettings) => this.saveSettings(s),
         registerApi: (api: TasksOnlyUpdateApi) => {
           this.#api = api

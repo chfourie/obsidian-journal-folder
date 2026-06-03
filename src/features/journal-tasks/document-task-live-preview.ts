@@ -273,15 +273,10 @@ class LivePreviewPlugin implements PluginValue {
       existing.remove()
     }
 
-    // Per-status rendering: theme statuses leave the native checkbox
-    // visible, plugin statuses swap it for our icon. The choice is
-    // per row, so the same editor may contain both kinds of task.
-    const rendering =
-      (parsed &&
-        model.statuses.find((s) => s.id === parsed.status)?.rendering) ??
-      'plugin'
-
-    if (!parsed || rendering === 'theme') {
+    // Flow-level rendering: when the active flow's rendering is
+    // `'theme'`, the native checkbox stays visible so the active
+    // theme styles it; for `'plugin'` we swap in our shell + icon.
+    if (!parsed || model.rendering === 'theme') {
       // Restore the native checkbox if we'd previously swapped it
       // (status was just edited from a plugin-rendered char to a
       // theme-rendered one).

@@ -21,7 +21,6 @@ import type {
   IconSource,
   JournalFolderSettings,
   ShellShape,
-  TaskRendering,
   TaskStatus,
 } from '../../data-access'
 import { buildTaskModel } from '../journal-tasks/task-models'
@@ -62,9 +61,11 @@ export type StatusDetailConfig = {
 // breadcrumb is the way back.
 export function renderStatusDetail(config: StatusDetailConfig): void {
   const { containerEl, settings, flowName, statusId } = config
-  const flow = settings.taskFlows[flowName] ?? []
-  const index = flow.findIndex((s) => s.id === statusId)
-  if (index < 0) {
+  const flow = settings.taskFlows[flowName]
+  const flowStatuses = flow?.statuses ?? []
+  const flowRendering = flow?.rendering ?? 'plugin'
+  const index = flowStatuses.findIndex((s) => s.id === statusId)
+  if (!flow || index < 0) {
     containerEl.createEl('p', {
       cls: 'jf-status-edit-panel-empty',
       text:
@@ -73,27 +74,32 @@ export function renderStatusDetail(config: StatusDetailConfig): void {
     })
     return
   }
-  const status = flow[index]
-  const siblings = flow
+  const status = flowStatuses[index]
+  const siblings = flowStatuses
 
   const updateStatus = async (
     patch: Partial<TaskStatus>
   ): Promise<void> => {
-    const nextFlow = flow.map((s, i) => (i === index ? { ...s, ...patch } : s))
+    const nextStatuses = flowStatuses.map((s, i) =>
+      i === index ? { ...s, ...patch } : s
+    )
     await config.saveSettings({
       ...settings,
-      taskFlows: { ...settings.taskFlows, [flowName]: nextFlow },
+      taskFlows: {
+        ...settings.taskFlows,
+        [flowName]: { ...flow, statuses: nextStatuses },
+      },
     })
   }
 
   const editor = containerEl.createDiv({ cls: 'jf-status-edit-content' })
-  renderPreview(editor, status)
+  renderPreview(editor, status, flowRendering)
 
   const split = editor.createDiv({ cls: 'jf-status-edit-split' })
   const navEl = split.createDiv({ cls: 'jf-status-edit-nav' })
   const panelEl = split.createDiv({ cls: 'jf-status-edit-panel' })
 
-  const sections = buildSectionTable(status, panelEl, {
+  const sections = buildSectionTable(status, flowRendering, panelEl, {
     updateStatus,
     siblings,
     saveSettings: (next) => config.saveSettings(next),
@@ -134,7 +140,11 @@ export function renderStatusDetail(config: StatusDetailConfig): void {
 
 // ---- preview --------------------------------------------------
 
-function renderPreview(parent: HTMLElement, status: TaskStatus): void {
+function renderPreview(
+  parent: HTMLElement,
+  status: TaskStatus,
+  rendering: 'plugin' | 'theme'
+): void {
   const wrap = parent.createDiv({ cls: 'jf-status-edit-preview' })
   wrap.createSpan({
     cls: 'jf-status-edit-preview-caption',
@@ -143,7 +153,7 @@ function renderPreview(parent: HTMLElement, status: TaskStatus): void {
   const row = wrap.createDiv({ cls: 'jf-status-edit-preview-row' })
   const shell = row.createSpan({ cls: 'jf-status-edit-preview-icon' })
 
-  if (status.rendering === 'theme') {
+  if (rendering === 'theme') {
     const input = document.createElement('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
@@ -155,7 +165,7 @@ function renderPreview(parent: HTMLElement, status: TaskStatus): void {
     const iconShell = document.createElement('span')
     iconShell.className = 'jf-task-status'
     shell.appendChild(iconShell)
-    const model = buildTaskModel([status])
+    const model = buildTaskModel([status], 'plugin')
     renderStatusIcon(iconShell, status, model)
   }
 
@@ -193,9 +203,15 @@ type SectionDeps = {
 
 function buildSectionTable(
   status: TaskStatus,
+  flowRendering: 'plugin' | 'theme',
   panel: HTMLElement,
   deps: SectionDeps
 ): Record<StatusDetailSection, SectionEntry> {
+  const themeDisabled = flowRendering === 'theme'
+  const themeReason =
+    'This flow’s rendering is set to "Theme checkbox" — the active ' +
+    'theme paints every status, so the plugin doesn’t use custom ' +
+    'visuals. Change the rendering on the flow page to edit these.'
   return {
     basics: {
       label: 'Basics',
@@ -205,31 +221,25 @@ function buildSectionTable(
     },
     icon: {
       label: 'Icon',
-      isEnabled: () => status.rendering === 'plugin',
-      disabledReason: () =>
-        'Rendering is set to "Theme checkbox" — the active theme paints ' +
-        'the status, so the plugin doesn’t use a custom icon.',
+      isEnabled: () => !themeDisabled,
+      disabledReason: () => themeReason,
       render: () => renderIconSection(panel, status, deps),
     },
     background: {
       label: 'Background',
-      isEnabled: () =>
-        status.rendering === 'plugin' && status.shell.shape !== 'none',
+      isEnabled: () => !themeDisabled && status.shell.shape !== 'none',
       disabledReason: () =>
-        status.rendering === 'theme'
-          ? 'Rendering is set to "Theme checkbox" — the active theme ' +
-            'paints the shell.'
+        themeDisabled
+          ? themeReason
           : 'No shell to paint — set a shape on the Background panel first.',
       render: () => renderBackgroundSection(panel, status, deps),
     },
     border: {
       label: 'Border',
-      isEnabled: () =>
-        status.rendering === 'plugin' && status.shell.shape !== 'none',
+      isEnabled: () => !themeDisabled && status.shell.shape !== 'none',
       disabledReason: () =>
-        status.rendering === 'theme'
-          ? 'Rendering is set to "Theme checkbox" — the active theme ' +
-            'paints the border.'
+        themeDisabled
+          ? themeReason
           : 'No shell to border — set a shape on the Background panel first.',
       render: () => renderBorderSection(panel, status, deps),
     },
@@ -297,25 +307,6 @@ function renderBasics(
       })
     })
 
-  new Setting(panel)
-    .setName('Rendering')
-    .setDesc(
-      'Plugin icons — paint a custom shell + icon (Icon, Background, ' +
-        'Border sections take over). Theme checkbox — leave Obsidian’s ' +
-        'native checkbox visible so the active theme styles it. Useful ' +
-        'when a theme supports some characters but not others.'
-    )
-    .addDropdown((dd) => {
-      dd.addOption('plugin', 'Plugin icons')
-      dd.addOption('theme', 'Theme checkbox')
-      dd.setValue(status.rendering).onChange(async (v) => {
-        const rendering: TaskRendering = v === 'theme' ? 'theme' : 'plugin'
-        await deps.updateStatus({ rendering })
-        // Rendering flips Icon / Background / Border between enabled
-        // and disabled in the nav — refresh the surrounding view.
-        deps.rerender()
-      })
-    })
 }
 
 // ---- Icon ----------------------------------------------------

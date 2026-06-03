@@ -70,9 +70,11 @@ export function parseJournalTasksBlock(source: string): JournalTasksBlockConfig 
         if (units.length > 0) config.units = units
         break
       }
-      case 'show-completed':
-        config.showCompleted = parseBoolean(value)
+      case 'show-completed': {
+        const b = parseBoolean(value)
+        if (b !== undefined) config.showCompleted = b
         break
+      }
       case 'max-items': {
         const n = parseInt(value, 10)
         if (Number.isFinite(n) && n > 0) config.maxItems = n
@@ -93,6 +95,9 @@ function splitList(value: string): string[] {
     .filter((s) => s.length > 0)
 }
 
-function parseBoolean(value: string): boolean {
-  return value.trim().toLowerCase() !== 'false'
+function parseBoolean(value: string): boolean | undefined {
+  const v = value.trim().toLowerCase()
+  if (v === 'true') return true
+  if (v === 'false') return false
+  return undefined
 }

@@ -82,22 +82,24 @@ export interface TaskStatus {
   // after this one was authored), the cycle falls back to the first
   // status in the active flow.
   next: TaskStatusId
-  // How this status renders in the task panels and document body:
-  //   `'plugin'` — the plugin paints its own shell + icon (custom
-  //     fields below drive the visuals).
-  //   `'theme'`  — Obsidian's native checkbox stays visible so the
-  //     active theme styles it via `data-task="<char>"`. The custom
-  //     shell / icon fields are ignored.
-  // Per-status so a single flow can mix-and-match — themes that
-  // style `[ ]` `[/]` `[x]` but not `[d]` can leave the supported
-  // statuses to the theme and let the plugin paint the rest.
-  rendering: TaskRendering
   // Visual record split into a shell (the frame) and an icon (the
   // glyph drawn inside the frame). Either can be `'none'`-equivalent
   // for shape-only (no icon) or icon-only (no shell) statuses.
-  // Ignored when `rendering === 'theme'`.
+  // Ignored when the flow's `rendering === 'theme'`.
   shell: ShellAppearance
   icon: IconSpec
+}
+
+// A named flow groups its status list with a single rendering mode.
+// Rendering lives at flow level (not per-status) because mixing
+// plugin-rendered and theme-rendered statuses inside the same nested
+// list does not paint reliably across themes — the theme's checkbox
+// styles for surrounding rows compete with the plugin's injected
+// shell + icon. One rendering per flow keeps the alphabet visually
+// consistent everywhere the flow is used.
+export interface TaskFlow {
+  statuses: TaskStatus[]
+  rendering: TaskRendering
 }
 
 export type TaskRendering = 'plugin' | 'theme'
@@ -109,6 +111,13 @@ export interface TaskModel {
   // visual edits (colour, shell shape) don't bump the id because they
   // don't affect parsed `JournalTask` data.
   id: string
+  // How the active flow's statuses render in the task panels and
+  // document body (`'plugin'` paints a custom shell + icon, `'theme'`
+  // leaves Obsidian's native checkbox visible so the active theme
+  // styles it via `data-task="<char>"`). Mirrors the source
+  // `TaskFlow.rendering` so renderers don't need a back-pointer to
+  // settings.
+  rendering: TaskRendering
   // Display order — drives both the right-click status menu and the
   // priority used by `parseLine` (first matching char wins).
   statuses: TaskStatus[]

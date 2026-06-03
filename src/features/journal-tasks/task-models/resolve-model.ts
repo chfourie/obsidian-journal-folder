@@ -17,8 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type {
+  TaskFlow,
   TaskModel,
-  TaskStatus,
 } from '../../../data-access/task-model.type'
 import {
   BUILTIN_TEMPLATES,
@@ -30,31 +30,43 @@ import { buildTaskModel } from './build-task-model'
 //
 // Resolution chain:
 //   1. If `settings.taskFlow` is set (folder-level override) and
-//      names an existing flow → use that flow's statuses.
+//      names an existing flow → use that flow.
 //   2. Otherwise → use the flow named by `settings.defaultTaskFlow`.
 //   3. If the default flow is also missing → fall back to the
 //      built-in Simple template so the model is never empty.
 export function resolveTaskModel(settings: {
-  taskFlows?: Record<string, TaskStatus[]>
+  taskFlows?: Record<string, TaskFlow>
   defaultTaskFlow?: string
   taskFlow?: string
 }): TaskModel {
-  return buildTaskModel(pickStatuses(settings))
+  const flow = pickFlow(settings)
+  return buildTaskModel(flow.statuses, flow.rendering)
 }
 
-function pickStatuses(settings: {
-  taskFlows?: Record<string, TaskStatus[]>
+function pickFlow(settings: {
+  taskFlows?: Record<string, TaskFlow>
   defaultTaskFlow?: string
   taskFlow?: string
-}): TaskStatus[] {
+}): TaskFlow {
   const flows = settings.taskFlows ?? {}
   const folderPick = settings.taskFlow?.trim() ?? ''
-  if (folderPick && flows[folderPick] && flows[folderPick].length > 0) {
+  if (
+    folderPick &&
+    flows[folderPick] &&
+    flows[folderPick].statuses.length > 0
+  ) {
     return flows[folderPick]
   }
   const defaultPick = settings.defaultTaskFlow ?? ''
-  if (defaultPick && flows[defaultPick] && flows[defaultPick].length > 0) {
+  if (
+    defaultPick &&
+    flows[defaultPick] &&
+    flows[defaultPick].statuses.length > 0
+  ) {
     return flows[defaultPick]
   }
-  return BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]
+  return {
+    statuses: BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID],
+    rendering: 'plugin',
+  }
 }

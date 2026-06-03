@@ -6,8 +6,14 @@ import {
 } from '../../../../src/data-access/task-templates'
 
 describe('resolveTaskModel', () => {
-  const simpleFlow = cloneTemplate(BUILTIN_TEMPLATES.simple)
-  const bujoFlow = cloneTemplate(BUILTIN_TEMPLATES['bullet-journal'])
+  const simpleFlow = {
+    statuses: cloneTemplate(BUILTIN_TEMPLATES.simple),
+    rendering: 'plugin' as const,
+  }
+  const bujoFlow = {
+    statuses: cloneTemplate(BUILTIN_TEMPLATES['bullet-journal']),
+    rendering: 'plugin' as const,
+  }
 
   it('uses the flow named by defaultTaskFlow when no folder override is set', () => {
     const model = resolveTaskModel({
@@ -15,7 +21,9 @@ describe('resolveTaskModel', () => {
       defaultTaskFlow: 'Side',
       taskFlow: '',
     })
-    expect(model.statuses.map((s) => s.id)).toEqual(bujoFlow.map((s) => s.id))
+    expect(model.statuses.map((s) => s.id)).toEqual(
+      bujoFlow.statuses.map((s) => s.id)
+    )
   })
 
   it('honours a folder-level taskFlow override', () => {
@@ -24,7 +32,9 @@ describe('resolveTaskModel', () => {
       defaultTaskFlow: 'Main',
       taskFlow: 'Side',
     })
-    expect(model.statuses.map((s) => s.id)).toEqual(bujoFlow.map((s) => s.id))
+    expect(model.statuses.map((s) => s.id)).toEqual(
+      bujoFlow.statuses.map((s) => s.id)
+    )
   })
 
   it('falls back to defaultTaskFlow when the folder override names a missing flow', () => {
@@ -33,7 +43,9 @@ describe('resolveTaskModel', () => {
       defaultTaskFlow: 'Main',
       taskFlow: 'Ghost',
     })
-    expect(model.statuses.map((s) => s.id)).toEqual(simpleFlow.map((s) => s.id))
+    expect(model.statuses.map((s) => s.id)).toEqual(
+      simpleFlow.statuses.map((s) => s.id)
+    )
   })
 
   it('falls back to the built-in Simple template when both defaults are missing', () => {

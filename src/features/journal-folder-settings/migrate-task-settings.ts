@@ -23,40 +23,50 @@ import {
   DEFAULT_TEMPLATE_ID,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  type TaskFlow,
   type TaskRendering,
   type TaskStatus,
 } from '../../data-access'
 
 // Settings shape from any pre-flow install. The plugin has been
-// through two prior shapes:
+// through several prior shapes:
 //   v0 (`taskModel: 'simple' | 'bullet-journal'`) — original two
 //       hardcoded models.
 //   v1 (`taskStatuses` + `taskTemplates` + `currentTaskTemplate`)
 //       — user-editable status array + saved snapshots + the
 //       last-loaded template name. Templates were user-managed.
-//   v2 (current — `taskFlows` + `defaultTaskFlow` + per-folder
-//       `taskFlow`) — built-in templates are read-only; user-
-//       managed entities are named flows.
+//   v2 (`taskFlows: Record<string, TaskStatus[]>` +
+//       `defaultTaskFlow` + per-folder `taskFlow`) — built-in
+//       templates became read-only; user-managed entities are named
+//       flows.
+//   v3a (interim — `TaskStatus.rendering`) — rendering was promoted
+//       from a global field into a per-status field on `TaskStatus`.
+//       Reverted because mixing plugin-rendered and theme-rendered
+//       statuses inside one nested list paints unreliably.
+//   v3 (current — `TaskFlow = { statuses, rendering }`) — rendering
+//       sits at flow level, one mode per flow.
 //
 // `migrateTaskSettings` runs on every settings load and is
-// idempotent. Once an install is on v2 the helper just hands
+// idempotent. Once an install is on v3 the helper just hands
 // settings straight through.
 type LegacyShape = JournalFolderSettings & {
   taskModel?: string
   taskStatuses?: TaskStatus[]
   taskTemplates?: Record<string, TaskStatus[]>
   currentTaskTemplate?: string
-  // v2 had a single global rendering setting. v3 stores rendering
-  // per-status on `TaskStatus.rendering` so a flow can mix-and-match
-  // theme and plugin rendering. Migration stamps every existing
-  // status with the prior global value.
   taskCheckboxRendering?: TaskRendering
+}
+
+// Internal shape used while migrating: `taskFlows` may still be the
+// legacy `TaskStatus[]` form before v3 lifts it into `TaskFlow`.
+type MigratingShape = Omit<LegacyShape, 'taskFlows'> & {
+  taskFlows?: Record<string, TaskStatus[] | TaskFlow>
 }
 
 export function migrateTaskSettings(
   settings: LegacyShape
 ): JournalFolderSettings {
-  const next: LegacyShape = { ...settings }
+  const next: MigratingShape = { ...settings }
 
   // ---- v0 → v1 (legacy: collapse taskModel into taskStatuses) --
   if (next.taskModel && (!next.taskStatuses || next.taskStatuses.length === 0)) {
@@ -76,26 +86,16 @@ export function migrateTaskSettings(
     !!next.taskTemplates ||
     !!next.currentTaskTemplate
   if (needsFlowMigration) {
-    const flows: Record<string, TaskStatus[]> = { ...(next.taskFlows ?? {}) }
+    const flows: Record<string, TaskStatus[] | TaskFlow> = {
+      ...(next.taskFlows ?? {}),
+    }
 
-    // Promote every user template snapshot into a flow of the same
-    // name. User templates never collided with built-in template ids
-    // (the v1 save-as flow rejected built-in names), so this is a
-    // safe direct copy.
     if (next.taskTemplates) {
       for (const [name, statuses] of Object.entries(next.taskTemplates)) {
         if (!flows[name]) flows[name] = cloneTemplate(statuses)
       }
     }
 
-    // Decide the default flow:
-    //  - If currentTaskTemplate names a built-in, promote the live
-    //    taskStatuses array into a flow labelled after the template
-    //    (e.g. "Simple", "Bullet Journal") and select it.
-    //  - If currentTaskTemplate names an existing user flow, just
-    //    select it as the default.
-    //  - If neither, fall back to a "Default" flow seeded from the
-    //    Simple template.
     let defaultName = ''
     const pointer = next.currentTaskTemplate ?? ''
     if (isBuiltInTemplate(pointer)) {
@@ -126,24 +126,50 @@ export function migrateTaskSettings(
   delete next.taskTemplates
   delete next.currentTaskTemplate
 
-  // Guarantee the per-folder field exists (older installs never
-  // wrote it). Empty string = "use defaultTaskFlow".
   if (typeof next.taskFlow !== 'string') next.taskFlow = ''
 
-  // ---- v2 → v3 (lift taskCheckboxRendering onto each status) ---
-  const legacyRendering: TaskRendering =
+  // ---- v2 → v3 (lift rendering from per-status / legacy global
+  // onto per-flow). Any flow already in the v3 object shape passes
+  // through untouched.
+  const legacyGlobalRendering: TaskRendering =
     next.taskCheckboxRendering === 'theme' ? 'theme' : 'plugin'
-  const stampedFlows: Record<string, TaskStatus[]> = {}
-  for (const [name, statuses] of Object.entries(next.taskFlows)) {
-    stampedFlows[name] = statuses.map((status) => ({
-      ...status,
-      rendering: status.rendering ?? legacyRendering,
-    }))
+  const upgradedFlows: Record<string, TaskFlow> = {}
+  for (const [name, value] of Object.entries(next.taskFlows ?? {})) {
+    if (isTaskFlow(value)) {
+      upgradedFlows[name] = value
+      continue
+    }
+    const statuses = value as Array<TaskStatus & { rendering?: TaskRendering }>
+    // A single rendering per flow. If any v3a per-status `rendering`
+    // marked the flow as `theme`, treat the whole flow as theme —
+    // that's the safer choice for users who explicitly opted out of
+    // plugin painting on at least one status. Otherwise fall back to
+    // the legacy global value (or `'plugin'`).
+    const flowRendering: TaskRendering = statuses.some(
+      (s) => s.rendering === 'theme'
+    )
+      ? 'theme'
+      : statuses.some((s) => s.rendering === 'plugin')
+        ? 'plugin'
+        : legacyGlobalRendering
+    const stripped: TaskStatus[] = statuses.map(
+      ({ rendering: _omit, ...rest }) => rest
+    )
+    upgradedFlows[name] = { statuses: stripped, rendering: flowRendering }
   }
-  next.taskFlows = stampedFlows
+  ;(next as JournalFolderSettings).taskFlows = upgradedFlows
   delete next.taskCheckboxRendering
 
   return next as JournalFolderSettings
+}
+
+function isTaskFlow(value: unknown): value is TaskFlow {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Array.isArray((value as { statuses?: unknown }).statuses)
+  )
 }
 
 // Generates a unique flow name within `flows`. If `base` is free,
@@ -151,7 +177,7 @@ export function migrateTaskSettings(
 // the name doesn't collide.
 function uniqueName(
   base: string,
-  flows: Record<string, TaskStatus[]>
+  flows: Record<string, unknown>
 ): string {
   if (!flows[base]) return base
   for (let i = 2; i < 100; i++) {

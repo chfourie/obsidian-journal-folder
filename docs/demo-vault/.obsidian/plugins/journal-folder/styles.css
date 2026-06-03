@@ -1170,8 +1170,12 @@ li.task-list-item:has(> .jf-task-status) > .jf-task-status {
 }
 
 .jf-status-row {
+	/* Six columns: drag handle, live preview, [char], label, flow
+	 * arrow, actions. Label is the flex column so long status names
+	 * push the flow + actions to the right rather than wrapping the
+	 * actions to a second line. */
 	display: grid;
-	grid-template-columns: auto auto 1fr auto auto;
+	grid-template-columns: auto auto auto 1fr auto auto;
 	align-items: center;
 	column-gap: 0.75em;
 	padding: 0.4em 0.6em;

@@ -85,7 +85,6 @@ const openStatus = (next: string): TaskStatus => ({
   char: ' ',
   isDone: false,
   next,
-  rendering: 'plugin',
   shell: openShell,
   icon: emptyIcon,
 })
@@ -96,7 +95,6 @@ const inProgressStatus = (next: string): TaskStatus => ({
   char: '/',
   isDone: false,
   next,
-  rendering: 'plugin',
   shell: inProgressShell,
   icon: emptyIcon,
 })
@@ -107,7 +105,6 @@ const doneStatus = (next: string): TaskStatus => ({
   char: 'x',
   isDone: true,
   next,
-  rendering: 'plugin',
   shell: filledShell('--color-green'),
   icon: onAccentIcon('check'),
 })
@@ -118,7 +115,6 @@ const migratedStatus = (next: string): TaskStatus => ({
   char: '>',
   isDone: true,
   next,
-  rendering: 'plugin',
   shell: { shape: 'none' },
   // `redo-2` reads as "moved on" more strongly than the small
   // `corner-up-right` chevron.
@@ -131,7 +127,6 @@ const cancelledStatus = (next: string): TaskStatus => ({
   char: '-',
   isDone: true,
   next,
-  rendering: 'plugin',
   shell: filledShell('--color-red'),
   icon: onAccentIcon('x'),
 })
@@ -142,7 +137,6 @@ const delegatedStatus = (next: string): TaskStatus => ({
   char: 'd',
   isDone: false,
   next,
-  rendering: 'plugin',
   shell: { shape: 'none' },
   icon: bareIcon('user-round', '--color-purple'),
 })
@@ -153,7 +147,6 @@ const waitingStatus = (next: string): TaskStatus => ({
   char: '?',
   isDone: false,
   next,
-  rendering: 'plugin',
   shell: filledShell('--color-orange'),
   icon: onAccentIcon('clock'),
 })
@@ -230,7 +223,6 @@ export function isBuiltInTemplate(id: string): id is BuiltInTemplateId {
 export function cloneTemplate(statuses: TaskStatus[]): TaskStatus[] {
   return statuses.map((s) => ({
     ...s,
-    rendering: s.rendering ?? 'plugin',
     shell: {
       ...s.shell,
       background: s.shell.background ? { ...s.shell.background } : undefined,

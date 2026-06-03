@@ -131,7 +131,7 @@ export class JournalFolderSidebarView extends ItemView {
         initialSettings: this.getSettings(),
         initialKnownFolders: findJournalFolderPaths(this.plugin.app),
         initialActiveFile: this.snapshotActiveFile(),
-        initialTaskPanel: { tasks: [], totalBeforeCap: 0 },
+        initialTaskPanel: { tasks: [], totalBeforeCap: 0, truncated: false },
         saveSettings: (s: JournalFolderSettings) => this.saveSettings(s),
         registerApi: (api: SidebarUpdateApi) => {
           this.#api = api

@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import type {
   TaskModel,
+  TaskRendering,
   TaskStatus,
   TaskStatusId,
 } from '../../../data-access/task-model.type'
@@ -27,7 +28,10 @@ import { TASK_LINE_REGEX } from './task-line-regex'
 // array. The model is a pure function over the array — no global
 // state, no shared mutable refs — so cache invalidation only needs
 // to compare `model.id`.
-export function buildTaskModel(statuses: TaskStatus[]): TaskModel {
+export function buildTaskModel(
+  statuses: TaskStatus[],
+  rendering: TaskRendering = 'plugin'
+): TaskModel {
   const byChar = new Map<string, TaskStatus>()
   const byId = new Map<TaskStatusId, TaskStatus>()
   for (const s of statuses) {
@@ -45,13 +49,14 @@ export function buildTaskModel(statuses: TaskStatus[]): TaskModel {
   // Pure visual changes (colour, shell) are intentionally excluded
   // — they don't influence parsed `JournalTask` data.
   const id =
-    'model:' +
+    `model:${rendering}:` +
     statuses
       .map((s) => `${s.char}|${s.isDone ? '1' : '0'}|${s.next}`)
       .join(',')
 
   return {
     id,
+    rendering,
     statuses,
     parseLine(line) {
       const match = TASK_LINE_REGEX.exec(line)

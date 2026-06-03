@@ -33,6 +33,7 @@ import {
   findFoldersUsingTaskFlow,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  type TaskRendering,
   type TaskStatus,
 } from '../../data-access'
 import { reorder } from './reorder-statuses'
@@ -88,7 +89,10 @@ export function renderTaskFlowOverview(config: TaskFlowOverviewConfig): void {
               ...settings,
               taskFlows: {
                 ...settings.taskFlows,
-                [name]: cloneTemplate(seed),
+                [name]: {
+                  statuses: cloneTemplate(seed),
+                  rendering: 'plugin',
+                },
               },
             })
             onOpenFlow(name)
@@ -100,9 +104,12 @@ export function renderTaskFlowOverview(config: TaskFlowOverviewConfig): void {
   // entire row) to drill into the detail view. Default flow is
   // labelled in the description so users don't have to memorise it.
   for (const name of flowNames) {
-    const flow = settings.taskFlows[name] ?? []
+    const flow = settings.taskFlows[name]
+    const statusList = flow?.statuses ?? []
     const isDefault = name === settings.defaultTaskFlow
-    const statusCount = `${flow.length} status${flow.length === 1 ? '' : 'es'}`
+    const statusCount = `${statusList.length} status${
+      statusList.length === 1 ? '' : 'es'
+    }`
     const desc = isDefault
       ? `Default flow · ${statusCount}`
       : statusCount
@@ -164,8 +171,8 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
   } = config
 
   const settings = getSettings()
-  const flowStatuses = settings.taskFlows[flowName]
-  if (!flowStatuses) {
+  const flow = settings.taskFlows[flowName]
+  if (!flow) {
     containerEl.createEl('p', {
       cls: 'jf-status-edit-panel-empty',
       text:
@@ -175,7 +182,35 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
     return
   }
 
+  const flowStatuses = flow.statuses
   const isDefault = flowName === settings.defaultTaskFlow
+
+  // ---- flow rendering -------------------------------------------
+  new Setting(containerEl)
+    .setName('Rendering')
+    .setDesc(
+      'How every status in this flow is painted. Plugin icons — paint ' +
+        'a custom shell + icon driven by the per-status Icon / Background ' +
+        '/ Border settings. Theme checkbox — leave Obsidian’s native ' +
+        'checkbox visible so the active theme styles it via ' +
+        '`data-task`. One mode per flow — mixing inside one nested list ' +
+        'does not paint reliably.'
+    )
+    .addDropdown((dd) => {
+      dd.addOption('plugin', 'Plugin icons')
+      dd.addOption('theme', 'Theme checkbox')
+      dd.setValue(flow.rendering).onChange(async (v) => {
+        const rendering: TaskRendering = v === 'theme' ? 'theme' : 'plugin'
+        await saveSettings({
+          ...settings,
+          taskFlows: {
+            ...settings.taskFlows,
+            [flowName]: { ...flow, rendering },
+          },
+        })
+        rerender()
+      })
+    })
 
   // ---- flow actions ---------------------------------------------
   new Setting(containerEl)
@@ -211,7 +246,10 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
               ...settings,
               taskFlows: {
                 ...settings.taskFlows,
-                [flowName]: cloneTemplate(BUILTIN_TEMPLATES[templateId]),
+                [flowName]: {
+                  ...flow,
+                  statuses: cloneTemplate(BUILTIN_TEMPLATES[templateId]),
+                },
               },
             })
             rerender()
@@ -230,7 +268,10 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
             ...settings,
             taskFlows: {
               ...settings.taskFlows,
-              [name]: cloneTemplate(flowStatuses),
+              [name]: {
+                statuses: cloneTemplate(flowStatuses),
+                rendering: flow.rendering,
+              },
             },
           })
           onFlowRenamed(name)
@@ -287,7 +328,6 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
             char: pickUnusedChar(flowStatuses),
             isDone: false,
             next: flowStatuses[0]?.id ?? id,
-            rendering: 'plugin',
             shell: {
               shape: 'circle',
               border: {
@@ -301,7 +341,10 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
             ...settings,
             taskFlows: {
               ...settings.taskFlows,
-              [flowName]: [...flowStatuses, newStatus],
+              [flowName]: {
+                ...flow,
+                statuses: [...flowStatuses, newStatus],
+              },
             },
           })
           onOpenStatus(id)
@@ -313,9 +356,11 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
 
   for (let i = 0; i < flowStatuses.length; i++) {
     renderStatusRow({
+      app,
       listEl,
       settings,
       flowName,
+      flowRendering: flow.rendering,
       index: i,
       saveSettings,
       rerender,
@@ -364,9 +409,11 @@ export function renderFolderTaskFlowSection(
 // =============================================================
 
 type StatusRowConfig = {
+  app: App
   listEl: HTMLElement
   settings: JournalFolderSettings
   flowName: string
+  flowRendering: TaskRendering
   index: number
   saveSettings: (next: JournalFolderSettings) => Promise<void>
   rerender: () => void
@@ -376,22 +423,31 @@ type StatusRowConfig = {
 
 function renderStatusRow(config: StatusRowConfig): void {
   const {
+    app,
     listEl,
     settings,
     flowName,
+    flowRendering,
     index,
     saveSettings,
     rerender,
     onOpenStatus,
     dragState,
   } = config
-  const flowStatuses = settings.taskFlows[flowName] ?? []
+  const flow = settings.taskFlows[flowName]
+  const flowStatuses = flow?.statuses ?? []
   const status = flowStatuses[index]
 
-  const updateFlow = async (next: TaskStatus[]): Promise<void> => {
+  const updateFlow = async (nextStatuses: TaskStatus[]): Promise<void> => {
     await saveSettings({
       ...settings,
-      taskFlows: { ...settings.taskFlows, [flowName]: next },
+      taskFlows: {
+        ...settings.taskFlows,
+        [flowName]: {
+          ...(flow ?? { rendering: flowRendering }),
+          statuses: nextStatuses,
+        },
+      },
     })
   }
 
@@ -437,7 +493,7 @@ function renderStatusRow(config: StatusRowConfig): void {
   setIcon(handleEl, 'grip-vertical')
 
   const previewEl = rowEl.createSpan({ cls: 'jf-status-preview' })
-  paintStatusPreview(previewEl, status, flowStatuses)
+  paintStatusPreview(previewEl, status, flowStatuses, flowRendering)
 
   const charEl = rowEl.createSpan({ cls: 'jf-status-char' })
   charEl.setText(`[${status.char}]`)
@@ -470,20 +526,27 @@ function renderStatusRow(config: StatusRowConfig): void {
     text: 'Remove',
   })
   removeBtn.type = 'button'
-  removeBtn.onclick = async (e) => {
+  removeBtn.onclick = (e) => {
     e.preventDefault()
     if (flowStatuses.length <= 1) {
       new Notice('A flow needs at least one status.')
       return
     }
-    const removedId = status.id
-    const nextStatuses = flowStatuses.filter((_, i) => i !== index)
-    const fallback = nextStatuses[0].id
-    const cleaned = nextStatuses.map((s) =>
-      s.next === removedId ? { ...s, next: fallback } : s
-    )
-    await updateFlow(cleaned)
-    rerender()
+    new ConfirmRemoveStatusModal(
+      app,
+      status.label || status.id,
+      flowName,
+      async () => {
+        const removedId = status.id
+        const nextStatuses = flowStatuses.filter((_, i) => i !== index)
+        const fallback = nextStatuses[0].id
+        const cleaned = nextStatuses.map((s) =>
+          s.next === removedId ? { ...s, next: fallback } : s
+        )
+        await updateFlow(cleaned)
+        rerender()
+      }
+    ).open()
   }
 }
 
@@ -551,10 +614,11 @@ function generateUniqueStatusId(statuses: TaskStatus[]): string {
 function paintStatusPreview(
   el: HTMLElement,
   status: TaskStatus,
-  flowStatuses: TaskStatus[]
+  flowStatuses: TaskStatus[],
+  rendering: TaskRendering
 ): void {
   while (el.firstChild) el.removeChild(el.firstChild)
-  if (status.rendering === 'theme') {
+  if (rendering === 'theme') {
     const input = document.createElement('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
@@ -570,7 +634,7 @@ function paintStatusPreview(
   // The model is only consulted for its `id` (stamped as a data attr
   // for theming) and the `isDone` map; building one over just this
   // flow is enough for an accurate preview.
-  const model = buildTaskModel(flowStatuses)
+  const model = buildTaskModel(flowStatuses, rendering)
   renderStatusIcon(iconShell, status, model)
 }
 
@@ -773,6 +837,41 @@ class ConfirmDeleteFlowModal extends Modal {
     })
     new ButtonComponent(buttons)
       .setButtonText('Delete')
+      .setWarning()
+      .onClick(async () => {
+        await this.onConfirm()
+        this.close()
+      })
+  }
+}
+
+class ConfirmRemoveStatusModal extends Modal {
+  constructor(
+    app: App,
+    private readonly statusLabel: string,
+    private readonly flowName: string,
+    private readonly onConfirm: () => Promise<void>
+  ) {
+    super(app)
+  }
+
+  onOpen(): void {
+    this.titleEl.setText('Remove status?')
+    this.contentEl.createEl('p', {
+      text:
+        `Remove the status "${this.statusLabel}" from the flow ` +
+        `"${this.flowName}"? Existing notes that already use this ` +
+        `status character will keep it on disk, but the status will ` +
+        `no longer appear in the cycle or the right-click menu.`,
+    })
+    const buttons = this.contentEl.createDiv({
+      cls: 'modal-button-container',
+    })
+    new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+      this.close()
+    })
+    new ButtonComponent(buttons)
+      .setButtonText('Remove')
       .setWarning()
       .onClick(async () => {
         await this.onConfirm()

@@ -469,8 +469,9 @@ class SettingsFormBuilder {
       this.editingStatusId = null
     }
     if (this.editingFlow && this.editingStatusId !== null) {
-      const flow = settings.taskFlows[this.editingFlow] ?? []
-      if (!flow.some((s) => s.id === this.editingStatusId)) {
+      const flow = settings.taskFlows[this.editingFlow]
+      const flowStatuses = flow?.statuses ?? []
+      if (!flowStatuses.some((s) => s.id === this.editingStatusId)) {
         this.editingStatusId = null
       }
     }
@@ -568,8 +569,9 @@ class SettingsFormBuilder {
   private renderTasksStatusDetail(settings: JournalFolderSettings): void {
     const flowName = this.editingFlow!
     const statusId = this.editingStatusId!
-    const flow = settings.taskFlows[flowName] ?? []
-    const status = flow.find((s) => s.id === statusId)
+    const flow = settings.taskFlows[flowName]
+    const flowStatuses = flow?.statuses ?? []
+    const status = flowStatuses.find((s) => s.id === statusId)
     const statusLabel = status?.label || status?.id || statusId
 
     renderBreadcrumb(this.containerEl, [

@@ -38,11 +38,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   const statusEntry = $derived(model.statuses.find((s) => s.id === status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
-  // Rendering is a per-status property as of v3; the global setting
-  // is gone. Default to 'plugin' for legacy entries without the
-  // field (migration also stamps `rendering` so this is a belt-and-
-  // braces fallback).
-  const rendering = $derived(statusEntry?.rendering ?? 'plugin')
+  // Rendering is flow-level — read straight off the model. One mode
+  // per flow because mixing plugin and theme rendering inside one
+  // nested list paints unreliably across themes.
+  const rendering = $derived(model.rendering)
   // Mirror Obsidian's own convention: the `<input>` is rendered
   // checked for every status whose char isn't a literal space.
   // Themes (AnuPpuccin et al.) hang their per-status `[data-task="X"]`

@@ -35,4 +35,19 @@ describe('parseJournalTasksBlock', () => {
   it('ignores unknown keys', () => {
     expect(parseJournalTasksBlock('bogus: value')).toEqual({})
   })
+
+  it('leaves show-completed unset for non-boolean values', () => {
+    expect(
+      parseJournalTasksBlock('show-completed: treu').showCompleted
+    ).toBeUndefined()
+    expect(
+      parseJournalTasksBlock('show-completed: yes').showCompleted
+    ).toBeUndefined()
+  })
+
+  it('parses show-completed: true case-insensitively', () => {
+    expect(
+      parseJournalTasksBlock('show-completed: TRUE').showCompleted
+    ).toBe(true)
+  })
 })

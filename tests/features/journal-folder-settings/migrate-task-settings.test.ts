@@ -13,7 +13,7 @@ type LegacyShape = JournalFolderSettings & {
   currentTaskTemplate?: string
 }
 
-// Starts a clean install on the new v2 shape so we can layer
+// Starts a clean install on the new v3 shape so we can layer
 // legacy fields onto it for migration tests.
 function base(): LegacyShape {
   return {
@@ -25,13 +25,14 @@ function base(): LegacyShape {
 }
 
 describe('migrateTaskSettings', () => {
-  describe('v0 → v2 (legacy taskModel)', () => {
+  describe('v0 → v3 (legacy taskModel)', () => {
     it('seeds a flow from a legacy taskModel = simple and selects it as default', () => {
       const result = migrateTaskSettings({ ...base(), taskModel: 'simple' })
       expect(result.defaultTaskFlow).toBe('Simple')
-      expect(result.taskFlows.Simple.map((s) => s.id)).toEqual(
+      expect(result.taskFlows.Simple.statuses.map((s) => s.id)).toEqual(
         BUILTIN_TEMPLATES.simple.map((s) => s.id)
       )
+      expect(result.taskFlows.Simple.rendering).toBe('plugin')
       expect((result as LegacyShape).taskModel).toBeUndefined()
     })
 
@@ -41,9 +42,9 @@ describe('migrateTaskSettings', () => {
         taskModel: 'bullet-journal',
       })
       expect(result.defaultTaskFlow).toBe('Bullet Journal')
-      expect(result.taskFlows['Bullet Journal'].map((s) => s.id)).toContain(
-        'delegated'
-      )
+      expect(
+        result.taskFlows['Bullet Journal'].statuses.map((s) => s.id)
+      ).toContain('delegated')
     })
 
     it('falls back to Simple for an unknown legacy taskModel', () => {
@@ -52,7 +53,7 @@ describe('migrateTaskSettings', () => {
     })
   })
 
-  describe('v1 → v2 (taskStatuses + taskTemplates + currentTaskTemplate)', () => {
+  describe('v1 → v3 (taskStatuses + taskTemplates + currentTaskTemplate)', () => {
     it('promotes user templates into flows', () => {
       const customStatuses = [
         {
@@ -72,6 +73,7 @@ describe('migrateTaskSettings', () => {
         currentTaskTemplate: 'My Workflow',
       } as LegacyShape)
       expect(result.taskFlows['My Workflow']).toBeDefined()
+      expect(result.taskFlows['My Workflow'].statuses).toEqual(customStatuses)
       expect(result.defaultTaskFlow).toBe('My Workflow')
       expect((result as LegacyShape).taskTemplates).toBeUndefined()
       expect((result as LegacyShape).taskStatuses).toBeUndefined()
@@ -86,7 +88,6 @@ describe('migrateTaskSettings', () => {
           char: ' ',
           isDone: false,
           next: 'open',
-          rendering: 'plugin' as const,
           shell: { shape: 'circle' as const },
           icon: { source: { kind: 'none' as const } },
         },
@@ -96,12 +97,9 @@ describe('migrateTaskSettings', () => {
         taskStatuses: live,
         currentTaskTemplate: 'simple',
       } as LegacyShape)
-      // Promoted under the template's label.
       expect(result.taskFlows.Simple).toBeDefined()
       expect(result.defaultTaskFlow).toBe('Simple')
-      // The promoted flow carries the user's live statuses, not the
-      // pristine built-in template.
-      expect(result.taskFlows.Simple).toEqual(live)
+      expect(result.taskFlows.Simple.statuses).toEqual(live)
     })
 
     it('seeds a Default flow when nothing else is available', () => {
@@ -114,62 +112,104 @@ describe('migrateTaskSettings', () => {
   it('leaves an already-migrated v3 install with the same flow contents', () => {
     const seed: JournalFolderSettings = {
       ...DEFAULT_SETTINGS,
-      taskFlows: { Custom: BUILTIN_TEMPLATES.gtd },
+      taskFlows: {
+        Custom: { statuses: BUILTIN_TEMPLATES.gtd, rendering: 'plugin' },
+      },
       defaultTaskFlow: 'Custom',
       taskFlow: '',
     }
     const result = migrateTaskSettings(seed)
     expect(result.defaultTaskFlow).toBe('Custom')
-    // The v3 rendering stamp rebuilds the flow array on every run
-    // (idempotent — preserves existing `rendering`), so the array
-    // reference changes but contents match.
-    expect(result.taskFlows.Custom).toEqual(BUILTIN_TEMPLATES.gtd)
+    expect(result.taskFlows.Custom.statuses).toEqual(BUILTIN_TEMPLATES.gtd)
+    expect(result.taskFlows.Custom.rendering).toBe('plugin')
   })
 
-  it('stamps every status with the legacy global rendering value (v2 → v3)', () => {
-    const result = migrateTaskSettings({
-      ...DEFAULT_SETTINGS,
-      taskFlows: {
-        Custom: [
-          {
-            id: 'open',
-            label: 'Open',
-            char: ' ',
-            isDone: false,
-            next: 'open',
-            shell: { shape: 'circle' as const },
-            icon: { source: { kind: 'none' as const } },
-          } as Parameters<typeof migrateTaskSettings>[0]['taskFlows']['Custom'][number],
-        ],
-      },
-      defaultTaskFlow: 'Custom',
-      taskFlow: '',
-      taskCheckboxRendering: 'theme',
-    } as LegacyShape)
-    expect(result.taskFlows.Custom[0].rendering).toBe('theme')
-    expect((result as LegacyShape).taskCheckboxRendering).toBeUndefined()
-  })
+  describe('v2 / v3a → v3 (rendering lifted to flow level)', () => {
+    it('uses the legacy global taskCheckboxRendering when no per-status rendering is present', () => {
+      const result = migrateTaskSettings({
+        ...DEFAULT_SETTINGS,
+        taskFlows: {
+          Custom: [
+            {
+              id: 'open',
+              label: 'Open',
+              char: ' ',
+              isDone: false,
+              next: 'open',
+              shell: { shape: 'circle' as const },
+              icon: { source: { kind: 'none' as const } },
+            },
+          ],
+        } as unknown as JournalFolderSettings['taskFlows'],
+        defaultTaskFlow: 'Custom',
+        taskFlow: '',
+        taskCheckboxRendering: 'theme',
+      } as JournalFolderSettings & { taskCheckboxRendering: 'theme' })
+      expect(result.taskFlows.Custom.rendering).toBe('theme')
+      expect(
+        (result as JournalFolderSettings & { taskCheckboxRendering?: string })
+          .taskCheckboxRendering
+      ).toBeUndefined()
+    })
 
-  it('defaults rendering to "plugin" when no legacy global value exists', () => {
-    const result = migrateTaskSettings({
-      ...DEFAULT_SETTINGS,
-      taskFlows: {
-        Custom: [
-          {
-            id: 'open',
-            label: 'Open',
-            char: ' ',
-            isDone: false,
-            next: 'open',
-            shell: { shape: 'circle' as const },
-            icon: { source: { kind: 'none' as const } },
-          } as Parameters<typeof migrateTaskSettings>[0]['taskFlows']['Custom'][number],
-        ],
-      },
-      defaultTaskFlow: 'Custom',
-      taskFlow: '',
-    } as LegacyShape)
-    expect(result.taskFlows.Custom[0].rendering).toBe('plugin')
+    it('treats any per-status theme rendering as theme for the whole flow', () => {
+      const result = migrateTaskSettings({
+        ...DEFAULT_SETTINGS,
+        taskFlows: {
+          Mix: [
+            {
+              id: 'open',
+              label: 'Open',
+              char: ' ',
+              isDone: false,
+              next: 'done',
+              rendering: 'theme',
+              shell: { shape: 'circle' as const },
+              icon: { source: { kind: 'none' as const } },
+            },
+            {
+              id: 'done',
+              label: 'Done',
+              char: 'x',
+              isDone: true,
+              next: 'open',
+              rendering: 'plugin',
+              shell: { shape: 'circle' as const },
+              icon: { source: { kind: 'none' as const } },
+            },
+          ],
+        } as unknown as JournalFolderSettings['taskFlows'],
+        defaultTaskFlow: 'Mix',
+        taskFlow: '',
+      } as JournalFolderSettings)
+      expect(result.taskFlows.Mix.rendering).toBe('theme')
+      // Per-status rendering field is stripped during lift.
+      expect(
+        (result.taskFlows.Mix.statuses[0] as { rendering?: string }).rendering
+      ).toBeUndefined()
+    })
+
+    it('defaults rendering to "plugin" when no legacy value exists', () => {
+      const result = migrateTaskSettings({
+        ...DEFAULT_SETTINGS,
+        taskFlows: {
+          Custom: [
+            {
+              id: 'open',
+              label: 'Open',
+              char: ' ',
+              isDone: false,
+              next: 'open',
+              shell: { shape: 'circle' as const },
+              icon: { source: { kind: 'none' as const } },
+            },
+          ],
+        } as unknown as JournalFolderSettings['taskFlows'],
+        defaultTaskFlow: 'Custom',
+        taskFlow: '',
+      } as JournalFolderSettings)
+      expect(result.taskFlows.Custom.rendering).toBe('plugin')
+    })
   })
 
   it('guarantees a taskFlow field exists', () => {

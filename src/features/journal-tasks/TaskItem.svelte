@@ -33,7 +33,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   const statusEntry = $derived(model.statuses.find((s) => s.id === task.status))
   const isDone = $derived(model.isDone(task.status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
-  const rendering = $derived(statusEntry?.rendering ?? 'plugin')
+  const rendering = $derived(model.rendering)
 
   function openSourceLine() {
     app.workspace.openLinkText(task.sourceFile.path, '', false)

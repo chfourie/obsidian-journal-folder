@@ -34,8 +34,7 @@ export interface DocumentTasksContext {
   app: App
   // Lazy-resolved so the processor always sees the live model/style
   // even when settings change while a note is open. Rendering choice
-  // is read per-status off the model (each `TaskStatus.rendering`)
-  // — there's no global rendering switch.
+  // sits at flow level (`TaskModel.rendering`) — one mode per flow.
   resolveModel: () => TaskModel
   isEnabled: () => boolean
 }
@@ -83,10 +82,9 @@ export function processDocumentTasks(
     // `[/]`).
     const status = model.statuses.find((s) => s.id === entry.status)
     li.setAttribute('data-task', status?.char ?? ' ')
-    // Per-status rendering choice (theme = leave the native checkbox
+    // Flow-level rendering choice (theme = leave the native checkbox
     // alone, plugin = swap in our custom shell + icon).
-    const rendering = status?.rendering ?? 'plugin'
-    if (rendering === 'theme') {
+    if (model.rendering === 'theme') {
       attachHandlersToNativeCheckbox(li, target, model, context.app)
     } else {
       swapCheckbox(li, target, model, context.app)
@@ -108,19 +106,23 @@ function attachHandlersToNativeCheckbox(
     'input.task-list-item-checkbox'
   )
   if (!input) return
-  if (input.dataset.jfTaskHandled === '1') return
-  input.dataset.jfTaskHandled = '1'
-  input.addEventListener('click', (evt) => {
+  // Assigning to `onclick` / `oncontextmenu` replaces any handler from
+  // a previous render. Using `addEventListener` with an idempotency
+  // marker would leave the *first-render* `target` captured in the
+  // closure — Obsidian's post-processor can re-run with the same input
+  // node after a document edit, in which case the stale `sourceLine`
+  // would write to the wrong row.
+  input.onclick = (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
     // noinspection JSIgnoredPromiseFromCall
     cycleTaskStatus(app, target, model)
-  })
-  input.addEventListener('contextmenu', (evt) => {
+  }
+  input.oncontextmenu = (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
     showStatusMenuAt(evt, target, model, app)
-  })
+  }
 }
 
 function swapCheckbox(
