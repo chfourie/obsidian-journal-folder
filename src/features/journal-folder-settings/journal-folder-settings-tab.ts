@@ -804,19 +804,16 @@ class SettingsFormBuilder {
     return new Setting(this.containerEl)
       .setName('Cycle / render tasks')
       .setDesc(
-        'Off — plugin task interactions are disabled everywhere; the task ' +
-          'panels still display tasks but cycling / context menus are ' +
-          'no-ops. Task lists only — wire the cycle and right-click status ' +
-          'menu in the plugin’s own task panels (sidebar, tasks-only ' +
-          'sidebar, in-note journal-tasks block) and leave document ' +
-          'checkboxes to Obsidian. Everywhere — additionally intercept ' +
-          'every task checkbox in the rendered document (reading view + ' +
-          'live preview); pick this only when no other plugin (e.g. Tasks) ' +
-          'is handling in-document interactions.'
+        'Task lists only — wire the cycle and right-click status menu in ' +
+          'the plugin’s own task panels (sidebar, tasks-only sidebar, ' +
+          'in-note journal-tasks block) and leave document checkboxes to ' +
+          'Obsidian. Everywhere — additionally intercept every task ' +
+          'checkbox in the rendered document (reading view + live ' +
+          'preview); switch back to Task lists only when another plugin ' +
+          '(e.g. Tasks) is handling in-document interactions.'
       )
       .addDropdown((dropdown) => {
         component = dropdown
-        dropdown.addOption('off', 'Off')
         dropdown.addOption('lists', 'Task lists only')
         dropdown.addOption('everywhere', 'Everywhere')
         dropdown.setValue(settings.taskInteractionScope).onChange(onChange)

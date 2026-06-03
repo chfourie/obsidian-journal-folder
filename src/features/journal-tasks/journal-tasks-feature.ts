@@ -359,7 +359,6 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         model,
         checkboxStyle: settings.taskCheckboxStyle,
         rendering: settings.taskCheckboxRendering,
-        interactionsEnabled: settings.taskInteractionScope !== 'off',
         app: this.plugin.app,
         showCompleted: this.showCompleted,
         hiddenCompletedCount: hiddenCount,

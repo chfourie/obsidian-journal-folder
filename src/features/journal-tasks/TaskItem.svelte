@@ -27,18 +27,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     model: TaskModel
     checkboxStyle: 'square' | 'circle'
     rendering: 'plugin' | 'theme'
-    interactionsEnabled: boolean
     app: App
   }
 
-  const {
-    task,
-    model,
-    checkboxStyle,
-    rendering,
-    interactionsEnabled,
-    app,
-  }: Props = $props()
+  const { task, model, checkboxStyle, rendering, app }: Props = $props()
 
   const isDone = $derived(model.isDone(task.status))
   const statusChar = $derived(
@@ -50,14 +42,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 
   function onIconClick(evt: MouseEvent) {
-    if (!interactionsEnabled) return
     evt.stopPropagation()
     // noinspection JSIgnoredPromiseFromCall
     cycleTaskStatus(app, task, model)
   }
 
   function onIconContextMenu(evt: MouseEvent) {
-    if (!interactionsEnabled) return
     const menu = new Menu()
     for (const status of model.statuses) {
       menu.addItem((item) => {

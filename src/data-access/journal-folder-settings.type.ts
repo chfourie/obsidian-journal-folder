@@ -135,20 +135,14 @@ export type JournalFolderSettings = {
   taskCheckboxStyle: TaskCheckboxStyle
   // Scope of the plugin's task interactions (left-click cycle,
   // right-click status menu, custom status icon):
-  //   `'off'`         — disabled everywhere. Plugin task lists still
-  //                     display tasks but cycling / menu handlers are
-  //                     no-ops, leaving Obsidian or other plugins
-  //                     (e.g. Tasks) fully in charge.
   //   `'lists'`       — interactions are wired in the plugin's own
   //                     task lists only (the sidebar panel, the
   //                     tasks-only sidebar, the in-note `journal-
   //                     tasks` block). Document-body checkboxes are
-  //                     left to Obsidian. **Default.**
-  //   `'everywhere'`  — also intercept every task checkbox in the
-  //                     rendered document (reading view + live
-  //                     preview). Pick this when you want the same
-  //                     model-aware cycle / menu inline as you have
-  //                     in the task panels.
+  //                     left to Obsidian.
+  //   `'everywhere'`  — additionally intercept every task checkbox
+  //                     in the rendered document (reading view +
+  //                     live preview). **Default.**
   // **Global only** — interception happens at process-wide layers
   // (markdown post-processor, editor extension, settings tab).
   taskInteractionScope: TaskInteractionScope
@@ -162,11 +156,10 @@ export type JournalFolderSettings = {
   //     the plugin still owns left-click cycle + right-click menu
   //     against the unmodified checkbox.
   // **Global only** — purely cosmetic and process-wide. Has no
-  // effect when `taskInteractionScope` is `'off'`.
   taskCheckboxRendering: TaskCheckboxRendering
 }
 
-export type TaskInteractionScope = 'off' | 'lists' | 'everywhere'
+export type TaskInteractionScope = 'lists' | 'everywhere'
 export type TaskCheckboxRendering = 'plugin' | 'theme'
 
 export type TasksSidebarReference = 'today' | 'dynamic'
@@ -225,6 +218,6 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksMaxItems: 200,
   taskModel: 'simple',
   taskCheckboxStyle: 'square',
-  taskInteractionScope: 'lists',
+  taskInteractionScope: 'everywhere',
   taskCheckboxRendering: 'plugin',
 }

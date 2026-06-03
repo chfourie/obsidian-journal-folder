@@ -513,7 +513,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         model={taskModel}
         checkboxStyle={settings.taskCheckboxStyle}
         rendering={settings.taskCheckboxRendering}
-        interactionsEnabled={settings.taskInteractionScope !== 'off'}
         app={obsidianApp}
         showCompleted={settings.tasksShowCompleted}
         hiddenCompletedCount={hiddenCompletedCount}
