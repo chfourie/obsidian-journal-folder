@@ -1039,12 +1039,19 @@ li.task-list-item[data-task="-"] {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 1.25em;
-	height: 1.25em;
+	/* Sizing falls back to 1em when the theme doesn't expose
+	 * `--checkbox-size`. Spacing falls back to a font-relative
+	 * value when `--list-marker-gap` isn't defined. Both prefer
+	 * the theme's own variables when present so the icon stays
+	 * visually in line with whatever the theme renders native
+	 * checkboxes at. */
+	width: var(--checkbox-size, 1em);
+	height: var(--checkbox-size, 1em);
 	flex: 0 0 auto;
 	cursor: pointer;
 	box-sizing: border-box;
 	vertical-align: middle;
+	margin-right: var(--list-marker-gap, 0.4em);
 	user-select: none;
 	transition: transform 0.05s ease-out;
 }
@@ -1078,4 +1085,49 @@ li.task-list-item[data-task="-"] {
 	 * red). 2.25 lands closer to the weight of theme-rendered task
 	 * checkboxes from Things / Minimal / AnuPpuccin. */
 	stroke-width: 2.25;
+}
+
+/* Reading view — when our renderer has swapped the native checkbox
+ * for a `.jf-task-status` icon, promote the task `<li>` to a grid
+ * layout. Icon + text become grid cells centred along the column
+ * axis — alignment is computed from each cell's actual rendered
+ * geometry rather than a hand-picked vertical-align offset, so it
+ * stays correct at any font size, line height, or theme.
+ *
+ * Sub-lists (`<ul>` / `<ol>`) span both columns so they break to
+ * a fresh row and keep their normal block-level layout — the grid
+ * doesn't accidentally inline nested tasks next to their parent.
+ *
+ * `:has()` ships in every Chromium version Obsidian's Electron
+ * runtime ever bundled, so no fallback needed. */
+li.task-list-item:has(> .jf-task-status) {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	column-gap: var(--list-marker-gap, 0.5em);
+}
+
+li.task-list-item:has(> .jf-task-status) > ul,
+li.task-list-item:has(> .jf-task-status) > ol {
+	grid-column: 1 / -1;
+}
+
+/* Inline margin / vertical-align on the icon are moot once the row
+ * is a grid — neutralise them so the gap is purely the column-gap. */
+li.task-list-item:has(> .jf-task-status) > .jf-task-status {
+	margin-right: 0;
+	vertical-align: baseline;
+}
+
+/* Panel rows already establish their own flex layout — the icon
+ * sits as a flex child and the row's `align-items: center` does
+ * the vertical work. Override the document-body defaults to a
+ * touch larger than text (the panel is custom UI, not bound by
+ * inline-text typography rules) and clear the inline margin so
+ * the row's `gap` controls spacing. */
+.journal-folder-tasks-row .jf-task-status {
+	width: 1.2em;
+	height: 1.2em;
+	margin-right: 0;
+	vertical-align: middle;
 }
