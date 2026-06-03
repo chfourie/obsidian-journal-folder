@@ -1131,3 +1131,628 @@ li.task-list-item:has(> .jf-task-status) > .jf-task-status {
 	margin-right: 0;
 	vertical-align: middle;
 }
+
+/* ============================================================
+ * Task template editor — status list with drag-reorder.
+ * ============================================================ */
+
+.jf-status-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	margin-top: 0.5em;
+}
+
+.jf-status-row {
+	display: grid;
+	grid-template-columns: auto auto 1fr auto auto;
+	align-items: center;
+	column-gap: 0.75em;
+	padding: 0.4em 0.6em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	cursor: grab;
+}
+
+.jf-status-row.is-dragging {
+	opacity: 0.5;
+	cursor: grabbing;
+}
+
+.jf-status-row.is-drop-target {
+	border-color: var(--interactive-accent);
+}
+
+.jf-status-handle {
+	display: inline-flex;
+	color: var(--text-faint);
+}
+
+.jf-status-char {
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+}
+
+.jf-status-label {
+	font-weight: 500;
+}
+
+.jf-status-flow {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.jf-status-actions {
+	display: inline-flex;
+	gap: 0.4em;
+}
+
+.jf-status-action {
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------
+ * Status edit modal — wider than default so the sections breathe.
+ * ------------------------------------------------------------ */
+
+.jf-status-edit-modal {
+	/* Lock the modal dimensions so switching sections never resizes
+	 * the dialog. Width is a fixed proportion of the viewport with
+	 * a sensible cap; height matches via min(). */
+	width: min(760px, 90vw);
+	max-width: min(760px, 90vw);
+	height: min(640px, 85vh);
+	max-height: min(640px, 85vh);
+}
+
+.jf-status-edit-modal .jf-status-edit-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	/* Fill the modal exactly — no shrink-to-content. The split's
+	 * right pane is the only thing that scrolls. */
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Inline status detail (Tasks tab → flow → status) — the Obsidian
+ * settings dialog supplies the outer scroll, so we just stack the
+ * preview + split as a normal block. The split caps its own height
+ * so the right-pane scroll kicks in for long sections rather than
+ * pushing the breadcrumb off-screen. */
+.jf-status-edit-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	margin-top: 0.4em;
+}
+
+.jf-status-edit-content .jf-status-edit-split {
+	min-height: 360px;
+	max-height: min(560px, 70vh);
+}
+
+.jf-status-edit-subsection {
+	display: contents;
+}
+
+.jf-status-edit-split {
+	display: grid;
+	grid-template-columns: 180px 1fr;
+	flex: 1;
+	min-height: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.jf-status-edit-nav {
+	display: flex;
+	flex-direction: column;
+	background: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	overflow-y: auto;
+	padding: 0.4em 0;
+}
+
+.jf-status-edit-nav-item {
+	background: transparent;
+	border: 0;
+	border-left: 2px solid transparent;
+	padding: 0.5em 0.9em;
+	text-align: left;
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 0.95em;
+}
+
+.jf-status-edit-nav-item:hover:not(.is-disabled) {
+	background: var(--background-modifier-hover);
+}
+
+.jf-status-edit-nav-item.is-active {
+	background: var(--background-modifier-hover);
+	border-left-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.jf-status-edit-nav-item.is-disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.jf-status-edit-panel {
+	overflow-y: auto;
+	padding: 0.5em 1em 1em;
+}
+
+.jf-status-edit-panel-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	margin: 1em 0;
+}
+
+.jf-status-edit-actions {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 0.75em;
+}
+
+/* ------------------------------------------------------------
+ * Three-tab colour picker.
+ * ------------------------------------------------------------ */
+
+.jf-color-picker {
+	margin: 0.75em 0;
+	padding: 0.6em 0.75em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.jf-color-picker-header {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0.4em;
+}
+
+.jf-color-picker-label {
+	font-weight: 600;
+}
+
+.jf-color-picker-desc {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.jf-color-picker-current {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.jf-color-picker-current-label {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	flex: 1;
+}
+
+.jf-color-swatch {
+	display: inline-block;
+	width: 1.2em;
+	height: 1.2em;
+	border-radius: 4px;
+}
+
+.jf-color-picker-clear {
+	cursor: pointer;
+	font-size: 0.85em;
+}
+
+.jf-color-picker-tabs {
+	display: flex;
+	gap: 0.25em;
+	margin-bottom: 0.4em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.jf-color-picker-tab {
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: 0.3em 0.6em;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.jf-color-picker-tab.is-active {
+	color: var(--text-normal);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.jf-color-token-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 0.4em;
+}
+
+.jf-color-token {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 0.3em 0.5em;
+	cursor: pointer;
+}
+
+.jf-color-token:hover {
+	border-color: var(--interactive-accent);
+}
+
+.jf-color-token-label {
+	font-size: 0.85em;
+}
+
+.jf-color-custom {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.jf-color-custom-text {
+	flex: 1;
+}
+
+/* ------------------------------------------------------------
+ * Status edit modal — live preview + tighter compact pickers.
+ * ------------------------------------------------------------ */
+
+.jf-status-edit-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3em;
+	margin: 0.5em 0 0.75em;
+	padding: 0.6em 0.75em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+}
+
+.jf-status-edit-preview-caption {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.jf-status-edit-preview-row {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	font-size: 1.05em;
+}
+
+.jf-status-edit-preview-row .jf-task-status {
+	width: 1.4em;
+	height: 1.4em;
+}
+
+.jf-status-edit-preview-text {
+	color: var(--text-normal);
+}
+
+/* Compact colour picker — no outer frame so it can nest inside
+ * a Setting row without doubling the visual frame. */
+.jf-color-picker.is-compact {
+	margin: 0.3em 0;
+	padding: 0;
+	border: 0;
+}
+
+/* Highlight the currently-selected colour-token cell. */
+.jf-color-token.is-active {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--interactive-accent) inset;
+}
+
+/* ------------------------------------------------------------
+ * Lucide + emoji icon pickers.
+ * ------------------------------------------------------------ */
+
+.jf-icon-picker {
+	margin: 0.4em 0;
+}
+
+.jf-icon-search {
+	width: 100%;
+	margin-bottom: 0.5em;
+}
+
+.jf-icon-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+	gap: 0.35em;
+	margin-bottom: 0.4em;
+	/* A page's worth of cells. Fixed minimum height so the pager
+	 * stays anchored when the last page is short. */
+	min-height: 280px;
+	align-content: start;
+}
+
+.jf-icon-footer {
+	color: var(--text-muted);
+	font-size: 0.8em;
+	margin-bottom: 0.5em;
+}
+
+.jf-icon-pager {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	margin-bottom: 0.4em;
+	flex-wrap: wrap;
+}
+
+.jf-icon-pager-btn {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 0.15em 0.55em;
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 0.95em;
+	line-height: 1.2;
+}
+
+.jf-icon-pager-btn:hover:not(:disabled) {
+	border-color: var(--interactive-accent);
+}
+
+.jf-icon-pager-btn:disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.jf-icon-pager-label {
+	flex: 1;
+	color: var(--text-muted);
+	font-size: 0.8em;
+	text-align: center;
+}
+
+.jf-icon-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.25em;
+	padding: 0.45em 0.2em;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.jf-icon-cell:hover {
+	border-color: var(--interactive-accent);
+}
+
+.jf-icon-cell.is-active {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--interactive-accent) inset;
+}
+
+.jf-icon-cell-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4em;
+	height: 1.4em;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
+
+.jf-icon-cell-emoji .jf-icon-cell-glyph {
+	font-size: 1.3em;
+}
+
+.jf-icon-cell-label {
+	font-size: 0.7em;
+	color: var(--text-muted);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jf-icon-cell-emoji .jf-icon-cell-label {
+	display: none;
+}
+
+.jf-icon-custom {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.jf-icon-custom-label {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	min-width: 7em;
+}
+
+.jf-icon-custom-text {
+	flex: 1;
+}
+
+/* ------------------------------------------------------------
+ * Settings tab strip — splits the plugin settings (and the per-
+ * folder modal) into themed tabs at the top of the form.
+ * ------------------------------------------------------------ */
+
+.jf-settings-tabbed {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+}
+
+/* Pill-style buttons rather than transparent underlined text — the
+ * underline-only style disappears inside Obsidian's `.mod-settings`
+ * modals where the theme paints native `<button>` chrome that we'd
+ * have to fight on every level. A solid pill reads clearly against
+ * any theme background. */
+.jf-settings-tabbed .jf-settings-tab-strip {
+	display: flex !important;
+	flex-wrap: wrap;
+	gap: 0.35em;
+	padding: 0.4em 0;
+	margin-bottom: 0.75em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab {
+	display: inline-flex !important;
+	align-items: center;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	padding: 0.3em 0.85em;
+	font-size: 0.9em;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: none;
+	white-space: nowrap;
+	height: auto;
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.jf-settings-tabbed .jf-settings-tab-panel {
+	display: block;
+}
+
+/* ------------------------------------------------------------
+ * Breadcrumb — drill-down navigation across Tasks-tab levels.
+ * ------------------------------------------------------------ */
+
+.jf-breadcrumb {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	margin-bottom: 0.6em;
+	padding-bottom: 0.4em;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-wrap: wrap;
+	font-size: 0.95em;
+}
+
+/* Override Obsidian's native `<button>` chrome aggressively — inside
+ * `.mod-settings` the theme paints buttons with a filled chip
+ * background that's wildly out of place for breadcrumb links. */
+.jf-breadcrumb button.jf-breadcrumb-link,
+.jf-breadcrumb span.jf-breadcrumb-link {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	height: auto !important;
+	min-height: 0 !important;
+	color: var(--text-accent);
+	cursor: pointer;
+	font: inherit;
+	line-height: 1.4;
+}
+
+.jf-breadcrumb button.jf-breadcrumb-link:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+	text-decoration: underline;
+}
+
+.jf-breadcrumb-sep {
+	color: var(--text-faint);
+}
+
+.jf-breadcrumb-current {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+ * Flow list cards on the Tasks overview.
+ * ------------------------------------------------------------ */
+
+/* Flow rows on the Tasks overview — a clean list of Obsidian
+ * Setting rows where each row drills into the flow detail. The
+ * extra-button chevron on the right is the explicit affordance;
+ * clicking anywhere on the row also triggers the drill-in. */
+.jf-flow-row {
+	cursor: pointer;
+}
+
+.jf-flow-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.jf-flow-row.is-default .setting-item-name::after {
+	content: 'Default';
+	display: inline-block;
+	margin-left: 0.5em;
+	padding: 0.05em 0.45em;
+	border-radius: 999px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 0.7em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	vertical-align: middle;
+}
+
+/* ------------------------------------------------------------
+ * Preview-feature notice shown at the top of the Tasks tabs
+ * (global + per-folder).
+ * ------------------------------------------------------------ */
+
+.jf-tasks-preview-notice {
+	margin: 0 0 1.25em;
+	padding: 0.75em 1em;
+	border: 1px solid var(--background-modifier-border);
+	border-left: 3px solid var(--text-warning);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	line-height: 1.45;
+}
+
+.jf-tasks-preview-notice-title {
+	margin-bottom: 0.35em;
+	color: var(--text-warning);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-size: 0.8em;
+}
+
+.jf-tasks-preview-notice-body {
+	color: var(--text-muted);
+}
+
+.jf-tasks-preview-notice-body strong {
+	color: var(--text-normal);
+}

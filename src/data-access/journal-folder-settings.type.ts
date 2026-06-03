@@ -123,12 +123,25 @@ export type JournalFolderSettings = {
   // settings". **Global only** — protects render perf in long-range
   // notes; per-folder overrides aren't useful here.
   tasksMaxItems: number
-  // Active task model. `'simple'` recognises `[ ]` / `[x]`; `'bullet-
-  // journal'` adds in-progress, migrated, cancelled. Switching is
-  // non-destructive because both models share the community-conventional
-  // checkbox alphabet. **Global only** — task semantics shouldn't
-  // diverge across folders.
-  taskModel: TaskModelSetting
+  // User-defined task flows. Keyed by display name; each value is the
+  // full status array (label, char, isDone, next, shell, icon, colour)
+  // shared by every folder pointing at this flow. Built-in templates
+  // (Simple, Kanban, Bullet Journal, GTD) are *not* stored here —
+  // they live in code and are applied into a flow to seed it.
+  // **Global only** — the flow dictionary is the source of truth that
+  // folder-level overrides reference by name.
+  taskFlows: Record<string, TaskStatus[]>
+  // Name of the flow used when no per-folder override is set, or when
+  // a folder's override points at a flow that no longer exists.
+  // Must be a key in `taskFlows`. **Global only.**
+  defaultTaskFlow: string
+  // Per-folder override: name of the task flow this folder uses.
+  // Empty string (the global default) means "use defaultTaskFlow".
+  // Resolved via the folder's `journal-folder.md` front matter under
+  // the kebab-cased key `task-flow`. **Folder-honored** — this is
+  // the *only* task-related field a folder may override; changes to
+  // the flow itself are still made globally.
+  taskFlow: string
   // Scope of the plugin's task interactions (left-click cycle,
   // right-click status menu, custom status icon):
   //   `'lists'`       — interactions are wired in the plugin's own
@@ -138,28 +151,25 @@ export type JournalFolderSettings = {
   //                     left to Obsidian.
   //   `'everywhere'`  — additionally intercept every task checkbox
   //                     in the rendered document (reading view +
-  //                     live preview). **Default.**
+  //                     live preview).
+  // **Default:** `'lists'` — keeps document-body checkboxes on
+  // Obsidian's native behaviour so the plugin doesn't silently
+  // change existing vaults on upgrade.
   // **Global only** — interception happens at process-wide layers
   // (markdown post-processor, editor extension, settings tab).
   taskInteractionScope: TaskInteractionScope
-  // Drives how `taskInteractionScope === 'everywhere'` paints
-  // document task checkboxes (and what the task panels render):
-  //   `'plugin'` — replace the native checkbox with our Lucide icon
-  //     (consistent across themes; bullet-journal statuses always
-  //     render correctly).
-  //   `'theme'` — leave Obsidian's native checkbox visible so the
-  //     active theme (Minimal / Things / AnuPpuccin / …) styles it;
-  //     the plugin still owns left-click cycle + right-click menu
-  //     against the unmodified checkbox.
-  // **Global only** — purely cosmetic and process-wide. Has no
-  taskCheckboxRendering: TaskCheckboxRendering
 }
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
-export type TaskCheckboxRendering = 'plugin' | 'theme'
+
+import type { TaskStatus } from './task-model.type'
+import {
+  BUILTIN_TEMPLATES,
+  cloneTemplate,
+  DEFAULT_TEMPLATE_ID,
+} from './task-templates'
 
 export type TasksSidebarReference = 'today' | 'dynamic'
-export type TaskModelSetting = 'simple' | 'bullet-journal'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -211,7 +221,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   tasksSidebarFolders: [],
   tasksShowCompleted: true,
   tasksMaxItems: 200,
-  taskModel: 'simple',
-  taskInteractionScope: 'everywhere',
-  taskCheckboxRendering: 'plugin',
+  taskFlows: { Default: cloneTemplate(BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]) },
+  defaultTaskFlow: 'Default',
+  taskFlow: '',
+  taskInteractionScope: 'lists',
 }

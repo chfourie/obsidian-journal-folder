@@ -30,11 +30,28 @@ import {
   ToggleComponent,
 } from 'obsidian'
 import {
+  BUILTIN_TEMPLATES,
+  BUILTIN_TEMPLATE_LABELS,
+  type BuiltInTemplateId,
+  cloneTemplate,
   DEFAULT_SETTINGS,
+  DEFAULT_TEMPLATE_ID,
+  isBuiltInTemplate,
   type JournalFolderSettings,
   type StartOfWeekSetting,
+  type TaskStatus,
 } from '../../data-access'
 import { DEFAULT_AUTO_TEMPLATE } from '../journal-auto-template'
+import {
+  renderBreadcrumb,
+  renderFolderTaskFlowSection,
+  renderTaskFlowDetail,
+  renderTaskFlowOverview,
+} from './task-flow-editor'
+import {
+  renderStatusDetail,
+  type StatusDetailSection,
+} from './status-detail-editor'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
   'locale-default': 'Locale default',
@@ -122,11 +139,44 @@ export function renderSettingsForm(config: SettingsFormConfig): void {
   new SettingsFormBuilder(config).render()
 }
 
+// Tab identifiers used by the settings form's top tab strip. Order
+// here drives the tab order in the UI.
+type TabId = 'general' | 'templates' | 'patterns' | 'tasks' | 'reset'
+
+type TabDef = {
+  id: TabId
+  label: string
+  isVisible: (isFolder: boolean) => boolean
+  render: (
+    builder: SettingsFormBuilder,
+    settings: JournalFolderSettings,
+    isFolder: boolean
+  ) => void
+}
+
 class SettingsFormBuilder {
+  // Sticky across re-renders within a single open of the settings
+  // tab. The builder is created once by `display()` /
+  // `FolderConfigModal.onOpen` and reused for every internal
+  // re-render fired by structural toggles, so this preserves the
+  // user's tab selection through those redraws.
+  private activeTab: TabId = 'general'
+  // Drill-down state for the Tasks tab. `null` for both → tasks
+  // overview. Flow set, status null → flow detail. Both set →
+  // status detail. The fields persist across structural re-renders
+  // for the same reason `activeTab` does (single builder per open).
+  private editingFlow: string | null = null
+  private editingStatusId: string | null = null
+  private activeStatusSection: StatusDetailSection = 'basics'
+  // The current tab's content host. Section render helpers all call
+  // `this.containerEl`, which resolves to this when a tab is being
+  // drawn so the existing call sites don't need to change.
+  private tabContentEl: HTMLElement | null = null
+
   constructor(private config: SettingsFormConfig) {}
 
   private get containerEl(): HTMLElement {
-    return this.config.containerEl
+    return this.tabContentEl ?? this.config.containerEl
   }
 
   private get plugin(): { app: App } {
@@ -144,10 +194,44 @@ class SettingsFormBuilder {
   }
 
   render(): void {
-    this.containerEl.empty()
+    const root = this.config.containerEl
+    root.empty()
+    root.addClass('jf-settings-tabbed')
+
     const settings = { ...this.getCurrentSettings() }
     const isFolder = this.config.mode === 'folder'
 
+    const visibleTabs = TABS.filter((tab) => tab.isVisible(isFolder))
+    if (!visibleTabs.some((t) => t.id === this.activeTab)) {
+      this.activeTab = visibleTabs[0]?.id ?? 'general'
+    }
+
+    // ---- tab strip ----------------------------------------------
+    const strip = root.createDiv({ cls: 'jf-settings-tab-strip' })
+    for (const tab of visibleTabs) {
+      const btn = strip.createEl('button', {
+        cls: 'jf-settings-tab',
+        text: tab.label,
+      })
+      btn.type = 'button'
+      if (tab.id === this.activeTab) btn.addClass('is-active')
+      btn.onclick = (e) => {
+        e.preventDefault()
+        this.activeTab = tab.id
+        this.render()
+      }
+    }
+
+    // ---- active tab content -------------------------------------
+    this.tabContentEl = root.createDiv({ cls: 'jf-settings-tab-panel' })
+    const tabDef = visibleTabs.find((t) => t.id === this.activeTab)
+    tabDef?.render(this, settings, isFolder)
+    this.tabContentEl = null
+  }
+
+  // ---- per-tab renderers --------------------------------------
+
+  renderGeneralTab(settings: JournalFolderSettings, isFolder: boolean): void {
     new Setting(this.containerEl).setName('General').setHeading()
     this.createUseFolderNameAsDefaultTitleSetting(settings)
     if (!settings.useFolderNameAsDefaultTitle) {
@@ -178,6 +262,20 @@ class SettingsFormBuilder {
       this.createHideJournalFolderNotesSetting(settings)
     }
 
+    new Setting(this.containerEl).setName('Calendar').setHeading()
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleDesktop',
+      'Show calendar by default on desktop'
+    )
+    this.createDefaultCalendarVisibleSetting(
+      settings,
+      'defaultCalendarVisibleMobile',
+      'Show calendar by default on mobile'
+    )
+  }
+
+  renderTemplatesTab(settings: JournalFolderSettings): void {
     new Setting(this.containerEl).setName('New-note template').setHeading()
       .setDesc(
         "When enabled, newly created notes whose names match a journal " +
@@ -241,19 +339,9 @@ class SettingsFormBuilder {
         )
       }
     }
+  }
 
-    new Setting(this.containerEl).setName('Calendar').setHeading()
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleDesktop',
-      'Show calendar by default on desktop'
-    )
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleMobile',
-      'Show calendar by default on mobile'
-    )
-
+  renderPatternsTab(settings: JournalFolderSettings): void {
     this.createPatternsHeading()
 
     new Setting(this.containerEl).setName('Daily notes').setHeading()
@@ -342,46 +430,222 @@ class SettingsFormBuilder {
       'yearlyNoteShortTitlePattern',
       'Short link pattern'
     ).setDesc('Used for compact in-line links to yearly notes.')
+  }
 
-    if (!isFolder) {
-      new Setting(this.containerEl)
-        .setName('Tasks')
-        .setHeading()
-        .setDesc(
-          'Surfaces Markdown tasks from journal notes in the sidebar and via ' +
-            'the journal-tasks code block. The Today / Dynamic and ' +
-            'Show / Hide completed quick toggles live on the sidebar itself ' +
-            '— this section only carries settings that don’t have a sidebar ' +
-            'home.'
-        )
-      this.createTaskModelSetting(settings)
-      this.createTasksMaxItemsSetting(settings)
-      this.createTaskInteractionScopeSetting(settings)
-      this.createTaskCheckboxRenderingSetting(settings)
+  private renderTasksPreviewNotice(): void {
+    const notice = this.containerEl.createDiv({
+      cls: 'jf-tasks-preview-notice',
+    })
+    notice.createDiv({
+      cls: 'jf-tasks-preview-notice-title',
+      text: 'Preview feature',
+    })
+    const body = notice.createDiv({ cls: 'jf-tasks-preview-notice-body' })
+    body.appendText(
+      'Task management is a new capability still in active development ' +
+        'and shipped as a preview. Behaviour, settings keys, and ' +
+        'persisted data shapes may change between releases — your ' +
+        'configured flows and statuses could need to be re-created. ' +
+        'New installs default to '
+    )
+    body.createEl('strong', { text: 'task lists only' })
+    body.appendText(
+      ' so document-body checkboxes stay on Obsidian’s native ' +
+        'behaviour; opt in to ' +
+        'everywhere only if you understand the trade-off.'
+    )
+  }
 
-      new Setting(this.containerEl).setName('Reset').setHeading()
-      new Setting(this.containerEl)
-        .setName('Reset all to default values')
-        .setDesc('Restores every setting on this screen to its default.')
-        .addButton((btn) => {
-          btn
-            .setIcon('reset')
-            .setWarning()
-            .onClick(() => {
-              new ConfirmModal(this.plugin.app, {
-                title: 'Reset all settings?',
-                message:
-                  'Every setting on this screen will be restored to its ' +
-                  'default value. This cannot be undone.',
-                confirmText: 'Reset',
-                onConfirm: () => {
-                  // noinspection JSIgnoredPromiseFromCall
-                  this.saveSettings(DEFAULT_SETTINGS).then(() => this.render())
-                },
-              }).open()
-            })
-        })
+  renderTasksTab(settings: JournalFolderSettings): void {
+    this.renderTasksPreviewNotice()
+    // Guard against stale drill-down references — if the flow / status
+    // the user was viewing was removed in another window, bounce them
+    // up the chain.
+    if (
+      this.editingFlow &&
+      !(this.editingFlow in settings.taskFlows)
+    ) {
+      this.editingFlow = null
+      this.editingStatusId = null
     }
+    if (this.editingFlow && this.editingStatusId !== null) {
+      const flow = settings.taskFlows[this.editingFlow] ?? []
+      if (!flow.some((s) => s.id === this.editingStatusId)) {
+        this.editingStatusId = null
+      }
+    }
+
+    if (this.editingFlow && this.editingStatusId !== null) {
+      this.renderTasksStatusDetail(settings)
+    } else if (this.editingFlow) {
+      this.renderTasksFlowDetail(settings)
+    } else {
+      this.renderTasksOverview(settings)
+    }
+  }
+
+  private renderTasksOverview(settings: JournalFolderSettings): void {
+    new Setting(this.containerEl)
+      .setName('General task settings')
+      .setHeading()
+      .setDesc(
+        'Plugin-wide task behaviour that isn’t bound to a specific ' +
+          'flow. The Today / Dynamic and Show / Hide completed quick ' +
+          'toggles live on the sidebar itself.'
+      )
+    this.createTasksMaxItemsSetting(settings)
+    this.createTaskInteractionScopeSetting(settings)
+
+    new Setting(this.containerEl)
+      .setName('Task flows')
+      .setHeading()
+      .setDesc(
+        'A task flow is a named set of statuses (label, character, ' +
+          'cycle target, and visuals). Folders pick which flow they ' +
+          'use; edits here flow through to every folder pointing at ' +
+          'the same flow. Built-in templates are read-only — apply ' +
+          'one to seed a new flow. Click a flow to drill into its ' +
+          'detail.'
+      )
+    renderTaskFlowOverview({
+      app: this.config.app,
+      containerEl: this.containerEl,
+      getSettings: () => settings,
+      saveSettings: (next) => this.saveSettings(next),
+      rerender: () => this.render(),
+      onOpenFlow: (name) => {
+        this.editingFlow = name
+        this.editingStatusId = null
+        this.activeStatusSection = 'basics'
+        this.render()
+      },
+    })
+  }
+
+  private renderTasksFlowDetail(settings: JournalFolderSettings): void {
+    const flowName = this.editingFlow!
+    renderBreadcrumb(this.containerEl, [
+      {
+        label: 'Tasks',
+        onClick: () => {
+          this.editingFlow = null
+          this.editingStatusId = null
+          this.render()
+        },
+      },
+      { label: flowName },
+    ])
+
+    new Setting(this.containerEl)
+      .setName(`Flow: ${flowName}`)
+      .setHeading()
+
+    renderTaskFlowDetail({
+      app: this.config.app,
+      containerEl: this.containerEl,
+      flowName,
+      getSettings: () => settings,
+      saveSettings: (next) => this.saveSettings(next),
+      rerender: () => this.render(),
+      onOpenStatus: (statusId) => {
+        this.editingStatusId = statusId
+        this.activeStatusSection = 'basics'
+        this.render()
+      },
+      onFlowDeleted: () => {
+        this.editingFlow = null
+        this.editingStatusId = null
+        this.render()
+      },
+      onFlowRenamed: (newName) => {
+        this.editingFlow = newName
+        this.editingStatusId = null
+        this.render()
+      },
+    })
+  }
+
+  private renderTasksStatusDetail(settings: JournalFolderSettings): void {
+    const flowName = this.editingFlow!
+    const statusId = this.editingStatusId!
+    const flow = settings.taskFlows[flowName] ?? []
+    const status = flow.find((s) => s.id === statusId)
+    const statusLabel = status?.label || status?.id || statusId
+
+    renderBreadcrumb(this.containerEl, [
+      {
+        label: 'Tasks',
+        onClick: () => {
+          this.editingFlow = null
+          this.editingStatusId = null
+          this.render()
+        },
+      },
+      {
+        label: flowName,
+        onClick: () => {
+          this.editingStatusId = null
+          this.render()
+        },
+      },
+      { label: statusLabel },
+    ])
+
+    new Setting(this.containerEl)
+      .setName(`Status: ${statusLabel}`)
+      .setHeading()
+
+    renderStatusDetail({
+      containerEl: this.containerEl,
+      settings,
+      flowName,
+      statusId,
+      activeSection: this.activeStatusSection,
+      setActiveSection: (next) => {
+        this.activeStatusSection = next
+      },
+      saveSettings: (next) => this.saveSettings(next),
+      rerender: () => this.render(),
+    })
+  }
+
+  renderFolderTasksTab(settings: JournalFolderSettings): void {
+    this.renderTasksPreviewNotice()
+    new Setting(this.containerEl)
+      .setName('Tasks')
+      .setHeading()
+      .setDesc(
+        "The flow that drives this folder's task icons and cycles. " +
+          'Flow contents are edited globally — pick "Use default" to ' +
+          'inherit whatever the global default flow is at the time ' +
+          'tasks render.'
+      )
+    this.createFolderTaskFlowSection(settings)
+  }
+
+  renderResetTab(): void {
+    new Setting(this.containerEl).setName('Reset').setHeading()
+    new Setting(this.containerEl)
+      .setName('Reset all to default values')
+      .setDesc('Restores every setting in the plugin to its default.')
+      .addButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setWarning()
+          .onClick(() => {
+            new ConfirmModal(this.plugin.app, {
+              title: 'Reset all settings?',
+              message:
+                'Every setting on this screen will be restored to its ' +
+                'default value. This cannot be undone.',
+              confirmText: 'Reset',
+              onConfirm: () => {
+                // noinspection JSIgnoredPromiseFromCall
+                this.saveSettings(DEFAULT_SETTINGS).then(() => this.render())
+              },
+            }).open()
+          })
+      })
   }
 
   createPatternsHeading() {
@@ -724,38 +988,12 @@ class SettingsFormBuilder {
       )
   }
 
-  createTaskModelSetting(settings: JournalFolderSettings): Setting {
-    let component: DropdownComponent
-
-    const onChange = (value: string) => {
-      settings.taskModel = value as JournalFolderSettings['taskModel']
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Task model')
-      .setDesc(
-        'Simple — only [ ] open and [x] done. Bullet Journal — adds ' +
-          '[/] in progress, [>] migrated, [-] cancelled. Switching is ' +
-          'non-destructive: both models share the community-conventional ' +
-          'checkbox alphabet.'
-      )
-      .addDropdown((dropdown) => {
-        component = dropdown
-        dropdown.addOption('simple', 'Simple')
-        dropdown.addOption('bullet-journal', 'Bullet Journal')
-        dropdown.setValue(settings.taskModel).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.taskModel)
-            onChange(DEFAULT_SETTINGS.taskModel)
-          })
-      })
+  createFolderTaskFlowSection(settings: JournalFolderSettings): void {
+    renderFolderTaskFlowSection({
+      containerEl: this.containerEl,
+      getSettings: () => settings,
+      saveSettings: (next) => this.saveSettings(next),
+    })
   }
 
   createTaskInteractionScopeSetting(
@@ -794,45 +1032,6 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.taskInteractionScope)
             onChange(DEFAULT_SETTINGS.taskInteractionScope)
-          })
-      })
-  }
-
-  createTaskCheckboxRenderingSetting(
-    settings: JournalFolderSettings
-  ): Setting {
-    let component: DropdownComponent
-
-    const onChange = (value: string) => {
-      settings.taskCheckboxRendering =
-        value as JournalFolderSettings['taskCheckboxRendering']
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Status icon rendering')
-      .setDesc(
-        'Plugin icons — replace every checkbox with the plugin’s Lucide ' +
-          'icon (consistent across themes; bullet-journal statuses always ' +
-          'render correctly). Theme checkbox — leave Obsidian’s native ' +
-          'checkbox visible so the active theme styles it; the plugin still ' +
-          'owns left-click cycle + right-click menu. No effect when the ' +
-          'document-task toggle above is off.'
-      )
-      .addDropdown((dropdown) => {
-        component = dropdown
-        dropdown.addOption('plugin', 'Plugin icons')
-        dropdown.addOption('theme', 'Theme checkbox')
-        dropdown.setValue(settings.taskCheckboxRendering).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.taskCheckboxRendering)
-            onChange(DEFAULT_SETTINGS.taskCheckboxRendering)
           })
       })
   }
@@ -915,6 +1114,47 @@ class SettingsFormBuilder {
       )
   }
 }
+
+// Tab definitions consumed by `SettingsFormBuilder.render()`. The
+// declared order drives the tab strip's order. `isVisible` reflects
+// the global-vs-folder split — folder mode (the per-folder modal)
+// only shows the tabs whose content makes sense for a single folder.
+const TABS: TabDef[] = [
+  {
+    id: 'general',
+    label: 'General',
+    isVisible: () => true,
+    render: (builder, settings, isFolder) =>
+      builder.renderGeneralTab(settings, isFolder),
+  },
+  {
+    id: 'templates',
+    label: 'New-note template',
+    isVisible: () => true,
+    render: (builder, settings) => builder.renderTemplatesTab(settings),
+  },
+  {
+    id: 'patterns',
+    label: 'Note patterns',
+    isVisible: () => true,
+    render: (builder, settings) => builder.renderPatternsTab(settings),
+  },
+  {
+    id: 'tasks',
+    label: 'Tasks',
+    isVisible: () => true,
+    render: (builder, settings, isFolder) =>
+      isFolder
+        ? builder.renderFolderTasksTab(settings)
+        : builder.renderTasksTab(settings),
+  },
+  {
+    id: 'reset',
+    label: 'Reset',
+    isVisible: (isFolder) => !isFolder,
+    render: (builder) => builder.renderResetTab(),
+  },
+]
 
 interface ConfirmModalOptions {
   title: string
