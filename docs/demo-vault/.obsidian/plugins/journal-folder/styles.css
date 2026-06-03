@@ -877,27 +877,24 @@ body.journal-folder-hide-config-notes
 	font-weight: 600;
 	color: var(--text-muted);
 	letter-spacing: .02em;
-	cursor: pointer;
 	user-select: none;
 	padding-bottom: .15em;
 }
 
-.journal-folder-tasks-group-heading:hover {
-	color: var(--text-accent);
-}
-
 /* Fixed-width caret so the title text doesn't shift left/right by a
  * pixel as the user toggles the group. The character itself swaps
- * between ▾ (expanded) and ▸ (collapsed). */
+ * between ▾ (expanded) and ▸ (collapsed). Caret and title are
+ * independent click targets — caret toggles, title opens the note. */
 .journal-folder-tasks-group-caret {
 	display: inline-block;
 	width: 1em;
 	text-align: center;
 	flex: 0 0 auto;
 	color: var(--text-faint);
+	cursor: pointer;
 }
 
-.journal-folder-tasks-group-heading:hover .journal-folder-tasks-group-caret {
+.journal-folder-tasks-group-caret:hover {
 	color: var(--text-accent);
 }
 
@@ -907,6 +904,11 @@ body.journal-folder-hide-config-notes
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	cursor: pointer;
+}
+
+.journal-folder-tasks-group-title:hover {
+	color: var(--text-accent);
 }
 
 .journal-folder-tasks-group-count {

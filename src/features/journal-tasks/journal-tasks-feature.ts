@@ -355,6 +355,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         hiddenCompletedCount: hiddenCount,
         totalBeforeCap,
         header: 'note',
+        viewKey: `note:${this.host?.path ?? ''}`,
         caption: this.blockConfig.caption,
         onToggleShowCompleted: () => {
           this.showCompleted = !this.showCompleted

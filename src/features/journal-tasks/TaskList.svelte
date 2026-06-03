@@ -16,16 +16,26 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script module lang="ts">
-  import { SvelteSet } from 'svelte/reactivity'
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity'
 
-  // Module-level set so a user's collapse choices survive both
-  // sidebar re-renders (driven by `setTaskPanelSnapshot`) and
-  // in-note block remounts (driven by every vault mutation). Keyed
-  // by source-note path so the same note collapses in lockstep
-  // across both surfaces — usually what the user expects.
-  // `SvelteSet` is the reactive variant from `svelte/reactivity`,
-  // so reading from it inside `$derived` auto-tracks.
-  const collapsedNotePaths = new SvelteSet<string>()
+  // Module-level map of per-view collapsed sets, so:
+  //   • collapse choices survive sidebar re-renders (`setTaskPanelSnapshot`)
+  //     and in-note block remounts (every vault mutation), and
+  //   • each view tracks its own state — collapsing a group in the
+  //     sidebar does not collapse the same group in an in-note block,
+  //     and vice versa.
+  // Keyed by a caller-supplied `viewKey`. The sidebar passes
+  // `'sidebar'`; the in-note feature passes `'note:' + sourcePath`.
+  const collapsedByView = new SvelteMap<string, SvelteSet<string>>()
+
+  function getCollapsedSet(viewKey: string): SvelteSet<string> {
+    let set = collapsedByView.get(viewKey)
+    if (!set) {
+      set = new SvelteSet<string>()
+      collapsedByView.set(viewKey, set)
+    }
+    return set
+  }
 </script>
 
 <script lang="ts">
@@ -44,6 +54,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount: number
     totalBeforeCap: number
     header: 'sidebar' | 'note'
+    viewKey: string
     caption?: string
     referenceMode?: 'today' | 'dynamic'
     onToggleReference?: () => void
@@ -62,6 +73,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount,
     totalBeforeCap,
     header,
+    viewKey,
     caption,
     referenceMode,
     onToggleReference,
@@ -127,24 +139,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     app.workspace.openLinkText(path, '', false)
   }
 
+  const collapsedSet = $derived(getCollapsedSet(viewKey))
+
   function isCollapsed(path: string): boolean {
-    return collapsedNotePaths.has(path)
+    return collapsedSet.has(path)
   }
 
   function toggleCollapsed(path: string) {
-    if (collapsedNotePaths.has(path)) collapsedNotePaths.delete(path)
-    else collapsedNotePaths.add(path)
-  }
-
-  // Plain click on a heading toggles the group; cmd/ctrl-click jumps
-  // to the source note instead (a fast way out when every task in
-  // the group is already collapsed).
-  function onHeadingClick(path: string, evt: MouseEvent) {
-    if (evt.metaKey || evt.ctrlKey) {
-      openGroupNote(path)
-    } else {
-      toggleCollapsed(path)
-    }
+    if (collapsedSet.has(path)) collapsedSet.delete(path)
+    else collapsedSet.add(path)
   }
 </script>
 
@@ -207,27 +210,27 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         class="journal-folder-tasks-group"
         class:is-collapsed={collapsed}
       >
-        <div
-          class="journal-folder-tasks-group-heading"
-          role="button"
-          tabindex="0"
-          aria-expanded={!collapsed}
-          title={`Click to collapse / expand. ${
-            navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
-          }-click to open the note.`}
-          onclick={(e) => onHeadingClick(group.path, e)}
-          onkeydown={activate(() => toggleCollapsed(group.path))}
-        >
+        <div class="journal-folder-tasks-group-heading">
           <span
             class="journal-folder-tasks-group-caret"
-            aria-hidden="true"
+            role="button"
+            tabindex="0"
+            aria-label={collapsed ? 'Expand group' : 'Collapse group'}
+            aria-expanded={!collapsed}
+            onclick={() => toggleCollapsed(group.path)}
+            onkeydown={activate(() => toggleCollapsed(group.path))}
           >{collapsed ? '▸' : '▾'}</span>
-          <span class="journal-folder-tasks-group-title">{group.title}</span>
-          {#if collapsed}
-            <span class="journal-folder-tasks-group-count">
-              ({group.tasks.length})
-            </span>
-          {/if}
+          <span
+            class="journal-folder-tasks-group-title"
+            role="button"
+            tabindex="0"
+            title="Open this note"
+            onclick={() => openGroupNote(group.path)}
+            onkeydown={activate(() => openGroupNote(group.path))}
+          >{group.title}</span>
+          <span class="journal-folder-tasks-group-count">
+            ({group.tasks.length})
+          </span>
         </div>
         {#if !collapsed}
           <div

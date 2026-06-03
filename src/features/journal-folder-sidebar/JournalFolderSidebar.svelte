@@ -494,6 +494,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         hiddenCompletedCount={hiddenCompletedCount}
         totalBeforeCap={taskPanel.totalBeforeCap}
         header="sidebar"
+        viewKey="sidebar"
         referenceMode={settings.tasksSidebarReference}
         onToggleReference={toggleTasksReference}
         onToggleShowCompleted={toggleTasksShowCompleted}
