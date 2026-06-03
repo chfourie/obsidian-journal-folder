@@ -36,6 +36,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   import SidebarCalendar from './SidebarCalendar.svelte'
   import TaskList from '../journal-tasks/TaskList.svelte'
   import { resolveTaskModel } from '../journal-tasks'
+  import { SvelteSet } from 'svelte/reactivity'
   import { todayDailyBasename } from './sidebar-anchor'
   import {
     anchorMonth,
@@ -113,6 +114,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   // svelte-ignore state_referenced_locally
   let taskPanel = $state<TaskPanelSnapshot>(initialTaskPanel)
+
+  // Per-sidebar-instance collapsed-paths set. Owned here so the
+  // sidebar's collapse state is independent of every other TaskList
+  // surface (in-note blocks, other sidebar leaves) and survives
+  // task-panel snapshot updates.
+  const sidebarCollapsedPaths = new SvelteSet<string>()
 
   // svelte-ignore state_referenced_locally
   registerApi({
@@ -494,7 +501,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         hiddenCompletedCount={hiddenCompletedCount}
         totalBeforeCap={taskPanel.totalBeforeCap}
         header="sidebar"
-        viewKey="sidebar"
+        collapsedNotePaths={sidebarCollapsedPaths}
         referenceMode={settings.tasksSidebarReference}
         onToggleReference={toggleTasksReference}
         onToggleShowCompleted={toggleTasksShowCompleted}

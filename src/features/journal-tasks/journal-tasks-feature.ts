@@ -23,6 +23,7 @@ import {
   TFile,
 } from 'obsidian'
 import { mount, unmount } from 'svelte'
+import { SvelteSet } from 'svelte/reactivity'
 import {
   isJournalFileBasename,
   type JournalFolderSettings,
@@ -223,6 +224,11 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
   private showCompleted: boolean
   private renderScheduled = false
   private readonly blockFolders: string[]
+  // Per-block collapsed-paths set. Owned on the render-child instance
+  // so it survives the unmount/remount cycle the child runs on every
+  // vault mutation, and so every `journal-tasks` block on a page has
+  // its own independent state.
+  private readonly collapsedNotePaths = new SvelteSet<string>()
 
   constructor(
     containerEl: HTMLElement,
@@ -355,7 +361,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         hiddenCompletedCount: hiddenCount,
         totalBeforeCap,
         header: 'note',
-        viewKey: `note:${this.host?.path ?? ''}`,
+        collapsedNotePaths: this.collapsedNotePaths,
         caption: this.blockConfig.caption,
         onToggleShowCompleted: () => {
           this.showCompleted = !this.showCompleted

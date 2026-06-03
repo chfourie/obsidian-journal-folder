@@ -15,31 +15,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
-<script module lang="ts">
-  import { SvelteMap, SvelteSet } from 'svelte/reactivity'
-
-  // Module-level map of per-view collapsed sets, so:
-  //   • collapse choices survive sidebar re-renders (`setTaskPanelSnapshot`)
-  //     and in-note block remounts (every vault mutation), and
-  //   • each view tracks its own state — collapsing a group in the
-  //     sidebar does not collapse the same group in an in-note block,
-  //     and vice versa.
-  // Keyed by a caller-supplied `viewKey`. The sidebar passes
-  // `'sidebar'`; the in-note feature passes `'note:' + sourcePath`.
-  const collapsedByView = new SvelteMap<string, SvelteSet<string>>()
-
-  function getCollapsedSet(viewKey: string): SvelteSet<string> {
-    let set = collapsedByView.get(viewKey)
-    if (!set) {
-      set = new SvelteSet<string>()
-      collapsedByView.set(viewKey, set)
-    }
-    return set
-  }
-</script>
-
 <script lang="ts">
   import type { App } from 'obsidian'
+  import type { SvelteSet } from 'svelte/reactivity'
   import type { JournalTask } from '../../data-access'
   import type { TaskModel } from './task-models'
   import TaskItem from './TaskItem.svelte'
@@ -54,7 +32,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount: number
     totalBeforeCap: number
     header: 'sidebar' | 'note'
-    viewKey: string
+    // Per-instance reactive set the caller owns. Each TaskList caller
+    // (the sidebar, every in-note `journal-tasks` block) constructs
+    // its own `new SvelteSet<string>()` so collapse state lives only
+    // inside that instance — no two TaskList views share state.
+    // The set persists across the caller's own remounts (sidebar
+    // snapshot updates, in-note block remounts on vault changes)
+    // because the caller keeps the same reference around.
+    collapsedNotePaths: SvelteSet<string>
     caption?: string
     referenceMode?: 'today' | 'dynamic'
     onToggleReference?: () => void
@@ -73,7 +58,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     hiddenCompletedCount,
     totalBeforeCap,
     header,
-    viewKey,
+    collapsedNotePaths,
     caption,
     referenceMode,
     onToggleReference,
@@ -139,15 +124,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     app.workspace.openLinkText(path, '', false)
   }
 
-  const collapsedSet = $derived(getCollapsedSet(viewKey))
-
   function isCollapsed(path: string): boolean {
-    return collapsedSet.has(path)
+    return collapsedNotePaths.has(path)
   }
 
   function toggleCollapsed(path: string) {
-    if (collapsedSet.has(path)) collapsedSet.delete(path)
-    else collapsedSet.add(path)
+    if (collapsedNotePaths.has(path)) collapsedNotePaths.delete(path)
+    else collapsedNotePaths.add(path)
   }
 </script>
 
