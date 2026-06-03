@@ -31,13 +31,7 @@ Four **built-in templates** ship as read-only starting points — apply one to s
 
 Flows live globally on the plugin settings — they're defined in *Settings → Community plugins → Journal Folder → Tasks*. Each folder picks **which** flow it uses (via the per-folder *Tasks* tab in the *Edit folder configuration* modal); edits to a flow's statuses propagate to every folder pointing at the same flow.
 
-![Tasks tab — overview with flow list](../screenshots/settings-tasks-overview.png)
-
-Drilling into a flow opens an editor with apply-template / save-as / delete actions and the status list. Each status can be drilled into further for per-status appearance.
-
-![Flow detail — status list](../screenshots/settings-tasks-flow-detail.png)
-
-![Status detail — basics + icon + shell](../screenshots/settings-tasks-status-detail.png)
+Drilling into a flow opens an editor with apply-template / save-as / delete actions and the status list. Each status can be drilled into further for per-status appearance (label, character, cycle target, rendering choice, plus per-status shell / icon / colour pickers).
 
 ## Sidebar task panel
 
