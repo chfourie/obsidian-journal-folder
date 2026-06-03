@@ -38,6 +38,7 @@ function task(file: TFile, line: number, status: string): JournalTask {
     noteUnit: 'day',
     noteRangeDays: 1,
     noteTitleShort: '',
+    noteTitle: '',
     folderPath: 'Journal',
   }
 }

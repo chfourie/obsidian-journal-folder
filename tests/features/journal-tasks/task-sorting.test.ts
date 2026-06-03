@@ -13,6 +13,7 @@ function task(overrides: Partial<JournalTask>): JournalTask {
     noteUnit: 'day',
     noteRangeDays: 1,
     noteTitleShort: '',
+    noteTitle: '',
     folderPath: '',
     ...overrides,
   }

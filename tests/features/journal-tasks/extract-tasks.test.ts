@@ -60,5 +60,6 @@ describe('extractTasks', () => {
     expect(task.noteUnit).toBe('day')
     expect(task.noteRangeDays).toBe(1)
     expect(task.noteTitleShort).not.toBe('')
+    expect(task.noteTitle).not.toBe('')
   })
 })

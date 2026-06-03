@@ -82,6 +82,37 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       }
     }
   }
+
+  // Group consecutive tasks that share a source note. The upstream
+  // sort already places same-file tasks adjacent (tier → folder →
+  // line), so a single linear pass is all we need. Heading text is
+  // the parsed note's `getTitle()` (e.g. `Wednesday, 03 June 2026`),
+  // which is more readable than the short chip used to be.
+  type TaskGroup = {
+    path: string
+    title: string
+    tasks: JournalTask[]
+  }
+  const groups = $derived.by(() => {
+    const out: TaskGroup[] = []
+    for (const task of tasks) {
+      const last = out[out.length - 1]
+      if (last && last.path === task.sourceFile.path) {
+        last.tasks.push(task)
+      } else {
+        out.push({
+          path: task.sourceFile.path,
+          title: task.noteTitle,
+          tasks: [task],
+        })
+      }
+    }
+    return out
+  })
+
+  function openGroupNote(path: string) {
+    app.workspace.openLinkText(path, '', false)
+  }
 </script>
 
 <div class="journal-folder-tasks">
@@ -137,20 +168,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   {#if tasks.length === 0}
     <p class="journal-folder-tasks-empty">No tasks in range.</p>
   {:else}
-    <div
-      class="journal-folder-tasks-list"
-      class:contains-task-list={rendering === 'theme'}
-    >
-      {#each tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
-        <TaskItem
-          task={task}
-          model={model}
-          checkboxStyle={checkboxStyle}
-          rendering={rendering}
-          app={app}
-        />
-      {/each}
-    </div>
+    {#each groups as group (group.path)}
+      <div class="journal-folder-tasks-group">
+        <div
+          class="journal-folder-tasks-group-heading"
+          role="button"
+          tabindex="0"
+          onclick={() => openGroupNote(group.path)}
+          onkeydown={activate(() => openGroupNote(group.path))}
+        >
+          {group.title}
+        </div>
+        <div
+          class="journal-folder-tasks-list"
+          class:contains-task-list={rendering === 'theme'}
+        >
+          {#each group.tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
+            <TaskItem
+              task={task}
+              model={model}
+              checkboxStyle={checkboxStyle}
+              rendering={rendering}
+              app={app}
+            />
+          {/each}
+        </div>
+      </div>
+    {/each}
   {/if}
 
   {#if truncated}

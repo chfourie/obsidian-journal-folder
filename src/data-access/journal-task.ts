@@ -42,5 +42,11 @@ export interface JournalTask {
   // Short title used in the muted chip beside the task (e.g. `2026-06-03`
   // for a daily note, `W23` for a weekly note).
   noteTitleShort: string
+  // Full title rendered via the active tier's `titlePattern` (e.g.
+  // `Wednesday, 03 June 2026` for a daily note). Used as the
+  // sub-heading text in the grouped task list view — there's
+  // enough horizontal room above a stack of tasks to spell the
+  // date out properly.
+  noteTitle: string
   folderPath: string
 }

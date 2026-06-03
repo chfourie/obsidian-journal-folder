@@ -54,6 +54,7 @@ export function extractTasks(
   const noteUnit = journalNote.getTimeUnit()
   const noteRangeDays = DAYS_PER_UNIT[noteUnit]
   const noteTitleShort = journalNote.link('short').title
+  const noteTitle = journalNote.getTitle()
   const folderPath = file.parent?.path ?? ''
   const tasks: JournalTask[] = []
   for (let i = 0; i < lines.length; i++) {
@@ -68,6 +69,7 @@ export function extractTasks(
       noteUnit,
       noteRangeDays,
       noteTitleShort,
+      noteTitle,
       folderPath,
     })
   }

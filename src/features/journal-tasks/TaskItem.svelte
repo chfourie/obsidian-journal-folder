@@ -96,18 +96,4 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   >
     {task.displayText}
   </span>
-  <span
-    class="journal-folder-tasks-chip"
-    role="button"
-    tabindex="0"
-    onclick={openSourceLine}
-    onkeydown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        openSourceLine()
-      }
-    }}
-  >
-    {task.noteTitleShort}
-  </span>
 </div>
