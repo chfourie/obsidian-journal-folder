@@ -166,9 +166,6 @@ export class JournalTasksFeature extends PluginFeature {
       ctx.sourcePath
     )
     const host = hostFile instanceof TFile ? hostFile : null
-    const isJournalHost =
-      !!host &&
-      isJournalFileBasename(host.basename, !!settings.quartersEnabled)
 
     const folders = blockConfig.folders ?? (host ? [host.parent?.path ?? ''] : [])
     if (folders.length === 0) {
@@ -181,87 +178,23 @@ export class JournalTasksFeature extends PluginFeature {
       return
     }
 
-    const units = blockConfig.units ?? effectiveUnits(settings)
-    const factory = journalNoteFactoryWithSettings(settings)
-    let activeNote: JournalNote | null = null
-    if (host && isJournalHost) {
-      try {
-        activeNote = factory(host)
-      } catch {
-        activeNote = null
-      }
-    }
-
-    const referenceRange = buildReferenceRange({
-      host: 'note',
-      referenceMode: 'dynamic',
-      activeNote,
-    })
-
-    const candidates = findTaskCandidates({
-      app: this.plugin.app,
-      folders,
-      units,
-      referenceRange,
-      settings,
-    })
-
-    const model = resolveTaskModel(settings)
-    const allTasks: JournalTask[] = []
-    for (const candidate of candidates) {
-      const tasks = await this.#cache.getTasks(
-        candidate.file,
-        model,
-        candidate.note
+    // Hand the entire lifecycle to a render-child that subscribes
+    // itself to vault mutations and re-renders. Without this the
+    // mounted Svelte component held a stale `tasks` snapshot — when
+    // a task was cycled elsewhere (the document path, the sidebar
+    // panel, the same block), the cached statuses on this view fell
+    // out of sync and the next click tripped the disk-level line-
+    // match guard with the stale-location Notice.
+    ctx.addChild(
+      new TasksBlockRenderChild(
+        el,
+        this.plugin,
+        () => this.globalSettings,
+        () => this.#cache,
+        host,
+        blockConfig
       )
-      for (const task of tasks) allTasks.push(task)
-    }
-
-    const sorted = sortTasks(allTasks)
-    const maxItems = blockConfig.maxItems ?? settings.tasksMaxItems
-    const totalBeforeCap = sorted.length
-    const capped = sorted.slice(0, maxItems)
-
-    const initialShowCompleted =
-      blockConfig.showCompleted ?? settings.tasksShowCompleted
-    let showCompleted = initialShowCompleted
-
-    const render = () => {
-      el.empty()
-      const filtered = showCompleted
-        ? capped
-        : capped.filter((t) => !model.isDone(t.status))
-      const hiddenCount = capped.length - filtered.length
-      const app = this.plugin.app
-      // @ts-ignore — Svelte 5 mount typing.
-      const component = mount(TaskList, {
-        target: el,
-        props: {
-          tasks: filtered,
-          model,
-          checkboxStyle: settings.taskCheckboxStyle,
-          rendering: settings.taskCheckboxRendering,
-          app,
-          showCompleted,
-          hiddenCompletedCount: hiddenCount,
-          totalBeforeCap,
-          header: 'note',
-          caption: blockConfig.caption,
-          onToggleShowCompleted: () => {
-            showCompleted = !showCompleted
-            render()
-          },
-          onOpenSettings: () => {
-            // @ts-ignore — Obsidian's setting API is not in the public types.
-            this.plugin.app.setting?.open?.()
-            // @ts-ignore
-            this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
-          },
-        },
-      })
-      ctx.addChild(new SvelteRenderChild(el, component))
-    }
-    render()
+    )
   }
 
   private mountError(
@@ -275,6 +208,177 @@ export class JournalTasksFeature extends PluginFeature {
       props: { error },
     })
     ctx.addChild(new SvelteRenderChild(el, component))
+  }
+}
+
+// Markdown-render child for a single `journal-tasks` block. Holds the
+// mounted Svelte component, the view-local `showCompleted` toggle
+// state, and the vault-event subscriptions that drive re-renders.
+// `onload` mounts the first instance; vault `modify` / `delete` /
+// `rename` events trigger `scheduleRender`, which rebuilds the task
+// snapshot from the (now-refreshed) cache and remounts. `onunload`
+// drops every subscription and unmounts the component.
+class TasksBlockRenderChild extends MarkdownRenderChild {
+  private component: ReturnType<typeof mount> | null = null
+  private showCompleted: boolean
+  private renderScheduled = false
+  private readonly blockFolders: string[]
+
+  constructor(
+    containerEl: HTMLElement,
+    private readonly plugin: Plugin,
+    private readonly getSettings: () => JournalFolderSettings,
+    private readonly getCache: () => TaskCache,
+    private readonly host: TFile | null,
+    private readonly blockConfig: ReturnType<typeof parseJournalTasksBlock>
+  ) {
+    super(containerEl)
+    const settings = this.getSettings()
+    this.showCompleted =
+      blockConfig.showCompleted ?? settings.tasksShowCompleted
+    this.blockFolders =
+      blockConfig.folders ?? (host ? [host.parent?.path ?? ''] : [])
+  }
+
+  onload(): void {
+    // Vault mutations are how this view learns about a status change
+    // — anywhere. Schedule a re-render rather than rendering inline
+    // so a burst of mutations (rename → modify, multi-file edits)
+    // collapses to one rebuild per animation frame.
+    this.registerEvent(
+      this.plugin.app.vault.on('modify', (file) => {
+        if (this.isInScope(file)) this.scheduleRender()
+      })
+    )
+    this.registerEvent(
+      this.plugin.app.vault.on('delete', (file) => {
+        if (this.isInScope(file)) this.scheduleRender()
+      })
+    )
+    this.registerEvent(
+      this.plugin.app.vault.on('rename', (file) => {
+        if (this.isInScope(file)) this.scheduleRender()
+      })
+    )
+    // noinspection JSIgnoredPromiseFromCall
+    this.render()
+  }
+
+  onunload(): void {
+    this.tearDownComponent()
+  }
+
+  // A file is in scope when it lives directly inside one of the block's
+  // folders. Cheap test so the listener stays inexpensive for vault-
+  // wide modify bursts. Conservative on non-`TFile` events (rename
+  // can fire with a TFolder-typed first arg).
+  private isInScope(file: unknown): boolean {
+    if (!(file instanceof TFile)) return false
+    const parentPath = file.parent?.path ?? ''
+    return this.blockFolders.some(
+      (folder) => folder === parentPath || folder === '/' && parentPath === ''
+    )
+  }
+
+  private scheduleRender(): void {
+    if (this.renderScheduled) return
+    this.renderScheduled = true
+    requestAnimationFrame(() => {
+      this.renderScheduled = false
+      // noinspection JSIgnoredPromiseFromCall
+      this.render()
+    })
+  }
+
+  private async render(): Promise<void> {
+    const settings = this.getSettings()
+    const factory = journalNoteFactoryWithSettings(settings)
+    const isJournalHost =
+      !!this.host &&
+      isJournalFileBasename(this.host.basename, !!settings.quartersEnabled)
+    let activeNote: JournalNote | null = null
+    if (this.host && isJournalHost) {
+      try {
+        activeNote = factory(this.host)
+      } catch {
+        activeNote = null
+      }
+    }
+
+    const referenceRange = buildReferenceRange({
+      host: 'note',
+      referenceMode: 'dynamic',
+      activeNote,
+    })
+
+    const candidates = findTaskCandidates({
+      app: this.plugin.app,
+      folders: this.blockFolders,
+      units: this.blockConfig.units ?? effectiveUnits(settings),
+      referenceRange,
+      settings,
+    })
+
+    const model = resolveTaskModel(settings)
+    const cache = this.getCache()
+    const allTasks: JournalTask[] = []
+    for (const candidate of candidates) {
+      const tasks = await cache.getTasks(
+        candidate.file,
+        model,
+        candidate.note
+      )
+      for (const task of tasks) allTasks.push(task)
+    }
+
+    const sorted = sortTasks(allTasks)
+    const maxItems = this.blockConfig.maxItems ?? settings.tasksMaxItems
+    const totalBeforeCap = sorted.length
+    const capped = sorted.slice(0, maxItems)
+    const filtered = this.showCompleted
+      ? capped
+      : capped.filter((t) => !model.isDone(t.status))
+    const hiddenCount = capped.length - filtered.length
+
+    this.tearDownComponent()
+    this.containerEl.empty()
+    // @ts-ignore — Svelte 5 mount typing.
+    this.component = mount(TaskList, {
+      target: this.containerEl,
+      props: {
+        tasks: filtered,
+        model,
+        checkboxStyle: settings.taskCheckboxStyle,
+        rendering: settings.taskCheckboxRendering,
+        app: this.plugin.app,
+        showCompleted: this.showCompleted,
+        hiddenCompletedCount: hiddenCount,
+        totalBeforeCap,
+        header: 'note',
+        caption: this.blockConfig.caption,
+        onToggleShowCompleted: () => {
+          this.showCompleted = !this.showCompleted
+          // noinspection JSIgnoredPromiseFromCall
+          this.render()
+        },
+        onOpenSettings: () => {
+          // @ts-ignore — Obsidian's setting API is private.
+          this.plugin.app.setting?.open?.()
+          // @ts-ignore
+          this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
+        },
+      },
+    })
+  }
+
+  private tearDownComponent(): void {
+    if (!this.component) return
+    try {
+      unmount(this.component)
+    } catch {
+      // Already torn down.
+    }
+    this.component = null
   }
 }
 
