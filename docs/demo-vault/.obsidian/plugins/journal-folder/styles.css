@@ -705,7 +705,7 @@
  * fades to that opacity and returns to full on hover. */
 .jf-migration-ref {
 	opacity: var(--jf-migration-ref-opacity, 0.3);
-	transition: opacity 120ms ease;
+	transition: opacity 280ms ease-in-out;
 	/* Keep the marker glued to its link so the reference never splits
 	 * across lines — it wraps as a single unit when space runs out. */
 	white-space: nowrap;
