@@ -6,10 +6,19 @@ import {
   buildMigratedLine,
   computeInsertion,
   eligibleMigratedStatuses,
+  formatReference,
   migrateTasks,
   type MigratableTask,
   transformOriginLine,
 } from '../../../src/features/journal-tasks/task-migration'
+
+// Minimal task carrying just the fields the pure helpers read, with a
+// fake origin file whose basename drives the back-reference.
+function fakeTask(rawText: string, status: string, basename = '2026-06-04'): MigratableTask {
+  const file = new TFile()
+  file.basename = basename
+  return { sourceFile: file, sourceLine: 0, rawText, status }
+}
 
 const status = (overrides: Partial<TaskStatus>): TaskStatus => ({
   id: overrides.id ?? 'open',
@@ -41,46 +50,97 @@ describe('eligibleMigratedStatuses', () => {
   })
 })
 
+describe('formatReference', () => {
+  it('prefixes a non-empty marker before the link', () => {
+    expect(formatReference('📤', 'A')).toBe('📤 [[A]]')
+  })
+
+  it('emits the bare link for an empty / whitespace marker', () => {
+    expect(formatReference('', 'A')).toBe('[[A]]')
+    expect(formatReference('   ', 'A')).toBe('[[A]]')
+  })
+})
+
 describe('buildMigratedLine', () => {
   const model = modelWithMigrated()
 
-  it('preserves the origin active status and emits a top-level bullet', () => {
-    const task = { rawText: '   - [/] do the thing', status: 'in-progress' } as MigratableTask
-    expect(buildMigratedLine(task, model)).toBe('- [/] do the thing')
+  it('preserves the origin status and appends a back-reference', () => {
+    const task = fakeTask('   - [/] do the thing', 'in-progress')
+    expect(buildMigratedLine(task, model, '📥')).toBe(
+      '- [/] do the thing 📥 [[2026-06-04]]'
+    )
   })
 
   it('keeps inline links in the body', () => {
-    const task = { rawText: '- [ ] call [[Sam]]', status: 'open' } as MigratableTask
-    expect(buildMigratedLine(task, model)).toBe('- [ ] call [[Sam]]')
+    const task = fakeTask('- [ ] call [[Sam]]', 'open')
+    expect(buildMigratedLine(task, model, '←')).toBe(
+      '- [ ] call [[Sam]] ← [[2026-06-04]]'
+    )
+  })
+
+  it('omits the marker when none is configured (bare back-link)', () => {
+    const task = fakeTask('- [ ] plain', 'open')
+    expect(buildMigratedLine(task, model)).toBe('- [ ] plain [[2026-06-04]]')
   })
 
   it('falls back to the first status when the origin status is unknown', () => {
-    const task = { rawText: '- [ ] orphan', status: 'ghost' } as MigratableTask
-    expect(buildMigratedLine(task, model)).toBe('- [ ] orphan')
+    const task = fakeTask('- [ ] orphan', 'ghost')
+    expect(buildMigratedLine(task, model, '←')).toBe(
+      '- [ ] orphan ← [[2026-06-04]]'
+    )
+  })
+
+  it('omits the back-reference entirely when addReference is false', () => {
+    const task = fakeTask('- [/] do the thing', 'in-progress')
+    expect(buildMigratedLine(task, model, '←', false)).toBe('- [/] do the thing')
   })
 })
 
 describe('transformOriginLine', () => {
   const model = modelWithMigrated()
 
-  it('restamps to the migrated status and appends a forward link', () => {
+  it('restamps to the migrated status and appends a forward link with the marker', () => {
     const out = transformOriginLine(
       '   - [/] do the thing',
       { status: 'in-progress' } as MigratableTask,
       model,
-      '2026-06-05'
+      '2026-06-05',
+      '📤'
     )
-    expect(out).toBe('   - [>] do the thing → [[2026-06-05]]')
+    expect(out).toBe('   - [>] do the thing 📤 [[2026-06-05]]')
   })
 
-  it('does not double-append an existing link to the same note', () => {
+  it('emits a bare link when no marker is configured', () => {
     const out = transformOriginLine(
-      '- [/] do the thing → [[2026-06-05]]',
+      '- [/] x',
       { status: 'in-progress' } as MigratableTask,
       model,
       '2026-06-05'
     )
-    expect(out).toBe('- [>] do the thing → [[2026-06-05]]')
+    expect(out).toBe('- [>] x [[2026-06-05]]')
+  })
+
+  it('restamps only (no link) when addReference is false', () => {
+    const out = transformOriginLine(
+      '- [/] x',
+      { status: 'in-progress' } as MigratableTask,
+      model,
+      '2026-06-05',
+      '📤',
+      false
+    )
+    expect(out).toBe('- [>] x')
+  })
+
+  it('does not double-append an existing link to the same note', () => {
+    const out = transformOriginLine(
+      '- [/] do the thing 📤 [[2026-06-05]]',
+      { status: 'in-progress' } as MigratableTask,
+      model,
+      '2026-06-05',
+      '📤'
+    )
+    expect(out).toBe('- [>] do the thing 📤 [[2026-06-05]]')
   })
 
   it('returns null when the line no longer matches the expected status', () => {
@@ -88,7 +148,8 @@ describe('transformOriginLine', () => {
       '- [x] already done',
       { status: 'in-progress' } as MigratableTask,
       model,
-      '2026-06-05'
+      '2026-06-05',
+      '📤'
     )
     expect(out).toBeNull()
   })
@@ -99,7 +160,8 @@ describe('transformOriginLine', () => {
       '- [/] x',
       { status: 'in-progress' } as MigratableTask,
       plain,
-      '2026-06-05'
+      '2026-06-05',
+      '📤'
     )
     expect(out).toBeNull()
   })
@@ -210,12 +272,16 @@ describe('migrateTasks', () => {
       model: modelWithMigrated(),
       placement: 'end',
       headingText: 'Tasks',
+      toMarker: '→',
+      fromMarker: '←',
+      addToReference: true,
+      addFromReference: true,
     })
 
     expect((await app.vault.read(dest)).split('\n')).toEqual([
       'destination body',
-      '- [ ] a',
-      '- [/] b',
+      '- [ ] a ← [[2026-06-04]]',
+      '- [/] b ← [[2026-06-04]]',
       '',
     ])
     expect((await app.vault.read(source)).split('\n')).toEqual([
@@ -224,6 +290,28 @@ describe('migrateTasks', () => {
       '- [x] c',
     ])
     expect(Notice.lastMessage).toBe('Migrated 2 tasks → 2026-06-05')
+  })
+
+  it('omits both links when references are disabled', async () => {
+    const { app, source, dest } = setup()
+    app.vault.setContents(source, '- [/] b\n')
+    app.vault.setContents(dest, '')
+
+    await migrateTasks({
+      app,
+      destFile: dest,
+      tasks: [mig(source, 0, '- [/] b', 'in-progress')],
+      model: modelWithMigrated(),
+      placement: 'end',
+      headingText: 'Tasks',
+      toMarker: '→',
+      fromMarker: '←',
+      addToReference: false,
+      addFromReference: false,
+    })
+
+    expect(await app.vault.read(source)).toBe('- [>] b\n')
+    expect(await app.vault.read(dest)).toBe('- [/] b\n')
   })
 
   it('aborts (no writes) when the flow has no migrated status', async () => {
@@ -238,6 +326,10 @@ describe('migrateTasks', () => {
       model: buildTaskModel(STATUSES(), 'plugin'),
       placement: 'end',
       headingText: 'Tasks',
+      toMarker: '→',
+      fromMarker: '←',
+      addToReference: true,
+      addFromReference: true,
     })
 
     expect(await app.vault.read(dest)).toBe('')
@@ -258,6 +350,10 @@ describe('migrateTasks', () => {
       model: modelWithMigrated(),
       placement: 'end',
       headingText: 'Tasks',
+      toMarker: '→',
+      fromMarker: '←',
+      addToReference: true,
+      addFromReference: true,
     })
 
     expect((await app.vault.read(source)).split('\n')).toEqual([
@@ -265,7 +361,7 @@ describe('migrateTasks', () => {
       '- [x] b',
     ])
     // The drifted task must NOT be copied to the destination.
-    expect(await app.vault.read(dest)).toBe('- [ ] a\n')
+    expect(await app.vault.read(dest)).toBe('- [ ] a ← [[2026-06-04]]\n')
     expect(Notice.lastMessage).toBe(
       'Some tasks moved since they were listed — those were skipped. Try again.'
     )

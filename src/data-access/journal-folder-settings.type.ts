@@ -201,6 +201,28 @@ export type JournalFolderSettings = {
   // created as a level-2 heading at the end of the note when missing.
   // **Folder-honored** via `task-migration-heading`.
   taskMigrationHeading: string
+  // Whether migration writes the forward reference (`toMarker [[dest]]`)
+  // onto the **origin** task. When false, the origin is only re-stamped
+  // with the migrated status — no link is added. **Global only.**
+  taskMigrationAddToReference: boolean
+  // Whether migration writes the back reference (`fromMarker [[origin]]`)
+  // onto the **copied** task. When false, the copy is a plain task with
+  // no link back to its source. **Global only.**
+  taskMigrationAddFromReference: boolean
+  // Representation style for the migration cross-reference markers — the
+  // small indicator placed before each `[[link]]`. Selecting a style in
+  // the settings tab reseeds both markers below with that style's
+  // defaults; the markers stay individually editable afterwards.
+  // **Global only.**
+  taskMigrationReferenceStyle: TaskMigrationReferenceStyle
+  // Marker prefixed to the forward link written on the **origin** task
+  // ("migrated to" → destination). Empty = link only, no marker.
+  // **Global only.**
+  taskMigrationToMarker: string
+  // Marker prefixed to the back link written on the **copied** task
+  // ("migrated from" → origin). Empty = link only, no marker.
+  // **Global only.**
+  taskMigrationFromMarker: string
 }
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
@@ -210,6 +232,19 @@ export type TaskMigrationPlacement =
   | 'after-last-task'
   | 'top'
   | 'end'
+
+export type TaskMigrationReferenceStyle = 'text' | 'emoji'
+
+// Default markers per reference style. Picking a style in the settings
+// tab reseeds the To / From markers from here. Exported so the settings
+// UI and any tests share one source of truth.
+export const MIGRATION_REFERENCE_PRESETS: Record<
+  TaskMigrationReferenceStyle,
+  { to: string; from: string }
+> = {
+  text: { to: '→', from: '←' },
+  emoji: { to: '➡️', from: '⬅️' },
+}
 
 import type { TaskFlow, TaskStatus } from './task-model.type'
 import {
@@ -298,4 +333,9 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   taskInteractionScope: 'lists',
   taskMigrationPlacement: 'after-last-task',
   taskMigrationHeading: 'Tasks',
+  taskMigrationAddToReference: true,
+  taskMigrationAddFromReference: true,
+  taskMigrationReferenceStyle: 'text',
+  taskMigrationToMarker: MIGRATION_REFERENCE_PRESETS.text.to,
+  taskMigrationFromMarker: MIGRATION_REFERENCE_PRESETS.text.from,
 }

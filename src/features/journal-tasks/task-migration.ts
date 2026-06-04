@@ -43,48 +43,62 @@ export function eligibleMigratedStatuses(flow: TaskFlow): TaskStatus[] {
   return flow.statuses.filter((s) => s.isDone)
 }
 
+// Formats a cross-reference: an optional marker followed by a wikilink
+// to `basename`. An empty / whitespace marker yields the bare link.
+export function formatReference(marker: string, basename: string): string {
+  const link = `[[${basename}]]`
+  const trimmed = marker.trim()
+  return trimmed ? `${trimmed} ${link}` : link
+}
+
 // Builds the destination line for a migrated task: a fresh **top-level**
-// bullet that preserves the origin's current (active) status. Sub-bullets
-// and the origin's indentation are intentionally dropped in v1. Falls
-// back to the flow's first status if the origin status no longer exists
-// in the destination model (a folder whose flow changed mid-stream).
+// bullet that preserves the origin's current (active) status. When
+// `addReference` is true a back-reference to the origin note is appended
+// (`fromMarker [[origin]]`); when false the copy carries no link. Sub-
+// bullets and the origin's indentation are intentionally dropped in v1.
+// Falls back to the flow's first status if the origin status no longer
+// exists in the destination model (a folder whose flow changed
+// mid-stream).
 export function buildMigratedLine(
   task: MigratableTask,
-  model: TaskModel
+  model: TaskModel,
+  fromMarker = '',
+  addReference = true
 ): string {
   const parsed = model.parseLine(task.rawText)
   const body = parsed ? parsed.text : task.rawText.trim()
-  const statusId =
-    model.statuses.some((s) => s.id === task.status)
-      ? task.status
-      : (model.statuses[0]?.id ?? task.status)
-  return `- ${model.serializeStatus(statusId)} ${body}`
+  const statusId = model.statuses.some((s) => s.id === task.status)
+    ? task.status
+    : (model.statuses[0]?.id ?? task.status)
+  const line = `- ${model.serializeStatus(statusId)} ${body}`
+  if (!addReference) return line
+  return `${line} ${formatReference(fromMarker, task.sourceFile.basename)}`
 }
 
-// Re-stamps the origin line to the flow's migrated status and appends a
-// forward link to the destination note. Returns `null` when the line no
-// longer parses as a task with the expected status — the caller's cache
-// is stale and the write should be skipped (matching the line-match
-// guard `task-transition.ts` uses). Idempotent on the link: a line that
+// Re-stamps the origin line to the flow's migrated status and, when
+// `addReference` is true, appends a forward link to the destination note
+// (`toMarker [[dest]]`). Returns `null` when the line no longer parses as
+// a task with the expected status — the caller's cache is stale and the
+// write should be skipped (matching the line-match guard
+// `task-transition.ts` uses). Idempotent on the link: a line that
 // already points at `destBasename` isn't double-linked.
 export function transformOriginLine(
   line: string,
   task: MigratableTask,
   model: TaskModel,
-  destBasename: string
+  destBasename: string,
+  toMarker = '',
+  addReference = true
 ): string | null {
   if (model.migratedStatusId === null) return null
   const parsed = model.parseLine(line)
   if (!parsed || parsed.status !== task.status) return null
-  let next = line.replace(
+  const next = line.replace(
     /\[(.)\]/,
     model.serializeStatus(model.migratedStatusId)
   )
-  const link = `[[${destBasename}]]`
-  if (!next.includes(link)) {
-    next = `${next.replace(/\s+$/, '')} → ${link}`
-  }
-  return next
+  if (!addReference || next.includes(`[[${destBasename}]]`)) return next
+  return `${next.replace(/\s+$/, '')} ${formatReference(toMarker, destBasename)}`
 }
 
 // ---------------- placement engine (pure) ------------------------
@@ -179,6 +193,13 @@ export interface MigrateTasksInput {
   model: TaskModel
   placement: TaskMigrationPlacement
   headingText: string
+  // Cross-reference markers (global-only settings). `toMarker` prefixes
+  // the forward link on the origin; `fromMarker` prefixes the back link
+  // on the copy. The `add*Reference` flags omit a reference entirely.
+  toMarker: string
+  fromMarker: string
+  addToReference: boolean
+  addFromReference: boolean
 }
 
 // Relocates `tasks` into `destFile`: writes fresh copies per the
@@ -187,7 +208,17 @@ export interface MigrateTasksInput {
 // destination flow has no migrated status configured. Origin writes use
 // a per-line guard — a drifted line is skipped, not blind-written.
 export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
-  const { app, destFile, model, placement, headingText } = input
+  const {
+    app,
+    destFile,
+    model,
+    placement,
+    headingText,
+    toMarker,
+    fromMarker,
+    addToReference,
+    addFromReference,
+  } = input
   const tasks = input.tasks.filter((t) => !model.isDone(t.status))
 
   if (model.migratedStatusId === null) {
@@ -225,7 +256,14 @@ export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
         const updated =
           line === undefined
             ? null
-            : transformOriginLine(line, task, model, destFile.basename)
+            : transformOriginLine(
+                line,
+                task,
+                model,
+                destFile.basename,
+                toMarker,
+                addToReference
+              )
         if (updated === null) {
           skipped++
           continue
@@ -239,7 +277,9 @@ export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
 
   // 2) Write copies for the tasks that were actually stamped.
   if (migrated.length > 0) {
-    const newLines = migrated.map((t) => buildMigratedLine(t, model))
+    const newLines = migrated.map((t) =>
+      buildMigratedLine(t, model, fromMarker, addFromReference)
+    )
     await app.vault.process(destFile, (content) =>
       computeInsertion(content, newLines, placement, headingText)
     )

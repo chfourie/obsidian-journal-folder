@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
-  import { untrack } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
   import type { JournalTask } from '../../data-access'
   import type { TaskModel } from './task-models'
@@ -34,11 +33,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   const keyOf = (t: JournalTask) => `${t.sourceFile.path}:${t.sourceLine}`
 
-  // Default to everything selected — the common case is "migrate all of
-  // these forward"; deselecting a few is cheaper than ticking many. The
-  // task list is fixed for a modal instance, so seed once (untrack keeps
-  // this an intentional non-reactive read).
-  const selected = new SvelteSet<string>(untrack(() => tasks).map(keyOf))
+  // Nothing selected by default — migration is opt-in. The user ticks the
+  // tasks (or whole notes) they want to move rather than unticking the
+  // ones they don't.
+  const selected = new SvelteSet<string>()
 
   type Group = { path: string; title: string; tasks: JournalTask[] }
   // Group by note path via a Map (NOT consecutive-run grouping): the

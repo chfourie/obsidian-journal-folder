@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getIconIds, setIcon } from 'obsidian'
+import { type App, ButtonComponent, getIconIds, Modal, setIcon } from 'obsidian'
 import {
   COMMON_EMOJI,
   COMMON_LUCIDE_ICONS,
@@ -220,6 +220,51 @@ export function renderEmojiPicker(config: EmojiPickerConfig): void {
   }
 
   applySearch('')
+}
+
+// Modal wrapper around `renderEmojiPicker` — the searchable/paged grid
+// plus a paste-any-emoji fallback, with Cancel / Use-emoji actions.
+// Reused by the migration-reference settings so picking an emoji marker
+// uses the same picker as the task-status icon editor. The grid updates
+// a pending value; the choice only commits on "Use emoji".
+export class EmojiPickerModal extends Modal {
+  private pending: string
+
+  constructor(
+    app: App,
+    private readonly current: string,
+    private readonly onPick: (emoji: string) => void
+  ) {
+    super(app)
+    this.pending = current
+  }
+
+  onOpen(): void {
+    this.titleEl.setText('Pick an emoji')
+    const host = this.contentEl.createDiv()
+    renderEmojiPicker({
+      containerEl: host,
+      value: this.current,
+      onChange: (emoji) => {
+        this.pending = emoji
+      },
+    })
+    const buttons = this.contentEl.createDiv({ cls: 'modal-button-container' })
+    new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+      this.close()
+    })
+    new ButtonComponent(buttons)
+      .setButtonText('Use emoji')
+      .setCta()
+      .onClick(() => {
+        this.onPick(this.pending)
+        this.close()
+      })
+  }
+
+  onClose(): void {
+    this.contentEl.empty()
+  }
 }
 
 // ---- pager helper ----------------------------------------------

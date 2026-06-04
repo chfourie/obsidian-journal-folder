@@ -128,6 +128,10 @@ function migrateInto(
     model,
     placement: settings.taskMigrationPlacement,
     headingText: settings.taskMigrationHeading,
+    toMarker: settings.taskMigrationToMarker,
+    fromMarker: settings.taskMigrationFromMarker,
+    addToReference: settings.taskMigrationAddToReference,
+    addFromReference: settings.taskMigrationAddFromReference,
   })
 }
 

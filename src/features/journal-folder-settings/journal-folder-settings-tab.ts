@@ -38,8 +38,10 @@ import {
   DEFAULT_TEMPLATE_ID,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  MIGRATION_REFERENCE_PRESETS,
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
+  type TaskMigrationReferenceStyle,
   type TaskStatus,
 } from '../../data-access'
 import { DEFAULT_AUTO_TEMPLATE } from '../journal-auto-template'
@@ -53,6 +55,7 @@ import {
   renderStatusDetail,
   type StatusDetailSection,
 } from './status-detail-editor'
+import { EmojiPickerModal } from './icon-pickers'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
   'locale-default': 'Locale default',
@@ -498,6 +501,7 @@ class SettingsFormBuilder {
     this.createTasksMaxItemsSetting(settings)
     this.createTaskInteractionScopeSetting(settings)
     this.createMigrationPlacementSettings(settings)
+    this.createMigrationReferenceSettings(settings)
 
     new Setting(this.containerEl)
       .setName('Task flows')
@@ -643,10 +647,12 @@ class SettingsFormBuilder {
 
     let dropdown: DropdownComponent
 
-    const onPlacement = (value: string) => {
+    const onPlacement = async (value: string) => {
       settings.taskMigrationPlacement = value as TaskMigrationPlacement
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      // Await the save so the subsequent re-render reads the updated
+      // settings — `render()` rebuilds from `getCurrentSettings()`, which
+      // only reflects the change after `saveSettings` has propagated.
+      await this.saveSettings(settings)
       this.render()
     }
 
@@ -691,6 +697,156 @@ class SettingsFormBuilder {
             }, 250, true)
           )
         })
+    }
+  }
+
+  // Cross-reference markers written on each side of a migration. Global
+  // only — they're not in PER_FOLDER_FIELDS, so this renders in the
+  // global Tasks tab but not the per-folder modal. The style dropdown
+  // reseeds both marker inputs with that style's defaults; the inputs
+  // stay editable, and in Emoji mode each gains a "Pick…" button that
+  // opens the shared emoji picker modal.
+  createMigrationReferenceSettings(settings: JournalFolderSettings): void {
+    const STYLE_LABELS: Record<TaskMigrationReferenceStyle, string> = {
+      text: 'Text',
+      emoji: 'Emoji',
+    }
+
+    new Setting(this.containerEl)
+      .setName('Migration references')
+      .setHeading()
+      .setDesc(
+        'Migration can link the two notes: a forward link on the original ' +
+          'task and a back link on the migrated copy. Turn either off to ' +
+          'omit that link entirely.'
+      )
+
+    const onToggle = async (
+      field: 'taskMigrationAddToReference' | 'taskMigrationAddFromReference',
+      value: boolean
+    ) => {
+      settings[field] = value
+      // Await so the re-render (which shows/hides the marker rows) reads
+      // the updated value from `getCurrentSettings()`.
+      await this.saveSettings(settings)
+      this.render()
+    }
+
+    new Setting(this.containerEl)
+      .setName('Reference on the original task')
+      .setDesc('Add a link to the destination note on the migrated-from task.')
+      .addToggle((t) =>
+        t
+          .setValue(settings.taskMigrationAddToReference)
+          .onChange((v) => onToggle('taskMigrationAddToReference', v))
+      )
+
+    new Setting(this.containerEl)
+      .setName('Reference on the migrated copy')
+      .setDesc('Add a link back to the origin note on the migrated-to task.')
+      .addToggle((t) =>
+        t
+          .setValue(settings.taskMigrationAddFromReference)
+          .onChange((v) => onToggle('taskMigrationAddFromReference', v))
+      )
+
+    // Style + marker inputs are only meaningful when at least one
+    // reference is enabled.
+    if (
+      !settings.taskMigrationAddToReference &&
+      !settings.taskMigrationAddFromReference
+    ) {
+      return
+    }
+
+    new Setting(this.containerEl)
+      .setName('Reference style')
+      .setDesc(
+        'Text accepts any characters (the defaults are the → and ← arrow ' +
+          'glyphs). Emoji adds a picker. Switching style resets both ' +
+          'markers to that style’s defaults; you can still edit each one.'
+      )
+      .addDropdown((dd) => {
+        for (const value of Object.keys(
+          STYLE_LABELS
+        ) as TaskMigrationReferenceStyle[]) {
+          dd.addOption(value, STYLE_LABELS[value])
+        }
+        dd.setValue(settings.taskMigrationReferenceStyle).onChange(
+          async (value) => {
+            const style = value as TaskMigrationReferenceStyle
+            settings.taskMigrationReferenceStyle = style
+            settings.taskMigrationToMarker =
+              MIGRATION_REFERENCE_PRESETS[style].to
+            settings.taskMigrationFromMarker =
+              MIGRATION_REFERENCE_PRESETS[style].from
+            // Await so the re-render reads the reseeded markers — the
+            // form rebuilds from `getCurrentSettings()`, which only
+            // reflects the change once `saveSettings` has propagated.
+            await this.saveSettings(settings)
+            this.render()
+          }
+        )
+      })
+
+    if (settings.taskMigrationAddToReference) {
+      this.createMigrationMarkerSetting(
+        settings,
+        'taskMigrationToMarker',
+        'Migrated-to marker',
+        'Placed before the link to the destination on the original task ' +
+          '(e.g. “… → [[2026-06-05]]”). Leave empty for just the link.'
+      )
+    }
+    if (settings.taskMigrationAddFromReference) {
+      this.createMigrationMarkerSetting(
+        settings,
+        'taskMigrationFromMarker',
+        'Migrated-from marker',
+        'Placed before the link to the origin on the migrated copy ' +
+          '(e.g. “… ← [[2026-06-04]]”). Leave empty for just the link.'
+      )
+    }
+  }
+
+  private createMigrationMarkerSetting(
+    settings: JournalFolderSettings,
+    field: 'taskMigrationToMarker' | 'taskMigrationFromMarker',
+    name: string,
+    desc: string
+  ): void {
+    let component: TextComponent
+
+    const setting = new Setting(this.containerEl).setName(name).setDesc(desc)
+    setting.addText((text) => {
+      component = text
+      text.setValue(settings[field]).onChange(
+        debounce((value: string) => {
+          settings[field] = value
+          // noinspection JSIgnoredPromiseFromCall
+          this.saveSettings(settings)
+        }, 250, true)
+      )
+    })
+
+    // Emoji mode gets a picker that reuses the task-status emoji grid.
+    if (settings.taskMigrationReferenceStyle === 'emoji') {
+      setting.addExtraButton((btn) => {
+        btn
+          .setIcon('smile-plus')
+          .setTooltip('Pick an emoji')
+          .onClick(() => {
+            new EmojiPickerModal(
+              this.config.app,
+              settings[field],
+              async (emoji) => {
+                settings[field] = emoji
+                component.setValue(emoji)
+                await this.saveSettings(settings)
+              }
+            ).open()
+          })
+      })
     }
   }
 
