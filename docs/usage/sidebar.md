@@ -20,13 +20,13 @@ The calendar is the same single-month grid logic the in-note calendar uses, scop
 
 ## Task panel
 
-When the tasks feature is enabled (see [Tasks](tasks.md)), the sidebar gains a panel below the calendar listing tasks in the current scope. The panel header carries inline link toggles for **Today / Dynamic** and **Show completed / Hide completed**, and a `⋯` menu for scope-folder configuration and a jump to the plugin settings.
+When the tasks feature is enabled (see [Tasks](tasks.md)), the sidebar gains a panel below the calendar listing tasks in the current scope. The panel header carries a **Scope ▾** link that opens a small panel for choosing the *anchor* (Today / Current note), *range* (Day / Week / Month / Quarter / Year / All), folder scope, and the completed-tasks filter; a read-only summary line under the header shows the current selection at a glance. See [Sidebar task panel](tasks.md#sidebar-task-panel) for the details.
 
 ![Sidebar tasks panel](../screenshots/sidebar-tasks-panel.png)
 
 ## More... menu
 
-A single text link to the right of the section header opens an Obsidian-native menu with every secondary action. The menu is built from the current sidebar state, so options that don't apply right now are simply omitted (e.g. *Switch to default folder* is hidden when you're already on the default; *Edit folder configuration* is hidden when no journal folder is selected).
+A single text link to the right of the section header opens a panel with every secondary action. It's built from the current sidebar state, so options that don't apply right now are simply omitted (e.g. *Switch to default folder* is hidden when you're already on the default; *Edit folder configuration* is hidden when no journal folder is selected).
 
 ![Sidebar More... menu](../screenshots/sidebar-more-menu.png)
 

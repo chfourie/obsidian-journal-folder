@@ -18,9 +18,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <script lang="ts">
   import type { App } from 'obsidian'
   import type { SvelteSet } from 'svelte/reactivity'
-  import type { JournalTask } from '../../data-access'
+  import type {
+    JournalTask,
+    TasksSidebarAnchor,
+    TasksSidebarFolderMode,
+    TasksSidebarRange,
+  } from '../../data-access'
   import type { TaskModel } from './task-models'
   import TaskItem from './TaskItem.svelte'
+  import TaskScopePanel from './TaskScopePanel.svelte'
 
   type Props = {
     tasks: JournalTask[]
@@ -40,10 +46,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     // because the caller keeps the same reference around.
     collapsedNotePaths: SvelteSet<string>
     caption?: string
-    referenceMode?: 'today' | 'dynamic'
-    onToggleReference?: () => void
+    // Sidebar scope panel state + setters. Present only for the sidebar
+    // surfaces; the in-note block leaves these undefined and keeps its
+    // own inline Active/All toggle instead.
+    anchor?: TasksSidebarAnchor
+    range?: TasksSidebarRange
+    folderMode?: TasksSidebarFolderMode
+    selectedFolder?: string
+    quartersEnabled?: boolean
+    getFolders?: () => string[]
+    onSetAnchor?: (anchor: TasksSidebarAnchor) => void
+    onSetRange?: (range: TasksSidebarRange) => void
+    onSetFolderMode?: (mode: TasksSidebarFolderMode) => void
+    onSetFolder?: (path: string) => void
     onToggleShowCompleted?: () => void
-    onOpenScopeMenu?: (evt: MouseEvent | KeyboardEvent) => void
     onOpenSettings?: () => void
   }
 
@@ -58,10 +74,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     header,
     collapsedNotePaths,
     caption,
-    referenceMode,
-    onToggleReference,
+    anchor,
+    range,
+    folderMode,
+    selectedFolder,
+    quartersEnabled,
+    getFolders,
+    onSetAnchor,
+    onSetRange,
+    onSetFolderMode,
+    onSetFolder,
     onToggleShowCompleted,
-    onOpenScopeMenu,
     onOpenSettings,
   }: Props = $props()
 
@@ -77,14 +100,40 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // size cap with the completed-status filter and shows the footer
   // whenever any task is hidden by *Active tasks*.
 
-  // The scope menu only narrows the `Today` reference — it has no effect
-  // in Dynamic mode (which always follows the active note's folder), so
-  // we hide the link entirely there to avoid suggesting otherwise.
-  const showScopeLink = $derived(
-    header === 'sidebar' &&
-      !!onOpenScopeMenu &&
-      referenceMode === 'today'
+  // The sidebar surfaces drive reference + folder scope through the
+  // scope panel; the in-note block keeps the lightweight inline toggle.
+  const showScopePanel = $derived(
+    header === 'sidebar' && !!onSetAnchor
   )
+
+  // Compact human-readable summary of the active scope, shown read-only
+  // under the header so the selection is visible without opening the
+  // panel: `<anchor> · <range> · <folders> · <filter>`.
+  const RANGE_LABELS: Record<TasksSidebarRange, string> = {
+    day: 'Day',
+    week: 'Week',
+    month: 'Month',
+    quarter: 'Quarter',
+    year: 'Year',
+    all: 'All',
+  }
+  function lastSegment(path: string): string {
+    if (path === '' || path === '/') return '(vault root)'
+    const parts = path.split('/')
+    return parts[parts.length - 1] || path
+  }
+  const scopeSummary = $derived.by(() => {
+    const anchorLabel = anchor === 'today' ? 'Today' : 'Current note'
+    const rangeLabel = RANGE_LABELS[range ?? 'day']
+    const folderText =
+      folderMode === 'note'
+        ? 'Current folder'
+        : folderMode === 'specific' && selectedFolder
+          ? lastSegment(selectedFolder)
+          : 'All folders'
+    const filterLabel = showCompleted ? 'All tasks' : 'Active'
+    return `${anchorLabel} · ${rangeLabel} · ${folderText} · ${filterLabel}`
+  })
 
   function activate(handler?: () => void) {
     return (e: KeyboardEvent) => {
@@ -139,50 +188,39 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <div class="journal-folder-tasks">
   <div class="journal-folder-tasks-header">
     <span class="journal-folder-tasks-header-label">{headerLabel}</span>
+    {#if showScopePanel}
+      <TaskScopePanel
+        anchor={anchor ?? 'today'}
+        range={range ?? 'day'}
+        folderMode={folderMode ?? 'all'}
+        selectedFolder={selectedFolder ?? ''}
+        showCompleted={showCompleted}
+        quartersEnabled={!!quartersEnabled}
+        getFolders={getFolders ?? (() => [])}
+        onSetAnchor={onSetAnchor!}
+        onSetRange={onSetRange!}
+        onSetFolderMode={onSetFolderMode!}
+        onSetFolder={onSetFolder!}
+        onToggleShowCompleted={onToggleShowCompleted ?? (() => {})}
+      />
+    {/if}
   </div>
-  {#if header === 'sidebar' || onToggleShowCompleted}
+  {#if showScopePanel}
     <div class="journal-folder-tasks-controls">
-      {#if header === 'sidebar' && onToggleReference}
-        <span
-          role="button"
-          tabindex="0"
-          class="journal-folder-tasks-link"
-          aria-pressed={referenceMode === 'today'}
-          onclick={onToggleReference}
-          onkeydown={activate(onToggleReference)}
-        >
-          {referenceMode === 'today' ? 'Today' : 'Dynamic'}
-        </span>
-        <span class="journal-folder-tasks-sep">·</span>
-      {/if}
-      {#if onToggleShowCompleted}
-        <span
-          role="button"
-          tabindex="0"
-          class="journal-folder-tasks-link"
-          aria-pressed={showCompleted}
-          onclick={onToggleShowCompleted}
-          onkeydown={activate(onToggleShowCompleted)}
-        >
-          {showCompleted ? 'All tasks' : 'Active tasks'}
-        </span>
-      {/if}
-      {#if showScopeLink}
-        <span class="journal-folder-tasks-sep">·</span>
-        <span
-          role="button"
-          tabindex="0"
-          class="journal-folder-tasks-link"
-          aria-haspopup="menu"
-          onclick={(e) => onOpenScopeMenu!(e)}
-          onkeydown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              onOpenScopeMenu!(e)
-            }
-          }}
-        >Folders</span>
-      {/if}
+      <span class="journal-folder-tasks-summary">{scopeSummary}</span>
+    </div>
+  {:else if onToggleShowCompleted}
+    <div class="journal-folder-tasks-controls">
+      <span
+        role="button"
+        tabindex="0"
+        class="journal-folder-tasks-link"
+        aria-pressed={showCompleted}
+        onclick={onToggleShowCompleted}
+        onkeydown={activate(onToggleShowCompleted)}
+      >
+        {showCompleted ? 'All tasks' : 'Active tasks'}
+      </span>
     </div>
   {/if}
 

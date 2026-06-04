@@ -101,30 +101,45 @@ export type JournalFolderSettings = {
   // sidebar stays minimal for users who don't journal with tasks.
   // **Global only** — the sidebar is a singleton view.
   tasksSidebarEnabled: boolean
-  // Reference range the sidebar task panel uses. `'today'` lists tasks
-  // whose source note's period covers today; `'dynamic'` follows the
-  // active journal note (falls back to today when the active leaf is
-  // not a journal note). Persisted from the sidebar's inline link toggle.
-  // **Global only** — the toggle *is* the control.
-  tasksSidebarReference: TasksSidebarReference
-  // Folders the sidebar's `Today` reference scope considers. Empty
-  // array means "every known journal folder". `Dynamic` reference
-  // always uses the active note's folder regardless of this list.
-  // **Global only** — scope is a UI preference for the singleton view.
-  tasksSidebarFolders: string[]
+  // The reference *anchor* the sidebar task panel uses — the point the
+  // range is measured from. `'today'` anchors on the current date;
+  // `'note'` anchors on the active journal note's date (falls back to
+  // today when the active leaf is not a journal note). Persisted from
+  // the sidebar's scope panel. **Global only** — the panel *is* the
+  // control.
+  tasksSidebarAnchor: TasksSidebarAnchor
+  // The reference *range* (window size) around the anchor. `'day'` /
+  // `'week'` / `'month'` / `'quarter'` / `'year'` list tasks whose
+  // source-note period intersects the calendar period of that size
+  // containing the anchor; `'all'` applies no date filtering (every
+  // task in the folder scope). `'quarter'` is only offered in the
+  // picker when `quartersEnabled`. **Global only.**
+  tasksSidebarRange: TasksSidebarRange
+  // How the sidebar task panel chooses which folder(s) to scan.
+  // `'note'` = the active note's folder; `'all'` = every known journal
+  // folder; `'specific'` = the single folder in `tasksSidebarFolder`.
+  // Independent of the anchor. **Global only** — scope is a UI
+  // preference for the singleton view.
+  tasksSidebarFolderMode: TasksSidebarFolderMode
+  // The folder scanned when `tasksSidebarFolderMode` is `'specific'`.
+  // Empty string falls back to "every known journal folder".
+  // **Global only.**
+  tasksSidebarFolder: string
   // View-side filter — when false, tasks satisfying `model.isDone` are
   // hidden and the panel header surfaces the hidden count. Persisted
   // from the sidebar's inline link toggle. **Global only** — the
   // in-note `journal-tasks` block has its own view-local toggle that
   // does not persist.
   tasksShowCompleted: boolean
-  // Independent reference / completed-filter state for the **tasks-only
-  // sidebar view** (the standalone tasks ribbon icon). Kept separate
-  // from the combined sidebar's `tasksSidebarReference` /
-  // `tasksShowCompleted` so toggling one panel doesn't reach across
-  // and change the other. **Global only** — same singleton reasoning
-  // as the combined sidebar.
-  tasksOnlySidebarReference: TasksSidebarReference
+  // Independent reference / folder-scope / completed-filter state for
+  // the **tasks-only sidebar view** (the standalone tasks ribbon icon).
+  // Kept separate from the combined sidebar's `tasksSidebar*` fields so
+  // toggling one panel doesn't reach across and change the other.
+  // **Global only** — same singleton reasoning as the combined sidebar.
+  tasksOnlySidebarAnchor: TasksSidebarAnchor
+  tasksOnlySidebarRange: TasksSidebarRange
+  tasksOnlySidebarFolderMode: TasksSidebarFolderMode
+  tasksOnlySidebarFolder: string
   tasksOnlySidebarShowCompleted: boolean
   // Hard cap on the number of tasks rendered (sidebar + in-note). When
   // exceeded, a footer shows "Showing N of M — increase limit in
@@ -179,7 +194,17 @@ import {
   DEFAULT_TEMPLATE_ID,
 } from './task-templates'
 
-export type TasksSidebarReference = 'today' | 'dynamic'
+export type TasksSidebarAnchor = 'today' | 'note'
+
+export type TasksSidebarRange =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year'
+  | 'all'
+
+export type TasksSidebarFolderMode = 'note' | 'all' | 'specific'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -227,10 +252,15 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   hideJournalFolderNotes: true,
   sidebarMode: 'dynamic',
   tasksSidebarEnabled: false,
-  tasksSidebarReference: 'dynamic',
-  tasksSidebarFolders: [],
+  tasksSidebarAnchor: 'note',
+  tasksSidebarRange: 'day',
+  tasksSidebarFolderMode: 'all',
+  tasksSidebarFolder: '',
   tasksShowCompleted: true,
-  tasksOnlySidebarReference: 'dynamic',
+  tasksOnlySidebarAnchor: 'note',
+  tasksOnlySidebarRange: 'day',
+  tasksOnlySidebarFolderMode: 'all',
+  tasksOnlySidebarFolder: '',
   tasksOnlySidebarShowCompleted: true,
   tasksMaxItems: 200,
   taskFlows: {

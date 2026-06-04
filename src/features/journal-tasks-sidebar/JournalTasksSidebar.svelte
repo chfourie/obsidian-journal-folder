@@ -18,16 +18,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <script lang="ts">
   import type { App } from 'obsidian'
   import { SvelteSet } from 'svelte/reactivity'
-  import type { JournalFolderSettings } from '../../data-access'
+  import {
+    findJournalFolderPaths,
+    type JournalFolderSettings,
+    type TasksSidebarAnchor,
+    type TasksSidebarFolderMode,
+    type TasksSidebarRange,
+  } from '../../data-access'
   import {
     resolveTaskModel,
     type TaskPanelSnapshot,
   } from '../journal-tasks'
   import TaskList from '../journal-tasks/TaskList.svelte'
-  import type {
-    MenuTrigger,
-    TasksOnlyUpdateApi,
-  } from './journal-tasks-sidebar-view'
+  import type { TasksOnlyUpdateApi } from './journal-tasks-sidebar-view'
 
   type Props = {
     initialSettings: JournalFolderSettings
@@ -35,7 +38,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings: (s: JournalFolderSettings) => Promise<void>
     registerApi: (api: TasksOnlyUpdateApi) => void
     obsidianApp: App
-    openTaskScopeMenu: (trigger: MenuTrigger) => void
     openPluginSettings: () => void
   }
 
@@ -46,7 +48,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     saveSettings,
     registerApi,
     obsidianApp,
-    openTaskScopeMenu,
     openPluginSettings,
   }: Props = $props()
 
@@ -79,10 +80,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     snapshot.tasks.length - visibleTasks.length
   )
 
-  async function toggleReference() {
-    const next =
-      settings.tasksOnlySidebarReference === 'today' ? 'dynamic' : 'today'
-    await saveSettings({ ...settings, tasksOnlySidebarReference: next })
+  async function setAnchor(anchor: TasksSidebarAnchor) {
+    await saveSettings({ ...settings, tasksOnlySidebarAnchor: anchor })
+  }
+
+  async function setRange(range: TasksSidebarRange) {
+    await saveSettings({ ...settings, tasksOnlySidebarRange: range })
+  }
+
+  async function setFolderMode(mode: TasksSidebarFolderMode) {
+    await saveSettings({ ...settings, tasksOnlySidebarFolderMode: mode })
+  }
+
+  async function setFolder(path: string) {
+    await saveSettings({
+      ...settings,
+      tasksOnlySidebarFolderMode: 'specific',
+      tasksOnlySidebarFolder: path,
+    })
   }
 
   async function toggleShowCompleted() {
@@ -90,6 +105,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       ...settings,
       tasksOnlySidebarShowCompleted: !settings.tasksOnlySidebarShowCompleted,
     })
+  }
+
+  function taskScopeFolders(): string[] {
+    return findJournalFolderPaths(obsidianApp).filter(
+      (p) => p !== '' && p !== '/'
+    )
   }
 </script>
 
@@ -104,14 +125,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     truncated={snapshot.truncated}
     header="sidebar"
     collapsedNotePaths={collapsedNotePaths}
-    referenceMode={settings.tasksOnlySidebarReference}
-    onToggleReference={toggleReference}
+    anchor={settings.tasksOnlySidebarAnchor}
+    range={settings.tasksOnlySidebarRange}
+    folderMode={settings.tasksOnlySidebarFolderMode}
+    selectedFolder={settings.tasksOnlySidebarFolder}
+    quartersEnabled={!!settings.quartersEnabled}
+    getFolders={taskScopeFolders}
+    onSetAnchor={setAnchor}
+    onSetRange={setRange}
+    onSetFolderMode={setFolderMode}
+    onSetFolder={setFolder}
     onToggleShowCompleted={toggleShowCompleted}
-    onOpenScopeMenu={(e) => openTaskScopeMenu(
-      e instanceof MouseEvent
-        ? { kind: 'mouse', event: e }
-        : { kind: 'keyboard', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }
-    )}
     onOpenSettings={openPluginSettings}
   />
 </div>

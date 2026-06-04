@@ -218,4 +218,90 @@ describe('migrateTaskSettings', () => {
     const result = migrateTaskSettings(partial)
     expect(result.taskFlow).toBe('')
   })
+
+  describe('v3 → v4/v5 (sidebar task scope: anchor/range + folder)', () => {
+    type LegacyScope = JournalFolderSettings & {
+      tasksSidebarFolders?: string[]
+      tasksSidebarReference?: string
+      tasksOnlySidebarReference?: string
+    }
+
+    // Strip the v4/v5 fields so we start from a genuine pre-split install.
+    function legacyBase(overrides: Partial<LegacyScope> = {}): LegacyScope {
+      const next = { ...DEFAULT_SETTINGS } as LegacyScope
+      for (const key of [
+        'tasksSidebarAnchor',
+        'tasksSidebarRange',
+        'tasksSidebarFolderMode',
+        'tasksSidebarFolder',
+        'tasksOnlySidebarAnchor',
+        'tasksOnlySidebarRange',
+        'tasksOnlySidebarFolderMode',
+        'tasksOnlySidebarFolder',
+      ] as const) {
+        delete (next as Record<string, unknown>)[key]
+      }
+      return { ...next, ...overrides }
+    }
+
+    it('splits the shipped "dynamic" reference into note anchor + day range', () => {
+      const result = migrateTaskSettings(
+        legacyBase({
+          tasksSidebarReference: 'dynamic',
+          tasksOnlySidebarReference: 'dynamic',
+          tasksSidebarFolders: [],
+        })
+      )
+      expect(result.tasksSidebarAnchor).toBe('note')
+      expect(result.tasksSidebarRange).toBe('day')
+      expect(result.tasksOnlySidebarAnchor).toBe('note')
+      expect(result.tasksOnlySidebarRange).toBe('day')
+      expect(
+        (result as { tasksSidebarReference?: unknown }).tasksSidebarReference
+      ).toBeUndefined()
+    })
+
+    it('splits an interim "month" reference into today anchor + month range', () => {
+      const result = migrateTaskSettings(
+        legacyBase({ tasksSidebarReference: 'month', tasksSidebarFolders: [] })
+      )
+      expect(result.tasksSidebarAnchor).toBe('today')
+      expect(result.tasksSidebarRange).toBe('month')
+    })
+
+    it('maps an empty folder list to folder mode "all" for both panels', () => {
+      const result = migrateTaskSettings(legacyBase({ tasksSidebarFolders: [] }))
+      expect(result.tasksSidebarFolderMode).toBe('all')
+      expect(result.tasksSidebarFolder).toBe('')
+      expect(result.tasksOnlySidebarFolderMode).toBe('all')
+      expect(result.tasksOnlySidebarFolder).toBe('')
+      expect(
+        (result as { tasksSidebarFolders?: unknown }).tasksSidebarFolders
+      ).toBeUndefined()
+    })
+
+    it('maps a folder list to "specific" + its first folder for both panels', () => {
+      const result = migrateTaskSettings(
+        legacyBase({ tasksSidebarFolders: ['Work', 'Journal'] })
+      )
+      expect(result.tasksSidebarFolderMode).toBe('specific')
+      expect(result.tasksSidebarFolder).toBe('Work')
+      expect(result.tasksOnlySidebarFolderMode).toBe('specific')
+      expect(result.tasksOnlySidebarFolder).toBe('Work')
+    })
+
+    it('leaves an already-migrated install untouched (idempotent)', () => {
+      const result = migrateTaskSettings({
+        ...DEFAULT_SETTINGS,
+        tasksSidebarAnchor: 'today',
+        tasksSidebarRange: 'week',
+        tasksSidebarFolderMode: 'specific',
+        tasksSidebarFolder: 'Journal',
+      } as JournalFolderSettings)
+      expect(result.tasksSidebarAnchor).toBe('today')
+      expect(result.tasksSidebarRange).toBe('week')
+      expect(result.tasksSidebarFolderMode).toBe('specific')
+      expect(result.tasksSidebarFolder).toBe('Journal')
+    })
+  })
 })

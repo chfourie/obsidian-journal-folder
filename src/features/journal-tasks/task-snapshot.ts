@@ -23,11 +23,17 @@ import {
   type JournalFolderSettings,
   type JournalNote,
   type JournalTask,
-  type TasksSidebarReference,
+  type TasksSidebarAnchor,
+  type TasksSidebarFolderMode,
+  type TasksSidebarRange,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
 import { buildReferenceRange } from './reference-range'
-import { effectiveUnits, findTaskCandidates } from './task-scope'
+import {
+  effectiveUnits,
+  findTaskCandidates,
+  resolveTaskFolders,
+} from './task-scope'
 import { sortTasks } from './task-sorting'
 import { resolveTaskModel } from './task-models'
 import type { TaskCache } from './task-cache'
@@ -38,22 +44,31 @@ export interface TaskPanelSnapshot {
   truncated: boolean
 }
 
+// The panel-local scope a sidebar passes in. Each surface (combined
+// sidebar / tasks-only sidebar) owns its own copy of these fields so
+// the two panels don't share state.
+export interface TaskSnapshotScope {
+  anchor: TasksSidebarAnchor
+  range: TasksSidebarRange
+  folderMode: TasksSidebarFolderMode
+  folder: string
+}
+
 // Shared computation used by both the combined journal sidebar and
-// the new tasks-only sidebar. Reads the current settings, resolves
-// the reference range against the active leaf (when in `dynamic`
-// mode), walks the configured folders, pulls cached task lists, and
-// returns the sort+cap result. Keeps both callers from drifting in
-// the details (folder fallback, dynamic-mode detection, cap math).
+// the tasks-only sidebar. Reads the current settings, resolves the
+// reference range against the active leaf (when anchored on the note),
+// walks the configured folders, pulls cached task lists, and returns
+// the sort+cap result. Keeps both callers from drifting in the details
+// (folder fallback, anchor detection, cap math).
 export async function computeTaskSnapshot(
   app: App,
   settings: JournalFolderSettings,
   taskCache: TaskCache,
-  // Reference mode is panel-local: the combined sidebar tasks panel and
-  // the tasks-only sidebar each track their own toggle. Callers pass
-  // whichever field they own (`tasksSidebarReference` /
-  // `tasksOnlySidebarReference`); the snapshot doesn't reach into
-  // settings for it.
-  referenceMode: TasksSidebarReference = settings.tasksSidebarReference
+  // Scope is panel-local: the combined sidebar tasks panel and the
+  // tasks-only sidebar each track their own anchor / range / folder
+  // mode / folder. Callers pass whichever fields they own; the
+  // snapshot doesn't reach into settings for them.
+  scope: TaskSnapshotScope
 ): Promise<TaskPanelSnapshot> {
   const activeFile = app.workspace.getActiveFile?.()
   const factory = journalNoteFactoryWithSettings(settings)
@@ -71,16 +86,17 @@ export async function computeTaskSnapshot(
 
   const referenceRange = buildReferenceRange({
     host: 'sidebar',
-    referenceMode,
+    anchor: scope.anchor,
+    range: scope.range,
     activeNote,
   })
 
-  const folders =
-    referenceMode === 'dynamic' && activeNote
-      ? [activeFile?.parent?.path ?? '']
-      : settings.tasksSidebarFolders.length > 0
-        ? settings.tasksSidebarFolders
-        : findJournalFolderPaths(app)
+  const folders = resolveTaskFolders({
+    folderMode: scope.folderMode,
+    folder: scope.folder,
+    activeNoteFolder: activeNote ? (activeFile?.parent?.path ?? '') : null,
+    allFolders: findJournalFolderPaths(app),
+  })
 
   const candidates = findTaskCandidates({
     app,

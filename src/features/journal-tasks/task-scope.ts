@@ -24,6 +24,7 @@ import {
   journalNoteFactoryWithSettings,
   type JournalTimeUnit,
   journalUnitForBasename,
+  type TasksSidebarFolderMode,
 } from '../../data-access'
 import {
   rangeForNote,
@@ -82,6 +83,37 @@ export function findTaskCandidates(
   }
 
   return results
+}
+
+export interface ResolveFoldersInput {
+  folderMode: TasksSidebarFolderMode
+  // The folder scanned when `folderMode` is `'specific'`.
+  folder: string
+  // The active journal note's parent-folder path, or `null` when the
+  // active leaf isn't a recognised journal note.
+  activeNoteFolder: string | null
+  // Every known journal folder (the `'all'` fallback).
+  allFolders: string[]
+}
+
+// Resolves which folder path(s) a sidebar task panel should scan from
+// its folder-scope setting and the active leaf. Folder scope is fully
+// independent of the reference anchor. Rules:
+//   - folder mode `'note'` → active note's folder.
+//   - folder mode `'specific'` with a folder → that single folder.
+//   - folder mode `'all'` → every known journal folder.
+// `'note'` with no active journal note (and `'specific'` with no
+// folder) fall back to all folders.
+export function resolveTaskFolders(input: ResolveFoldersInput): string[] {
+  if (input.folderMode === 'note') {
+    return input.activeNoteFolder !== null
+      ? [input.activeNoteFolder]
+      : input.allFolders
+  }
+  if (input.folderMode === 'specific' && input.folder) {
+    return [input.folder]
+  }
+  return input.allFolders
 }
 
 export const ALL_UNITS: JournalTimeUnit[] = [

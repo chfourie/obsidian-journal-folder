@@ -17,10 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
   import {
+    findJournalFolderPaths,
     isJournalFileBasename,
     type JournalFolderSettings,
     type JournalNote,
     type SidebarMode,
+    type TasksSidebarAnchor,
+    type TasksSidebarFolderMode,
+    type TasksSidebarRange,
   } from '../../data-access'
   import {
     resolveDynamicSelection,
@@ -34,6 +38,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     TaskPanelSnapshot,
   } from './journal-folder-sidebar-view'
   import SidebarCalendar from './SidebarCalendar.svelte'
+  import SidebarMenuPanel from './SidebarMenuPanel.svelte'
   import TaskList from '../journal-tasks/TaskList.svelte'
   import { resolveTaskModel } from '../journal-tasks'
   import { SvelteSet } from 'svelte/reactivity'
@@ -54,7 +59,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
-    openTaskScopeMenu: (trigger: MenuTrigger) => void
     openPluginSettings: () => void
     showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
@@ -76,7 +80,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi,
     onInitJournalFolder,
     onEditFolderConfig,
-    openTaskScopeMenu,
     openPluginSettings,
     showMenu,
     buildAnchorNote,
@@ -353,19 +356,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     })
   }
 
-  function openMoreMenu(evt: MouseEvent | KeyboardEvent) {
-    if (evt instanceof MouseEvent) {
-      showMenu({ kind: 'mouse', event: evt }, buildMenuItems())
-      return
-    }
-    const target = evt.currentTarget as HTMLElement | null
-    if (!target) return
-    showMenu(
-      { kind: 'keyboard', rect: target.getBoundingClientRect() },
-      buildMenuItems()
-    )
-  }
-
   function buildFolderMenuItems(): SidebarMenuItem[] {
     if (knownFolders.length === 0) {
       return [
@@ -396,10 +386,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     taskPanel.tasks.length - visibleTasks.length
   )
 
-  async function toggleTasksReference() {
-    const next =
-      settings.tasksSidebarReference === 'today' ? 'dynamic' : 'today'
-    await saveSettings({ ...settings, tasksSidebarReference: next })
+  async function setTasksAnchor(anchor: TasksSidebarAnchor) {
+    await saveSettings({ ...settings, tasksSidebarAnchor: anchor })
+  }
+
+  async function setTasksRange(range: TasksSidebarRange) {
+    await saveSettings({ ...settings, tasksSidebarRange: range })
+  }
+
+  async function setTasksFolderMode(mode: TasksSidebarFolderMode) {
+    await saveSettings({ ...settings, tasksSidebarFolderMode: mode })
+  }
+
+  async function setTasksFolder(path: string) {
+    await saveSettings({
+      ...settings,
+      tasksSidebarFolderMode: 'specific',
+      tasksSidebarFolder: path,
+    })
   }
 
   async function toggleTasksShowCompleted() {
@@ -407,6 +411,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       ...settings,
       tasksShowCompleted: !settings.tasksShowCompleted,
     })
+  }
+
+  // Journal folders offered in the scope panel's "specific folder"
+  // list. Resolved lazily at panel-open time so it's always current;
+  // the vault root is never a journal folder.
+  function taskScopeFolders(): string[] {
+    return findJournalFolderPaths(obsidianApp).filter(
+      (p) => p !== '' && p !== '/'
+    )
   }
 
   function openFolderMenu(evt: MouseEvent | KeyboardEvent) {
@@ -432,21 +445,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           ({settings.sidebarMode === 'dynamic' ? 'Dynamic' : 'Static'})
         </span>
       </label>
-      <span
-        role="button"
-        tabindex="0"
-        class="jf-sidebar-link jf-sidebar-more-link"
-        onclick={openMoreMenu}
-        onkeydown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            openMoreMenu(e)
-          }
-        }}
-        aria-haspopup="menu"
-      >
-        More...
-      </span>
+      <SidebarMenuPanel label="More..." getItems={buildMenuItems} />
     </div>
 
     <span
@@ -518,14 +517,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         truncated={taskPanel.truncated}
         header="sidebar"
         collapsedNotePaths={sidebarCollapsedPaths}
-        referenceMode={settings.tasksSidebarReference}
-        onToggleReference={toggleTasksReference}
+        anchor={settings.tasksSidebarAnchor}
+        range={settings.tasksSidebarRange}
+        folderMode={settings.tasksSidebarFolderMode}
+        selectedFolder={settings.tasksSidebarFolder}
+        quartersEnabled={!!settings.quartersEnabled}
+        getFolders={taskScopeFolders}
+        onSetAnchor={setTasksAnchor}
+        onSetRange={setTasksRange}
+        onSetFolderMode={setTasksFolderMode}
+        onSetFolder={setTasksFolder}
         onToggleShowCompleted={toggleTasksShowCompleted}
-        onOpenScopeMenu={(e) => openTaskScopeMenu(
-          e instanceof MouseEvent
-            ? { kind: 'mouse', event: e }
-            : { kind: 'keyboard', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }
-        )}
         onOpenSettings={openPluginSettings}
       />
     </div>

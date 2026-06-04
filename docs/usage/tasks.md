@@ -3,12 +3,13 @@
 > [!WARNING]
 > **Task management is a preview feature.** It is shipped as a working preview while we iterate on the model — behaviour, settings keys, and persisted data shapes may change between releases, and your configured task flows may need to be re-created across an upgrade. Fresh installs default to interacting only with the plugin's own task lists ([see *Scope of task interactions*](#scope-of-task-interactions)) so existing vaults aren't silently changed.
 
-The tasks feature surfaces Markdown tasks (`- [ ] …` / `- [x] …` and friends) from your journal notes in two places:
+The tasks feature surfaces Markdown tasks (`- [ ] …` / `- [x] …` and friends) from your journal notes in three places:
 
 1. A panel below the calendar in the **sidebar tab**.
-2. An in-note **`journal-tasks` code block**, analogous to `journal-header`.
+2. A slim **Tasks-only sidebar** (its own view, opened from the *list-checks* ribbon icon).
+3. An in-note **`journal-tasks` code block**, analogous to `journal-header`.
 
-The model is intentionally **present-only**: no past/future buckets, no completion-date stamping. A task shows up wherever its source note's date range intersects the reference range you're viewing.
+A task shows up wherever its source note's date range intersects the **reference window** you're viewing. In the sidebar you choose that window with two controls — an *anchor* (today, or the note you're currently in) and a *range* (day / week / month / quarter / year, or *All* for no date filter); see [Sidebar task panel](#sidebar-task-panel). There's no completion-date stamping — a task's position comes purely from the note it lives in.
 
 ## Task flows
 
@@ -45,12 +46,14 @@ When *Show task panel in sidebar* is on, the sidebar tab grows a tasks section b
 
 ![Sidebar tasks panel](../screenshots/sidebar-tasks-panel.png)
 
-Inline link toggles on the panel header:
+The panel header shows the task count on the left and a **Scope ▾** link on the right. Below it a read-only summary line shows the current selection at a glance — `Anchor · Range · Folders · Filter`, e.g. `Today · Week · All folders · Active`. Click **Scope ▾** to open the scope panel, which has four sections:
 
-- **Today / Dynamic** — `Today` filters to today's date; `Dynamic` follows the active journal note's range (falls back to today for non-journal leaves).
-- **Show completed / Hide completed** — toggles whether statuses whose `isDone` is true appear in the list. The header surfaces the hidden count when hiding.
+- **Anchor** — *Today* (measure from the current date) or *Current note* (measure from the journal note you're reading; falls back to today on a non-journal leaf).
+- **Range** — *Day / Week / Month / Quarter / Year* lists tasks whose notes fall in the calendar period of that size around the anchor; *All* drops date filtering entirely (every task in the chosen folders). *Quarter* appears only when quarterly notes are enabled.
+- **In folders** — *Current note's folder*, *All journal folders*, or a single specific folder. This is independent of the anchor, so you can, say, show *this week* across *all folders*, or *all* tasks in *just the current note's folder*.
+- **Filter** — *Show completed tasks* toggles whether statuses whose `isDone` is true appear; the header surfaces the hidden count when they're hidden.
 
-The `⋯` menu carries the secondary actions: scope-folder configuration (only meaningful in `Today` mode), and a jump to the plugin settings.
+Changes apply immediately and the panel stays open so you can adjust several at once. The **Tasks-only sidebar** has the same panel with its own independent selection.
 
 Each row shows the status icon (clickable to cycle, right-click for a full status menu), the task text with internal links live, and a muted chip linking back to the source note (`daily · 2026-06-03`, `weekly · W23`, …). Rows are single-line with full text in the `title` attribute. The list is sorted with daily tasks first, then weekly, monthly, quarterly, yearly — and capped by `tasksMaxItems` (default 200) with a *Showing 200 of 247 — increase limit in settings* footer when truncated.
 

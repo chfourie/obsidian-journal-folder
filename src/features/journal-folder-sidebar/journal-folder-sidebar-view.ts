@@ -139,8 +139,6 @@ export class JournalFolderSidebarView extends ItemView {
           // noinspection JSIgnoredPromiseFromCall
           this.refreshTaskPanel()
         },
-        openTaskScopeMenu: (trigger: MenuTrigger) =>
-          this.openTaskScopeMenu(trigger),
         openPluginSettings: () => this.openPluginSettings(),
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
@@ -240,7 +238,12 @@ export class JournalFolderSidebarView extends ItemView {
       this.plugin.app,
       settings,
       this.taskCache,
-      settings.tasksSidebarReference
+      {
+        anchor: settings.tasksSidebarAnchor,
+        range: settings.tasksSidebarRange,
+        folderMode: settings.tasksSidebarFolderMode,
+        folder: settings.tasksSidebarFolder,
+      }
     )
     this.#api.setTaskPanelSnapshot(snapshot)
   }
@@ -251,40 +254,6 @@ export class JournalFolderSidebarView extends ItemView {
     this.plugin.app.setting?.open?.()
     // @ts-ignore
     this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
-  }
-
-  private openTaskScopeMenu(trigger: MenuTrigger): void {
-    const settings = this.getSettings()
-    const known = findJournalFolderPaths(this.plugin.app).filter(
-      (p) => p !== '' && p !== '/'
-    )
-    const selected = new Set(settings.tasksSidebarFolders)
-    const menu = new Menu()
-    menu.addItem((mi) => {
-      mi.setTitle('All journal folders')
-      if (selected.size === 0) mi.setIcon('check')
-      mi.onClick(async () => {
-        await this.saveSettings({ ...settings, tasksSidebarFolders: [] })
-      })
-    })
-    if (known.length > 0) menu.addSeparator()
-    for (const folder of known) {
-      menu.addItem((mi) => {
-        mi.setTitle(folder)
-        if (selected.has(folder)) mi.setIcon('check')
-        mi.onClick(async () => {
-          const next = new Set(selected)
-          if (next.has(folder)) next.delete(folder)
-          else next.add(folder)
-          await this.saveSettings({
-            ...settings,
-            tasksSidebarFolders: [...next].sort(),
-          })
-        })
-      })
-    }
-    if (trigger.kind === 'mouse') menu.showAtMouseEvent(trigger.event)
-    else menu.showAtPosition({ x: trigger.rect.left, y: trigger.rect.bottom })
   }
 
   private refreshKnownFolders(): void {

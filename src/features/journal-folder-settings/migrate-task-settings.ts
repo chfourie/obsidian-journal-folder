@@ -25,6 +25,9 @@ import {
   type JournalFolderSettings,
   type TaskFlow,
   type TaskRendering,
+  type TasksSidebarAnchor,
+  type TasksSidebarFolderMode,
+  type TasksSidebarRange,
   type TaskStatus,
 } from '../../data-access'
 
@@ -55,6 +58,15 @@ type LegacyShape = JournalFolderSettings & {
   taskTemplates?: Record<string, TaskStatus[]>
   currentTaskTemplate?: string
   taskCheckboxRendering?: TaskRendering
+  // Pre-v4: a single shared list of folders the sidebar `Today` scope
+  // considered (empty = all). Split into per-panel mode + folder.
+  tasksSidebarFolders?: string[]
+  // Pre-v5: a single combined reference per panel. Split into a
+  // separate anchor + range. Shipped values were `'today' | 'dynamic'`;
+  // an unreleased interim also used `'week' | 'month' | 'quarter' |
+  // 'note'`.
+  tasksSidebarReference?: string
+  tasksOnlySidebarReference?: string
 }
 
 // Internal shape used while migrating: `taskFlows` may still be the
@@ -160,7 +172,66 @@ export function migrateTaskSettings(
   ;(next as JournalFolderSettings).taskFlows = upgradedFlows
   delete next.taskCheckboxRendering
 
+  // ---- v3 → v4/v5 (sidebar task scope) ----
+  // Two splits land here:
+  //   (v4) folder scope moved from a single shared
+  //        `tasksSidebarFolders: string[]` (empty = all) to a per-panel
+  //        folder *mode* + single specific folder.
+  //   (v5) the combined `tasksSidebarReference` / `tasksOnlySidebarReference`
+  //        split into a separate anchor (`today` | `note`) + range
+  //        (`day` | `week` | `month` | `quarter` | `year` | `all`).
+  // Seed the new fields from the legacy values when present, then drop
+  // the legacy keys. Both folder fields seed from the one shared array.
+  if (next.tasksSidebarReference !== undefined) {
+    const { anchor, range } = splitReference(next.tasksSidebarReference)
+    next.tasksSidebarAnchor = anchor
+    next.tasksSidebarRange = range
+    delete next.tasksSidebarReference
+  }
+  if (next.tasksOnlySidebarReference !== undefined) {
+    const { anchor, range } = splitReference(next.tasksOnlySidebarReference)
+    next.tasksOnlySidebarAnchor = anchor
+    next.tasksOnlySidebarRange = range
+    delete next.tasksOnlySidebarReference
+  }
+  const legacyFolders = next.tasksSidebarFolders
+  if (Array.isArray(legacyFolders)) {
+    const mode: TasksSidebarFolderMode =
+      legacyFolders.length > 0 ? 'specific' : 'all'
+    const folder = legacyFolders.length > 0 ? String(legacyFolders[0]) : ''
+    next.tasksSidebarFolderMode = mode
+    next.tasksSidebarFolder = folder
+    next.tasksOnlySidebarFolderMode = mode
+    next.tasksOnlySidebarFolder = folder
+    delete next.tasksSidebarFolders
+  }
+
   return next as JournalFolderSettings
+}
+
+// Maps a legacy combined reference value to the new anchor + range
+// pair. `'note'` / `'dynamic'` followed the active note (→ note anchor);
+// everything else anchored on today. The window size carries over where
+// it existed; unknown / note references default to a day window.
+function splitReference(ref: string): {
+  anchor: TasksSidebarAnchor
+  range: TasksSidebarRange
+} {
+  switch (ref) {
+    case 'week':
+      return { anchor: 'today', range: 'week' }
+    case 'month':
+      return { anchor: 'today', range: 'month' }
+    case 'quarter':
+      return { anchor: 'today', range: 'quarter' }
+    case 'today':
+      return { anchor: 'today', range: 'day' }
+    case 'note':
+    case 'dynamic':
+      return { anchor: 'note', range: 'day' }
+    default:
+      return { anchor: 'note', range: 'day' }
+  }
 }
 
 function isTaskFlow(value: unknown): value is TaskFlow {

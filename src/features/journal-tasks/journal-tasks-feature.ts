@@ -315,7 +315,6 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
 
     const referenceRange = buildReferenceRange({
       host: 'note',
-      referenceMode: 'dynamic',
       activeNote,
     })
 

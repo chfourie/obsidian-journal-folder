@@ -94,16 +94,24 @@ Primary left-click cycles stay short (typically open → in-progress → done �
 
 ## Conceptual model (model-agnostic)
 
-### Reference range
+### Reference (sidebar)
 
-- **Sidebar:** user toggles between `Today` (range = `[today, today]`) and `Dynamic` (range = active journal note's range; non-journal active leaf → falls back to today).
-- **In-note block, journal host:** range = host note's range.
-- **In-note block, non-journal host:** range = `[today, today]`.
+The sidebar reference is two orthogonal axes set in the scope panel (`TaskScopePanel.svelte`), resolved by `buildReferenceRange`:
+
+- **Anchor** — `today` (the current date) or `note` (the active journal note's date; non-journal leaf → falls back to today).
+- **Range** — `day` / `week` / `month` / `quarter` / `year` → `periodAround(base, unit)`, the calendar period of that size containing the anchor; `all` → `allTimeRange()` (no date filtering). `quarter` is only offered when `quartersEnabled`.
+
+So *Today + Week* = this week; *Current note + Month* = the month containing the active note; *Current note + All* = every task in scope regardless of date.
+
+In-note blocks ignore the axes and always use the host note's own tier range (`rangeForNote`), or `[today, today]` for a non-journal host.
 
 ### Scope
 
-- **Sidebar, `Dynamic`:** active note's folder.
-- **Sidebar, `Today`:** `tasksSidebarFolders` (empty = all known journal folders).
+Resolved by `resolveTaskFolders` from the panel's folder choice — fully independent of the anchor:
+
+- **Current note's folder** → the active note's parent (falls back to all journal folders when the active leaf isn't a journal note).
+- **All journal folders** → every known journal folder.
+- **Specific folder** → the single `…SidebarFolder` path (empty → all).
 - **In-note block, journal host:** code-block `folders:` if present, else host's folder.
 - **In-note block, non-journal host:** code-block `folders:` (required; missing → `ErrorMessage.svelte`).
 
@@ -129,9 +137,12 @@ A `tasksShowCompleted` boolean. When false, tasks whose status satisfies `model.
 | Field | Type | Layer | UI |
 |---|---|---|---|
 | `tasksSidebarEnabled` | `boolean` | global-only | Settings tab |
-| `tasksSidebarReference` | `'today' \| 'dynamic'` | global-only | Sidebar link toggle |
-| `tasksSidebarFolders` | `string[]` | global-only | Sidebar More... → edit scope folders |
-| `tasksShowCompleted` | `boolean` | global-only | Sidebar link toggle |
+| `tasksSidebarAnchor` | `'today' \| 'note'` | global-only | Sidebar scope panel |
+| `tasksSidebarRange` | `'day' \| 'week' \| 'month' \| 'quarter' \| 'year' \| 'all'` | global-only | Sidebar scope panel |
+| `tasksSidebarFolderMode` | `'note' \| 'all' \| 'specific'` | global-only | Sidebar scope panel |
+| `tasksSidebarFolder` | `string` | global-only | Sidebar scope panel (specific folder) |
+| `tasksShowCompleted` | `boolean` | global-only | Sidebar scope panel |
+| `tasksOnlySidebarAnchor` / `tasksOnlySidebarRange` / `tasksOnlySidebarFolderMode` / `tasksOnlySidebarFolder` / `tasksOnlySidebarShowCompleted` | (as above) | global-only | Tasks-only sidebar scope panel (independent of the combined sidebar) |
 | `tasksMaxItems` | `number` | global-only | Settings tab (default 200) |
 | `taskFlows` | `Record<string, TaskStatus[]>` | global-only | Tasks tab → flow detail (Apply template / Save as / Delete / Add status / drag-reorder / drill into status) |
 | `defaultTaskFlow` | `string` | global-only | Tasks tab overview (dropdown next to Add new flow) |
@@ -185,11 +196,12 @@ TASKS (5 · 3 ✓ hidden)          Today · Show completed · ⋯
 ☑ Coffee with Sam                · daily · 2026-06-03
 ```
 
-- `TASKS (n)` when toggle shows completed; `TASKS (visible · k ✓ hidden)` when hiding.
-- **Today / Dynamic** and **Show completed / Hide completed** are inline text links (`var(--text-accent)`), `<span role="button" tabindex="0">` with `onkeydown` Enter/Space handlers and `aria-pressed` reflecting state. Labels describe the *action*.
-- Both link toggles write back to global settings (`tasksSidebarReference`, `tasksShowCompleted`) via `saveSettings`.
-- **⋯** opens an Obsidian-native `Menu`: **edit scope folders** (only meaningful when reference is `Today`), **jump to settings**.
-- Narrow widths: controls wrap to a second line under the **TASKS** label.
+- `TASKS (n)` when the panel shows completed; `TASKS (visible · k ✓ hidden)` when hiding.
+- The header row carries a **Scope ▾** opener (right-aligned) that toggles `TaskScopePanel.svelte` — a `<body>`-portaled popover (same mechanism as the journal-header *More...* panel: positioned under the trigger, click-outside / Escape to close, reposition on scroll/resize). It holds four sections: **Anchor** (Today / Current note), **Range** (Day / Week / Month / Quarter‑if‑enabled / Year / All), **In folders** (Current note's folder / All journal folders / a single specific folder), and **Filter** (*Show completed tasks*).
+- Below the header, a read-only one-line summary (`anchor · range · folders · filter`, e.g. `Today · Week · All folders · Active`) shows the selection without opening the panel.
+- Selections write back to the panel's own global settings via `saveSettings` and the panel stays open so several can be changed at once.
+- Each sidebar (combined vs tasks-only) owns an independent copy of the scope settings, so changing one panel never moves the other.
+- The in-note `journal-tasks` block keeps the lightweight inline **All tasks / Active tasks** toggle (view-local, non-persistent) instead of the scope panel.
 
 ### Row
 
@@ -326,8 +338,7 @@ SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser
 - **In-note `show-completed` is view-local**, seeded from the block.
 - **`tasksUnitsInScope` is code-block-only**, not a setting.
 - **`tasksMaxItems` default 200**, with a visible truncation footer.
-- **Today / Dynamic** as a direct-flip link, not a menu.
-- **Toggle labels describe the action**, not the current state.
+- **Sidebar reference + folder scope** live together in one `<body>`-portaled scope panel (`TaskScopePanel.svelte`), opened from a **Scope ▾** link on the right of the `TASKS` header, superseding the original direct-flip *Today / Dynamic* link and the separate folders menu. The reference is two orthogonal axes — **anchor** (Today / Current note) × **range** (Day / Week / Month / Quarter‑if‑enabled / Year / All) — and folder scope (Current note's folder / All journal folders / a single specific folder) is fully independent of both. A read-only summary line under the header mirrors the current selection.
 
 ## Out of scope (v1)
 

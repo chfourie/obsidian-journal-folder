@@ -20,7 +20,16 @@ import { moment } from 'obsidian'
 import type { JournalNote } from '../../data-access'
 
 export type ReferenceHost = 'sidebar' | 'note'
-export type ReferenceMode = 'today' | 'dynamic'
+// The sidebar reference is two orthogonal axes: an *anchor* (the point
+// the window is measured from) and a *range* (the window size).
+export type ReferenceAnchor = 'today' | 'note'
+export type ReferenceRangeUnit =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year'
+  | 'all'
 
 export interface ReferenceRange {
   start: moment.Moment
@@ -29,33 +38,69 @@ export interface ReferenceRange {
 
 export interface ReferenceRangeInput {
   host: ReferenceHost
-  referenceMode?: ReferenceMode
+  // Sidebar only — the in-note block (`host: 'note'`) ignores these and
+  // always follows its host note's own period.
+  anchor?: ReferenceAnchor
+  range?: ReferenceRangeUnit
   activeNote?: JournalNote | null
 }
 
-// Returns `[start, end]` of the reference period as inclusive day-aligned
-// moments. The contract:
-//   sidebar + today                          → today's day
-//   sidebar + dynamic + journal active note  → active note's range
-//   sidebar + dynamic + non-journal/no leaf  → today's day
-//   note    + journal host                   → host note's range
-//   note    + non-journal host               → today's day
+// Returns `[start, end]` of the reference period as inclusive
+// day-aligned moments. The contract:
+//   sidebar + range 'all'                    → unbounded (everything)
+//   sidebar + anchor today + range r         → the r-period containing today
+//   sidebar + anchor note  + range r         → the r-period containing the
+//                                              active note (today if none)
+//   note host                                → host note's own range
+//                                              (today for non-journal hosts)
 export function buildReferenceRange(input: ReferenceRangeInput): ReferenceRange {
-  const useNote =
-    !!input.activeNote &&
-    (input.host === 'note' ||
-      (input.host === 'sidebar' && input.referenceMode === 'dynamic'))
-
-  if (useNote && input.activeNote) {
-    return rangeForNote(input.activeNote)
+  // The in-note block always tracks its host note's own tier range.
+  if (input.host === 'note') {
+    return input.activeNote ? rangeForNote(input.activeNote) : todayRange()
   }
-  return todayRange()
+  if (input.range === 'all') return allTimeRange()
+  const base =
+    input.anchor === 'note' && input.activeNote
+      ? input.activeNote.getMoment()
+      : // @ts-ignore — obsidian re-exports moment.
+        moment()
+  return periodAround(base, input.range ?? 'day')
+}
+
+// `[start, end]` of the calendar period of `unit` size that contains
+// `base`. Week boundaries honour the locale's first day of the week,
+// which the plugin sets via `applyStartOfWeek`.
+export function periodAround(
+  base: moment.Moment,
+  unit: moment.unitOfTime.StartOf
+): ReferenceRange {
+  const start = base.clone().startOf(unit)
+  return { start, end: start.clone().endOf(unit) }
+}
+
+// `[start, end]` of the current calendar period for `unit` (the period
+// containing today).
+export function currentPeriodRange(
+  unit: moment.unitOfTime.StartOf
+): ReferenceRange {
+  // @ts-ignore — obsidian re-exports moment.
+  return periodAround(moment(), unit)
+}
+
+// A range so wide every realistic note period intersects it — used by
+// the `'all'` range to disable date filtering without special-casing
+// the intersection test downstream.
+export function allTimeRange(): ReferenceRange {
+  return {
+    // @ts-ignore — obsidian re-exports moment.
+    start: moment('0001-01-01').startOf('day'),
+    // @ts-ignore — obsidian re-exports moment.
+    end: moment('9999-12-31').endOf('day'),
+  }
 }
 
 export function todayRange(): ReferenceRange {
-  // @ts-ignore — obsidian re-exports moment.
-  const start = moment().startOf('day')
-  return { start, end: start.clone().endOf('day') }
+  return currentPeriodRange('day')
 }
 
 export function rangeForNote(note: JournalNote): ReferenceRange {

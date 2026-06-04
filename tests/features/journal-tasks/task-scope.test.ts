@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from '../../../src/data-access'
 import {
   findTaskCandidates,
   effectiveUnits,
+  resolveTaskFolders,
 } from '../../../src/features/journal-tasks/task-scope'
 
 function setupApp(basenames: string[], folderPath = 'Journal'): App {
@@ -129,5 +130,64 @@ describe('effectiveUnits', () => {
     expect(
       effectiveUnits({ ...DEFAULT_SETTINGS, quartersEnabled: true })
     ).toContain('quarter')
+  })
+})
+
+describe('resolveTaskFolders', () => {
+  const ALL = ['Journal', 'Work']
+
+  it('folder mode "note" → active note folder', () => {
+    expect(
+      resolveTaskFolders({
+        folderMode: 'note',
+        folder: '',
+        activeNoteFolder: 'Work',
+        allFolders: ALL,
+      })
+    ).toEqual(['Work'])
+  })
+
+  it('folder mode "note" with no active journal note → all folders', () => {
+    expect(
+      resolveTaskFolders({
+        folderMode: 'note',
+        folder: '',
+        activeNoteFolder: null,
+        allFolders: ALL,
+      })
+    ).toEqual(ALL)
+  })
+
+  it('folder mode "all" → every known folder', () => {
+    expect(
+      resolveTaskFolders({
+        folderMode: 'all',
+        folder: 'Journal',
+        activeNoteFolder: 'Journal',
+        allFolders: ALL,
+      })
+    ).toEqual(ALL)
+  })
+
+  it('folder mode "specific" → the single folder', () => {
+    expect(
+      resolveTaskFolders({
+        folderMode: 'specific',
+        folder: 'Work',
+        activeNoteFolder: 'Journal',
+        allFolders: ALL,
+      })
+    ).toEqual(['Work'])
+  })
+
+  it('folder mode "specific" with empty folder → all folders', () => {
+    expect(
+      resolveTaskFolders({
+        folderMode: 'specific',
+        folder: '',
+        activeNoteFolder: null,
+        allFolders: ALL,
+      })
+    ).toEqual(ALL)
   })
 })

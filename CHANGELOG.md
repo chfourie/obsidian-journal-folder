@@ -7,6 +7,39 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.3.0]
+
+### Added
+- **Task scope panel.** The sidebar task panels (both the combined
+  sidebar's panel and the Tasks-only sidebar) now choose what to show
+  through a single popover opened from a **Scope ▾** link on the right
+  of the `TASKS` header. It has four sections:
+  - **Anchor** — *Today* or *Current note* (the journal note you're
+    reading; falls back to today on a non-journal leaf).
+  - **Range** — *Day / Week / Month / Quarter / Year*, or *All* for no
+    date filter. The range is the calendar period of that size around
+    the anchor, so e.g. *Today + Week* = this week and *Current note +
+    Month* = the month containing the active note. *Quarter* appears
+    only when quarterly notes are enabled.
+  - **In folders** — *Current note's folder*, *All journal folders*, or
+    a single specific folder. Independent of the anchor.
+  - **Filter** — show/hide completed tasks.
+- **Scope summary line.** A read-only line under the panel header shows
+  the active selection at a glance (`Anchor · Range · Folders · Filter`,
+  e.g. `Today · Week · All folders · Active`) so you can see it without
+  opening the panel.
+
+### Changed
+- The sidebar **More...** menu now uses the same styled popover as the
+  task scope panel instead of the native context menu. (The folder
+  picker dropdown is unchanged.)
+- The task panel's old *Today / Dynamic* toggle and separate folders
+  menu are replaced by the scope panel above. Existing settings migrate
+  automatically: *Dynamic* becomes a *Current note* anchor with a *Day*
+  range; a previously chosen scope folder becomes a *specific folder*
+  selection. The combined and Tasks-only sidebars now keep fully
+  independent scope selections.
+
 ## [2.2.0]
 
 ### Added

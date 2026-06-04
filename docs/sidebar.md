@@ -14,7 +14,7 @@ The bottom action row (Edit folder configuration / Initialize a new journal fold
 
 ## More... menu
 
-`More...` opens an Obsidian-native `Menu` populated from the current state by `buildMenuItems()` in the Svelte component. Items are gated so only options that actually apply right now appear:
+`More...` opens `SidebarMenuPanel.svelte` — a `<body>`-portaled styled panel (matching the task scope panel's look) rather than an Obsidian-native `Menu`. It's populated from the current state by `buildMenuItems()` (passed as a lazy `getItems` callback so visibility/labels reflect state at open time). Each row renders its Lucide icon through Obsidian's `setIcon`. Items are gated so only options that actually apply right now appear:
 
 - **Switch to dynamic / Switch to static** — always present, label flips with the current `sidebarMode`.
 - **Switch to default folder** — included only when the picker is on a non-default folder *and* the configured default still exists in the known list.
@@ -24,7 +24,7 @@ The bottom action row (Edit folder configuration / Initialize a new journal fold
 
 Separators are inserted between the mode item, the default-folder group, and the per-folder/initialise group; the `buildMenuItems()` flow skips the trailing separator for an empty group rather than emitting orphans.
 
-The menu is right-aligned to the More... link rather than left-aligned at the click point. Obsidian's `Menu` API doesn't expose a right-aligned option, so the view's `showMoreMenu(rect, items)` calls `Menu.showAtPosition({ x: rect.right, y: rect.bottom + 4 })` first and then on the next animation frame measures `menu.dom`'s width and shifts `dom.style.left = rect.right - width` (clamped to a minimum 8px from the viewport edge). The Svelte side passes the trigger's `getBoundingClientRect()` so the same path works for both pointer clicks and keyboard activation.
+The panel is right-aligned under the More... link (`left = trigger.right − panelWidth`, clamped ≥8px from the viewport edge) and closes on click-outside / Escape / scroll, repositioning on scroll/resize. The **folder picker** beneath the header still uses the Obsidian-native `Menu` via the component's `showMenu` prop → the view's `showMoreMenu(rect, items)` (which does the same right-align trick by shifting `menu.dom`); only the More... menu moved to the styled panel.
 
 ## Modes
 

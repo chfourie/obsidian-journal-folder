@@ -16,17 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  ItemView,
-  Menu,
-  type Plugin,
-  type WorkspaceLeaf,
-} from 'obsidian'
+import { ItemView, type Plugin, type WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
-import {
-  findJournalFolderPaths,
-  type JournalFolderSettings,
-} from '../../data-access'
+import { type JournalFolderSettings } from '../../data-access'
 import {
   computeTaskSnapshot,
   type TaskCache,
@@ -40,10 +32,6 @@ type ViewRegistry = {
   register: (v: JournalTasksSidebarView) => void
   unregister: (v: JournalTasksSidebarView) => void
 }
-
-export type MenuTrigger =
-  | { kind: 'mouse'; event: MouseEvent }
-  | { kind: 'keyboard'; rect: DOMRect }
 
 export type TasksOnlyUpdateApi = {
   setSettings: (s: JournalFolderSettings) => void
@@ -102,8 +90,6 @@ export class JournalTasksSidebarView extends ItemView {
           this.refresh()
         },
         obsidianApp: this.plugin.app,
-        openTaskScopeMenu: (trigger: MenuTrigger) =>
-          this.openTaskScopeMenu(trigger),
         openPluginSettings: () => this.openPluginSettings(),
       },
     })
@@ -167,7 +153,12 @@ export class JournalTasksSidebarView extends ItemView {
       this.plugin.app,
       settings,
       this.taskCache,
-      settings.tasksOnlySidebarReference
+      {
+        anchor: settings.tasksOnlySidebarAnchor,
+        range: settings.tasksOnlySidebarRange,
+        folderMode: settings.tasksOnlySidebarFolderMode,
+        folder: settings.tasksOnlySidebarFolder,
+      }
     )
     this.#api.setSnapshot(snapshot)
   }
@@ -180,42 +171,4 @@ export class JournalTasksSidebarView extends ItemView {
     this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
   }
 
-  // Mirrors the combined sidebar's scope menu — multi-select folders
-  // narrow the `Today` reference. In `Dynamic` mode the
-  // `tasksSidebarFolders` setting is ignored at compute time, so
-  // editing it from here is harmless (the menu still appears so the
-  // user can pre-configure before switching modes).
-  private openTaskScopeMenu(trigger: MenuTrigger): void {
-    const settings = this.getSettings()
-    const known = findJournalFolderPaths(this.plugin.app).filter(
-      (p) => p !== '' && p !== '/'
-    )
-    const selected = new Set(settings.tasksSidebarFolders)
-    const menu = new Menu()
-    menu.addItem((mi) => {
-      mi.setTitle('All journal folders')
-      if (selected.size === 0) mi.setIcon('check')
-      mi.onClick(async () => {
-        await this.saveSettings({ ...settings, tasksSidebarFolders: [] })
-      })
-    })
-    if (known.length > 0) menu.addSeparator()
-    for (const folder of known) {
-      menu.addItem((mi) => {
-        mi.setTitle(folder)
-        if (selected.has(folder)) mi.setIcon('check')
-        mi.onClick(async () => {
-          const next = new Set(selected)
-          if (next.has(folder)) next.delete(folder)
-          else next.add(folder)
-          await this.saveSettings({
-            ...settings,
-            tasksSidebarFolders: [...next].sort(),
-          })
-        })
-      })
-    }
-    if (trigger.kind === 'mouse') menu.showAtMouseEvent(trigger.event)
-    else menu.showAtPosition({ x: trigger.rect.left, y: trigger.rect.bottom })
-  }
 }

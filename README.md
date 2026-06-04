@@ -13,7 +13,7 @@ You can run as many independent journals as you like in the same vault. A folder
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](docs/usage/sidebar.md)
 - **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](docs/usage/auto-template.md)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](docs/usage/quarters.md)
-- **Tasks (preview)** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows. [Read more →](docs/usage/tasks.md)
+- **Tasks (preview)** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows and a scope picker (anchor × range + folder) for choosing exactly which tasks appear. [Read more →](docs/usage/tasks.md)
 
 ## Why folder-based?
 
