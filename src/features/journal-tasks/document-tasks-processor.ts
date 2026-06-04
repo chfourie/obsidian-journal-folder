@@ -125,6 +125,12 @@ function attachHandlersToNativeCheckbox(
   }
 }
 
+// Attribute markers keep the swap idempotent across Obsidian re-renders:
+// the input persists (we don't remove it), so without a marker a re-run
+// would stack a second icon.
+const DOC_SWAPPED_ATTR = 'data-jf-doc-swapped'
+const DOC_ICON_ATTR = 'data-jf-doc-icon'
+
 function swapCheckbox(
   li: HTMLElement,
   target: TaskMutationTarget,
@@ -135,11 +141,23 @@ function swapCheckbox(
     'input.task-list-item-checkbox'
   )
   if (!input) return
+
+  // Rebuild from the freshly parsed status: drop the icon we added on a
+  // previous render (status / model may have changed since).
+  const existing = input.nextElementSibling
+  if (existing instanceof HTMLElement && existing.hasAttribute(DOC_ICON_ATTR)) {
+    existing.remove()
+  }
+
   const iconEl = document.createElement('span')
+  iconEl.setAttribute(DOC_ICON_ATTR, '')
   iconEl.setAttribute('role', 'button')
   iconEl.setAttribute('tabindex', '0')
   iconEl.setAttribute('aria-label', `Task status: ${target.status}`)
   renderStatusIconById(iconEl, target.status, model)
+  // Marks a document-body task icon (vs a sidebar/panel one) so CSS
+  // overlays it onto the kept native checkbox.
+  iconEl.classList.add('jf-doc-task-status')
 
   iconEl.addEventListener('click', (evt) => {
     evt.preventDefault()
@@ -160,5 +178,20 @@ function swapCheckbox(
     }
   })
 
-  input.replaceWith(iconEl)
+  // Keep the native checkbox in normal flow so the theme's own layout
+  // positions it (margin / indent — whatever the theme uses); just hide
+  // it and route interaction to the icon, which is overlaid on top via a
+  // negative margin (see styles.css `.jf-doc-task-status`). This makes
+  // the icon land exactly where the theme draws the checkbox, without
+  // measuring or re-deriving per-theme geometry. `opacity: 0` hides the
+  // whole element (border, fill, and any ::before/::after check glyph) so
+  // nothing bleeds through. Themes that take the checkbox OUT of flow
+  // (absolute / transform) aren't covered — use Theme-checkbox rendering
+  // for those.
+  input.setAttribute(DOC_SWAPPED_ATTR, '')
+  input.setAttribute('aria-hidden', 'true')
+  input.style.opacity = '0'
+  input.style.pointerEvents = 'none'
+  input.style.marginInlineEnd = '0'
+  input.after(iconEl)
 }

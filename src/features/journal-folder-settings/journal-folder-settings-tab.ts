@@ -25,6 +25,7 @@ import {
   MomentFormatComponent,
   type Plugin,
   PluginSettingTab,
+  setIcon,
   Setting,
   TextComponent,
   ToggleComponent,
@@ -850,23 +851,47 @@ class SettingsFormBuilder {
     desc: string
   ): void {
     let component: TextComponent
+    const style = settings.taskMigrationReferenceStyle
 
     const setting = new Setting(this.containerEl).setName(name).setDesc(desc)
+
+    // Live preview of the marker. For Lucide it renders the actual icon
+    // (the stored `lucide:<name>` token isn't human-readable); for other
+    // styles it just echoes the marker character(s).
+    let preview: HTMLElement | null = null
+    const refreshPreview = (): void => {
+      if (!preview) return
+      preview.empty()
+      const value = settings[field]
+      if (value.startsWith(LUCIDE_MARKER_PREFIX)) {
+        setIcon(preview, value.slice(LUCIDE_MARKER_PREFIX.length).trim())
+      } else {
+        preview.setText(value)
+      }
+    }
+
     setting.addText((text) => {
       component = text
       text.setValue(settings[field]).onChange(
         debounce((value: string) => {
           settings[field] = value
+          refreshPreview()
           // noinspection JSIgnoredPromiseFromCall
           this.saveSettings(settings)
         }, 250, true)
       )
     })
 
+    if (style !== 'text') {
+      preview = setting.controlEl.createSpan({
+        cls: 'jf-migration-marker-preview',
+      })
+      refreshPreview()
+    }
+
     // Emoji / Lucide modes get a picker that reuses the task-status icon
     // grids. Lucide stores a `lucide:<name>` token; the picker works in
     // bare names, so strip / re-add the prefix around it.
-    const style = settings.taskMigrationReferenceStyle
     if (style === 'emoji') {
       setting.addExtraButton((btn) => {
         btn
@@ -879,6 +904,7 @@ class SettingsFormBuilder {
               async (emoji) => {
                 settings[field] = emoji
                 component.setValue(emoji)
+                refreshPreview()
                 await this.saveSettings(settings)
               }
             ).open()
@@ -897,6 +923,7 @@ class SettingsFormBuilder {
               const token = `${LUCIDE_MARKER_PREFIX}${name}`
               settings[field] = token
               component.setValue(token)
+              refreshPreview()
               await this.saveSettings(settings)
             }).open()
           })

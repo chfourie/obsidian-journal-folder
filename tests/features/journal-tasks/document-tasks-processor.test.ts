@@ -105,7 +105,17 @@ describe('processDocumentTasks', () => {
     )
     const icons = el.querySelectorAll('.jf-task-status')
     expect(icons.length).toBe(2)
-    expect(el.querySelector('input.task-list-item-checkbox')).toBeNull()
+    // The native checkbox is kept in flow (so the theme positions it) but
+    // hidden and non-interactive; the icon is overlaid on top of it.
+    const inputs = el.querySelectorAll<HTMLInputElement>(
+      'input.task-list-item-checkbox'
+    )
+    expect(inputs.length).toBe(2)
+    inputs.forEach((input) => {
+      expect(input.getAttribute('aria-hidden')).toBe('true')
+      expect(input.style.opacity).toBe('0')
+      expect(input.style.pointerEvents).toBe('none')
+    })
   })
 
   it('mirrors the status char onto the parent li data-task', () => {

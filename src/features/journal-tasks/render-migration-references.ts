@@ -63,16 +63,13 @@ function appendMarker(wrapper: HTMLElement, marker: string): void {
   }
 }
 
-// Scans a rendered element for migration references and rewrites each so
-// the label text and the reference (marker + link) live inside a single
-// `.jf-migration-line` element. This matters because task-list themes
-// often render `li.task-list-item` as a CSS grid, which blockifies every
-// direct child — a bare marker/link would be dropped onto its own row.
-// Merging label + reference into one element keeps them in a single grid
-// cell so they flow inline. The reference itself sits in a nested
-// `.jf-migration-ref` span carrying the configured opacity (full on
-// hover). No-op when both markers are empty (a bare link can't be told
-// apart from an ordinary link).
+// Scans a rendered element for migration references and wraps each
+// (marker + link) in an inline `.jf-migration-ref` span carrying the
+// configured opacity (full on hover), rendering a `lucide:` marker as an
+// icon. The wrapper is plain inline content — the task row keeps its
+// native `list-item` flow (the plugin no longer forces task rows to
+// grid/flex), so this never reflows the line. No-op when both markers
+// are empty (a bare link can't be told apart from an ordinary link).
 export function processMigrationReferences(
   el: HTMLElement,
   settings: JournalFolderSettings
@@ -100,22 +97,15 @@ export function processMigrationReferences(
     const parent = link.parentNode
     if (!parent) continue
 
-    // The dimmed reference: marker (icon or text) + space + the link.
+    // Keep the label text in place; move the marker + link into the
+    // dimmed inline wrapper.
+    prev.textContent = text.slice(0, match.index)
     const ref = document.createElement('span')
     ref.className = 'jf-migration-ref'
     ref.style.setProperty('--jf-migration-ref-opacity', String(opacity / 100))
     appendMarker(ref, match.marker)
     ref.appendChild(document.createTextNode(' '))
-
-    // Outer line wrapper holds the preceding label text + the reference
-    // as ONE node, so a grid-based task row keeps them on the same line.
-    const lineWrap = document.createElement('span')
-    lineWrap.className = 'jf-migration-line'
-    lineWrap.appendChild(document.createTextNode(text.slice(0, match.index)))
-    lineWrap.appendChild(ref)
-
-    parent.insertBefore(lineWrap, prev)
-    ref.appendChild(link) // moves the link out of the row into the ref
-    parent.removeChild(prev)
+    parent.insertBefore(ref, link)
+    ref.appendChild(link)
   }
 }

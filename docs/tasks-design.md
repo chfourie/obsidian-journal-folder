@@ -334,6 +334,7 @@ SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser
 - **Task migration is a first-class command** (see *Task migration* below) — it stamps the origin with the flow's configured migrated status, adds a `→ [[dest]]` forward link, and writes a fresh copy into the chosen note. (Earlier the plugin only recognised a manually-typed `[>]`.)
 - **Circle/square checkboxes** controlled via a global setting; uses Lucide icon variants, no bespoke CSS.
 - **Checkbox toggling from sidebar is in scope from v1**, via `vault.process` with line-match guard.
+- **Document task rows keep Obsidian's native `list-item` flow.** The `everywhere`-mode renderer swaps the `<input>` for an inline `.jf-task-status` icon in place and adds **no** layout CSS on the `<li>`. A grid/flex `<li>` blockifies every direct child, so any trailing inline content (links, emphasis, migration references) is pushed onto its own row — do not reintroduce it. Enabled rendering must match the plugin-disabled layout, plus the swapped icon.
 - **Sidebar quick toggles persist** to global settings; the toggles *are* the controls (no duplicate UI in the settings tab).
 - **In-note `show-completed` is view-local**, seeded from the block.
 - **`tasksUnitsInScope` is code-block-only**, not a setting.

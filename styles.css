@@ -703,14 +703,6 @@
  * The post-processor wraps the marker and its link in this span and sets
  * `--jf-migration-ref-opacity` from the configured setting; the reference
  * fades to that opacity and returns to full on hover. */
-/* Wraps the task label + its migration reference in one node so themes
- * that render task rows as a CSS grid keep them in a single cell (grid
- * blockifies direct children, which would otherwise drop the reference
- * onto its own row). */
-.jf-migration-line {
-	display: inline;
-}
-
 .jf-migration-ref {
 	opacity: var(--jf-migration-ref-opacity, 0.3);
 	transition: opacity 120ms ease;
@@ -732,6 +724,21 @@
 .jf-migration-ref-icon .svg-icon {
 	width: 1em;
 	height: 1em;
+}
+
+/* Marker preview shown beside the marker text input in settings — renders
+ * the actual icon for a Lucide token (or the literal char for emoji). */
+.jf-migration-marker-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.6em;
+	color: var(--text-muted);
+}
+
+.jf-migration-marker-preview .svg-icon {
+	width: 1.2em;
+	height: 1.2em;
 }
 
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
@@ -1381,62 +1388,30 @@ li.task-list-item[data-task="-"] {
 	stroke-width: 2.25;
 }
 
-/* Reading view — when our renderer has swapped the native checkbox
- * for a `.jf-task-status` icon, promote the task `<li>` to a grid
- * layout. Icon + text become grid cells centred along the column
- * axis — alignment is computed from each cell's actual rendered
- * geometry rather than a hand-picked vertical-align offset, so it
- * stays correct at any font size, line height, or theme.
- *
- * Sub-lists (`<ul>` / `<ol>`) span both columns so they break to
- * a fresh row and keep their normal block-level layout — the grid
- * doesn't accidentally inline nested tasks next to their parent.
- *
- * `:has()` ships in every Chromium version Obsidian's Electron
- * runtime ever bundled, so no fallback needed. */
-li.task-list-item:has(> .jf-task-status) {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	align-items: center;
-	column-gap: var(--list-marker-gap, 0.5em);
-	list-style: none;
-	margin-inline-start: 0;
-	padding-inline-start: 0;
-}
+/* Reading view — our renderer swaps the native `<input>` checkbox for a
+ * `.jf-task-status` icon IN PLACE, so the task `<li>` keeps Obsidian's
+ * native `list-item` flow. The icon is an inline replacement (sized to
+ * `--checkbox-size`, with the marker gap as its right margin), which
+ * means the task text and ANY trailing inline content — links, emphasis,
+ * migration references — flow exactly as they do with the plugin
+ * disabled. We deliberately do NOT promote the row to flex/grid: those
+ * blockify every direct child of the `<li>`, dropping each trailing
+ * inline element onto its own row. Keeping native flow is the only
+ * layout that stays stable for arbitrary task content. */
 
-/* Drop the bullet-column padding-inline-start the browser adds to any
- * UL holding plugin-rendered task LIs. Native theme checkboxes have
- * their own absolute / negative-margin positioning that visually
- * crosses into the bullet space; our `.jf-task-status` span doesn't,
- * so without this reset the icons end up indented by the whole marker
- * column relative to surrounding body text. The theme default has
- * high specificity so `!important` is needed to win. */
-ul:has(> li.task-list-item > .jf-task-status) {
-	padding-inline-start: 0 !important;
-}
-
-/* …but keep the natural indent on NESTED task lists so sub-tasks
- * visibly sit below their parent. The rule above just flattened the
- * nested UL too; restore a fixed marker-width offset (matching the
- * one Obsidian's own theme uses for native nested checkbox lists)
- * scoped to UL/OLs whose parent is itself a plugin-rendered task LI.
- * `1.6em` lines up with the parent's `auto 1fr` icon column + gap
- * across the moonstone, minimal, and AnuPpuccin defaults. */
-li.task-list-item:has(> .jf-task-status) > ul,
-li.task-list-item:has(> .jf-task-status) > ol {
-	padding-inline-start: 1.6em !important;
-}
-
-li.task-list-item:has(> .jf-task-status) > ul,
-li.task-list-item:has(> .jf-task-status) > ol {
-	grid-column: 1 / -1;
-}
-
-/* Inline margin / vertical-align on the icon are moot once the row
- * is a grid — neutralise them so the gap is purely the column-gap. */
-li.task-list-item:has(> .jf-task-status) > .jf-task-status {
-	margin-right: 0;
-	vertical-align: baseline;
+/* Reading view only: the native checkbox is kept in flow (hidden via
+ * opacity) so the theme positions it; the icon is the input's next
+ * sibling and we overlay it back onto the checkbox with a negative
+ * inline-start margin of one checkbox width. The marker gap then sits
+ * between the icon and the task text. Because position comes from the
+ * (still-in-flow) native checkbox, this matches the theme's layout
+ * without measuring geometry, and reflows naturally. The
+ * `jf-doc-task-status` marker is added only by the reading-view swap —
+ * live preview positions its icon correctly on its own, and the
+ * sidebar/panel rows keep their own flex spacing. */
+.jf-doc-task-status.jf-task-status {
+	margin-inline-start: calc(-1 * var(--checkbox-size, 1em));
+	margin-inline-end: var(--list-marker-gap, 0.5em);
 }
 
 /* Panel rows already establish their own flex layout — the icon

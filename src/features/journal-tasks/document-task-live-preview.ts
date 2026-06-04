@@ -304,6 +304,10 @@ class LivePreviewPlugin implements PluginValue {
     span.setAttribute('tabindex', '0')
     span.setAttribute('aria-label', `Task status: ${statusId}`)
     renderStatusIconById(span, statusId, model)
+    // NOTE: deliberately NOT tagged `jf-doc-task-status`. In live preview
+    // the icon is appended after the (hidden) native checkbox and
+    // CodeMirror already positions it correctly in the marker area —
+    // adding the reading-view margin pull would shove it too far left.
     return span
   }
 
