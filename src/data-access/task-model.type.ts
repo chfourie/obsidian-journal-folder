@@ -100,6 +100,15 @@ export interface TaskStatus {
 export interface TaskFlow {
   statuses: TaskStatus[]
   rendering: TaskRendering
+  // Id of the status stamped onto a task's *origin* line when it is
+  // migrated to another note. Must name an **inactive** status
+  // (`isDone === true`) — migration moves a task to a new note and
+  // closes it out at the source. `undefined` (or a dangling / active
+  // id) means this flow has no migrated status configured, which
+  // disables the migration commands for folders using it. Validated
+  // both where it's chosen (the flow editor only offers inactive
+  // statuses) and when a status's Active toggle is edited.
+  migratedStatus?: TaskStatusId
 }
 
 export type TaskRendering = 'plugin' | 'theme'
@@ -121,6 +130,12 @@ export interface TaskModel {
   // Display order — drives both the right-click status menu and the
   // priority used by `parseLine` (first matching char wins).
   statuses: TaskStatus[]
+  // The flow's configured migrated status id, or `null` when none is
+  // set (or the configured id isn't a real, inactive status). Drives
+  // the task-migration commands; absent from `model.id` because it
+  // doesn't affect parsed `JournalTask` data, so it must not churn
+  // the task cache.
+  migratedStatusId: TaskStatusId | null
   parseLine(line: string): { status: TaskStatusId; text: string } | null
   // Returns the full bracketed token (`'[x]'`) for the given status,
   // including the brackets so callers don't have to assemble it.

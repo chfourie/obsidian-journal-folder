@@ -40,7 +40,7 @@ export function resolveTaskModel(settings: {
   taskFlow?: string
 }): TaskModel {
   const flow = pickFlow(settings)
-  return buildTaskModel(flow.statuses, flow.rendering)
+  return buildTaskModel(flow.statuses, flow.rendering, flow.migratedStatus)
 }
 
 function pickFlow(settings: {

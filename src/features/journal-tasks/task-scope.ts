@@ -116,6 +116,43 @@ export function resolveTaskFolders(input: ResolveFoldersInput): string[] {
   return input.allFolders
 }
 
+// Lists the journal notes that live directly under `folderPath`, sorted
+// by date descending (newest first) so a migration target picker shows
+// the most likely destinations at the top. `excludePath` drops the
+// source note from the list (you don't migrate a note's tasks into
+// itself). Non-journal markdown and the `journal-folder.md` config note
+// are skipped via the basename pattern check. Migration is single-folder
+// by design, so this is the canonical destination candidate set.
+export function listJournalNotesInFolder(input: {
+  app: App
+  folderPath: string
+  settings: JournalFolderSettings
+  excludePath?: string
+}): TFile[] {
+  const { app, folderPath, settings, excludePath } = input
+  const factory: JournalNoteFactory = journalNoteFactoryWithSettings(settings)
+  const quartersEnabled = !!settings.quartersEnabled
+  const folder = app.vault.getAbstractFileByPath(
+    folderPath === '' || folderPath === '/' ? '/' : folderPath
+  )
+  if (!(folder instanceof TFolder)) return []
+  const matches: { file: TFile; note: JournalNote }[] = []
+  for (const child of folder.children) {
+    if (!(child instanceof TFile) || child.extension !== 'md') continue
+    if (child.path === excludePath) continue
+    if (!journalUnitForBasename(child.basename, quartersEnabled)) continue
+    try {
+      matches.push({ file: child, note: factory(child) })
+    } catch {
+      // Basename passed the unit check but the factory rejected it —
+      // skip rather than surface a half-built note.
+    }
+  }
+  return matches
+    .sort((a, b) => b.note.getMoment().valueOf() - a.note.getMoment().valueOf())
+    .map((m) => m.file)
+}
+
 export const ALL_UNITS: JournalTimeUnit[] = [
   'day',
   'week',

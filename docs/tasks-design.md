@@ -331,7 +331,7 @@ SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser
 - **Per-status rendering** (`plugin` ↔ `theme`) lets a single flow mix theme-styled and custom-painted checkboxes — useful when a theme supports some chars but not others.
 - **Status transitions** via left-click cycle + right-click menu, delegated to active `TaskModel`.
 - **Migrated / cancelled** treated identically to completed for filtering (`isDone` returns true).
-- **Migration is syntactic only** in v1 — plugin doesn't auto-copy tasks to a future note; user marks `[>]` manually.
+- **Task migration is a first-class command** (see *Task migration* below) — it stamps the origin with the flow's configured migrated status, adds a `→ [[dest]]` forward link, and writes a fresh copy into the chosen note. (Earlier the plugin only recognised a manually-typed `[>]`.)
 - **Circle/square checkboxes** controlled via a global setting; uses Lucide icon variants, no bespoke CSS.
 - **Checkbox toggling from sidebar is in scope from v1**, via `vault.process` with line-match guard.
 - **Sidebar quick toggles persist** to global settings; the toggles *are* the controls (no duplicate UI in the settings tab).
@@ -340,10 +340,21 @@ SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser
 - **`tasksMaxItems` default 200**, with a visible truncation footer.
 - **Sidebar reference + folder scope** live together in one `<body>`-portaled scope panel (`TaskScopePanel.svelte`), opened from a **Scope ▾** link on the right of the `TASKS` header, superseding the original direct-flip *Today / Dynamic* link and the separate folders menu. The reference is two orthogonal axes — **anchor** (Today / Current note) × **range** (Day / Week / Month / Quarter‑if‑enabled / Year / All) — and folder scope (Current note's folder / All journal folders / a single specific folder) is fully independent of both. A read-only summary line under the header mirrors the current selection.
 
+## Task migration
+
+Moves active tasks from one journal note to another **within the same folder** (cross-folder migration is intentionally unsupported). Implemented in `task-migration.ts` (pure helpers + the `migrateTasks` orchestrator), `task-migration-menu.ts` (the three triggers), and the picker UI (`MigrationTaskPicker.svelte` + `migration-picker-modal.ts` + `migration-target-modal.ts`).
+
+- **Migrated status** — a per-flow `TaskFlow.migratedStatus` (id). It must name an **inactive** status (`isDone === true`); `buildTaskModel` exposes the validated id as `model.migratedStatusId` (null when unset/invalid), which gates the whole feature. The flow editor only offers inactive statuses, and the status-detail Active toggle refuses to make the designated status active. The legacy `[>]` status is auto-wired on settings load (idempotent; an explicit `''` clear is preserved).
+- **Eligibility** — active tasks only (`!model.isDone`).
+- **Copy** — `buildMigratedLine` re-emits a top-level bullet preserving the origin's current active status (fallback to the flow's first status); sub-bullets/indentation are dropped in v1.
+- **Origin** — `transformOriginLine` re-stamps to the migrated status and appends ` → [[dest]]` (no double-link), behind the same line-match guard `task-transition.ts` uses. Origins are stamped *first*; only successfully-stamped tasks are copied, so a drifted line is neither duplicated nor stamped.
+- **Placement** — `computeInsertion` (pure) inserts per the `taskMigrationPlacement` setting: `after-last-task` (default) / `heading` (uses `taskMigrationHeading`, created if absent) / `top` / `end`. Placement + heading are **folder-honored** (the only `task*` fields that are — they're a per-note layout concern).
+- **Triggers** — (1) `editor-menu` on a task line → migrate that one task → note picker; (2) `file-menu` *"Migrate tasks from this note…"* → grouped multi-select of the note's active tasks → note picker; (3) `file-menu` *"Migrate tasks to this note…"* → destination is the clicked note, grouped multi-select of the folder's active tasks (destination excluded). Note pickers (`listJournalNotesInFolder`) and the to-note candidate set are confined to the single folder.
+
 ## Out of scope (v1)
 
 - Per-status filters in the header (only the binary Show/Hide completed link).
-- Auto-migration ("migrate to tomorrow's daily").
+- Cross-folder migration and auto-migration ("migrate to tomorrow's daily") — migration is single-folder and the destination is chosen explicitly; non-existent targets aren't created.
 - Configurable cycle order.
 - Compatibility with Tasks-plugin emoji metadata (due dates, priorities, recurrence).
 - Per-folder model or filter overrides.

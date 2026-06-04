@@ -144,31 +144,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     }
   }
 
-  // Group consecutive tasks that share a source note. The upstream
-  // sort already places same-file tasks adjacent (tier → folder →
-  // line), so a single linear pass is all we need. Heading text is
-  // the parsed note's `getTitle()` (e.g. `Wednesday, 03 June 2026`),
-  // which is more readable than the short chip used to be.
+  // Group tasks by source note via a Map (NOT consecutive-run
+  // grouping). `sortTasks` tie-breaks by folder + source-line, not file
+  // path, so when several same-tier notes are in scope (e.g. range
+  // `All`) their tasks interleave — a same path would then appear in
+  // multiple non-adjacent runs, producing duplicate `{#each}` keys.
+  // Keying by path keeps one group per note in first-seen order.
+  // Heading text is the parsed note's `getTitle()` (e.g.
+  // `Wednesday, 03 June 2026`), which is more readable than the short
+  // chip used to be.
   type TaskGroup = {
     path: string
     title: string
     tasks: JournalTask[]
   }
   const groups = $derived.by(() => {
-    const out: TaskGroup[] = []
+    const byPath = new Map<string, TaskGroup>()
     for (const task of tasks) {
-      const last = out[out.length - 1]
-      if (last && last.path === task.sourceFile.path) {
-        last.tasks.push(task)
-      } else {
-        out.push({
+      let group = byPath.get(task.sourceFile.path)
+      if (!group) {
+        group = {
           path: task.sourceFile.path,
           title: task.noteTitle,
-          tasks: [task],
-        })
+          tasks: [],
+        }
+        byPath.set(group.path, group)
       }
+      group.tasks.push(task)
     }
-    return out
+    return [...byPath.values()]
   })
 
   function openGroupNote(path: string) {

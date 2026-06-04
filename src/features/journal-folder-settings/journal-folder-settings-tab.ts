@@ -39,6 +39,7 @@ import {
   isBuiltInTemplate,
   type JournalFolderSettings,
   type StartOfWeekSetting,
+  type TaskMigrationPlacement,
   type TaskStatus,
 } from '../../data-access'
 import { DEFAULT_AUTO_TEMPLATE } from '../journal-auto-template'
@@ -496,6 +497,7 @@ class SettingsFormBuilder {
       )
     this.createTasksMaxItemsSetting(settings)
     this.createTaskInteractionScopeSetting(settings)
+    this.createMigrationPlacementSettings(settings)
 
     new Setting(this.containerEl)
       .setName('Task flows')
@@ -623,6 +625,73 @@ class SettingsFormBuilder {
           'tasks render.'
       )
     this.createFolderTaskFlowSection(settings)
+    this.createMigrationPlacementSettings(settings)
+  }
+
+  // Migration placement is one of the few task fields a folder may
+  // override (it's a per-note layout concern), so this renders in both
+  // the global Tasks overview and the per-folder modal's Tasks tab. The
+  // heading text input only shows when placement is "Under a heading";
+  // a re-render toggles it as the dropdown changes.
+  createMigrationPlacementSettings(settings: JournalFolderSettings): void {
+    const PLACEMENT_LABELS: Record<TaskMigrationPlacement, string> = {
+      'after-last-task': 'After the last task',
+      heading: 'Under a heading',
+      top: 'Top of note',
+      end: 'End of note',
+    }
+
+    let dropdown: DropdownComponent
+
+    const onPlacement = (value: string) => {
+      settings.taskMigrationPlacement = value as TaskMigrationPlacement
+      // noinspection JSIgnoredPromiseFromCall
+      this.saveSettings(settings)
+      this.render()
+    }
+
+    new Setting(this.containerEl)
+      .setName('Migration placement')
+      .setDesc(
+        'Where the task-migration commands insert copied tasks in the ' +
+          'destination note.'
+      )
+      .addDropdown((dd) => {
+        dropdown = dd
+        for (const value of Object.keys(
+          PLACEMENT_LABELS
+        ) as TaskMigrationPlacement[]) {
+          dd.addOption(value, PLACEMENT_LABELS[value])
+        }
+        dd.setValue(settings.taskMigrationPlacement).onChange(onPlacement)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            dropdown.setValue(DEFAULT_SETTINGS.taskMigrationPlacement)
+            onPlacement(DEFAULT_SETTINGS.taskMigrationPlacement)
+          })
+      })
+
+    if (settings.taskMigrationPlacement === 'heading') {
+      new Setting(this.containerEl)
+        .setName('Migration heading')
+        .setDesc(
+          'Heading migrated tasks are placed under (matched ' +
+            'case-insensitively; created as a level-2 heading if missing).'
+        )
+        .addText((text) => {
+          text.setValue(settings.taskMigrationHeading).onChange(
+            debounce((value: string) => {
+              settings.taskMigrationHeading = value.trim() || 'Tasks'
+              // noinspection JSIgnoredPromiseFromCall
+              this.saveSettings(settings)
+            }, 250, true)
+          )
+        })
+    }
   }
 
   renderResetTab(): void {

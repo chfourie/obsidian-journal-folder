@@ -30,7 +30,8 @@ import { TASK_LINE_REGEX } from './task-line-regex'
 // to compare `model.id`.
 export function buildTaskModel(
   statuses: TaskStatus[],
-  rendering: TaskRendering = 'plugin'
+  rendering: TaskRendering = 'plugin',
+  migratedStatus?: TaskStatusId
 ): TaskModel {
   const byChar = new Map<string, TaskStatus>()
   const byId = new Map<TaskStatusId, TaskStatus>()
@@ -42,6 +43,14 @@ export function buildTaskModel(
   }
 
   const fallbackId = statuses[0]?.id ?? 'open'
+
+  // A migrated status is only honoured when it names a real, inactive
+  // status — guard here so a stale / active id can't slip through to
+  // the migration writer (which would otherwise stamp origins with an
+  // active status and re-surface them forever).
+  const migratedEntry = migratedStatus ? byId.get(migratedStatus) : undefined
+  const migratedStatusId: TaskStatusId | null =
+    migratedEntry && migratedEntry.isDone ? migratedEntry.id : null
 
   // The cache key bakes in everything that affects parsed output:
   // the alphabet, the isDone bit, and the next-status link (so
@@ -58,6 +67,7 @@ export function buildTaskModel(
     id,
     rendering,
     statuses,
+    migratedStatusId,
     parseLine(line) {
       const match = TASK_LINE_REGEX.exec(line)
       if (!match) return null

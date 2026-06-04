@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from '../../../src/data-access'
 import {
   findTaskCandidates,
   effectiveUnits,
+  listJournalNotesInFolder,
   resolveTaskFolders,
 } from '../../../src/features/journal-tasks/task-scope'
 
@@ -118,6 +119,36 @@ describe('findTaskCandidates', () => {
       settings: { ...DEFAULT_SETTINGS, quartersEnabled: true },
     })
     expect(results.map((c) => c.file.basename)).toEqual(['2026-Q2'])
+  })
+})
+
+describe('listJournalNotesInFolder', () => {
+  it('returns journal notes newest-first, excluding the source and non-journal files', () => {
+    const app = setupApp([
+      '2026-06-03',
+      '2026-06-05',
+      '2026-06-04',
+      'journal-folder',
+      'Scratchpad',
+    ])
+    const result = listJournalNotesInFolder({
+      app,
+      folderPath: 'Journal',
+      settings: DEFAULT_SETTINGS,
+      excludePath: 'Journal/2026-06-04.md',
+    })
+    expect(result.map((f) => f.basename)).toEqual(['2026-06-05', '2026-06-03'])
+  })
+
+  it('returns an empty list for a non-existent folder', () => {
+    const app = setupApp(['2026-06-03'])
+    expect(
+      listJournalNotesInFolder({
+        app,
+        folderPath: 'Nope',
+        settings: DEFAULT_SETTINGS,
+      })
+    ).toEqual([])
   })
 })
 

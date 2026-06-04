@@ -172,6 +172,19 @@ export function migrateTaskSettings(
   ;(next as JournalFolderSettings).taskFlows = upgradedFlows
   delete next.taskCheckboxRendering
 
+  // ---- v3 → v6 (task migration) ----
+  // Auto-wire a flow's migrated status the first time it's seen:
+  // a flow with no explicit `migratedStatus` that happens to contain
+  // the community-conventional `[>]` migrated status (inactive) gets
+  // it set automatically, so Bullet-Journal-seeded flows migrate
+  // out of the box. Idempotent — only fills an undefined field, and
+  // leaves an explicit choice (including a deliberate clear) alone.
+  for (const flow of Object.values(upgradedFlows)) {
+    if (flow.migratedStatus !== undefined) continue
+    const migrated = flow.statuses.find((s) => s.char === '>' && s.isDone)
+    if (migrated) flow.migratedStatus = migrated.id
+  }
+
   // ---- v3 → v4/v5 (sidebar task scope) ----
   // Two splits land here:
   //   (v4) folder scope moved from a single shared

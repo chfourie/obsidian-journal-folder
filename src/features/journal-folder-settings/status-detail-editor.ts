@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Setting } from 'obsidian'
+import { Notice, Setting } from 'obsidian'
 import type {
   IconSource,
   JournalFolderSettings,
@@ -289,6 +289,20 @@ function renderBasics(
     )
     .addToggle((toggle) =>
       toggle.setValue(!status.isDone).onChange((v) => {
+        // Block making the flow's migrated status active — migration
+        // depends on it being a completed (inactive) status. Snap the
+        // toggle back and tell the user how to proceed.
+        const isMigrated =
+          deps.settings.taskFlows[deps.flowName]?.migratedStatus === status.id
+        if (v && isMigrated) {
+          new Notice(
+            "This status is this flow's migrated status, which must stay " +
+              'completed. Choose a different migrated status on the flow ' +
+              'page before making this one active.'
+          )
+          toggle.setValue(false)
+          return
+        }
         // noinspection JSIgnoredPromiseFromCall
         deps.updateStatus({ isDone: !v })
       })

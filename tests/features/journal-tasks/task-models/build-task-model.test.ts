@@ -64,4 +64,33 @@ describe('buildTaskModel', () => {
     ])
     expect(model.parseLine('- [x] hi')?.status).toBe('open')
   })
+
+  describe('migratedStatusId', () => {
+    const statuses = () => [
+      status({ id: 'open', char: ' ', next: 'open' }),
+      status({ id: 'migrated', char: '>', isDone: true, next: 'open' }),
+      status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+    ]
+
+    it('is set when the id names a valid inactive status', () => {
+      const model = buildTaskModel(statuses(), 'plugin', 'migrated')
+      expect(model.migratedStatusId).toBe('migrated')
+    })
+
+    it('is null when the id names an active status', () => {
+      const model = buildTaskModel(statuses(), 'plugin', 'open')
+      expect(model.migratedStatusId).toBeNull()
+    })
+
+    it('is null for a missing id or when unset', () => {
+      expect(buildTaskModel(statuses(), 'plugin', 'ghost').migratedStatusId).toBeNull()
+      expect(buildTaskModel(statuses()).migratedStatusId).toBeNull()
+    })
+
+    it('does not affect the model id (no cache churn)', () => {
+      const withMigrated = buildTaskModel(statuses(), 'plugin', 'migrated')
+      const without = buildTaskModel(statuses(), 'plugin')
+      expect(withMigrated.id).toBe(without.id)
+    })
+  })
 })

@@ -183,9 +183,33 @@ export type JournalFolderSettings = {
   // **Global only** — interception happens at process-wide layers
   // (markdown post-processor, editor extension, settings tab).
   taskInteractionScope: TaskInteractionScope
+  // Where the task-migration commands insert the copied task lines in
+  // the destination note:
+  //   `'heading'`         — under the heading named by
+  //                         `taskMigrationHeading` (created if absent).
+  //   `'after-last-task'` — after the note's last existing task line
+  //                         (falls back to end-of-note when none).
+  //   `'top'`             — after front matter, before the body.
+  //   `'end'`             — appended to the bottom of the note.
+  // **Folder-honored** — unlike the other `task*` fields (which are
+  // process-wide model / UI preferences), placement is a per-note
+  // *layout* concern, so a folder may override it via the front-matter
+  // key `task-migration-placement`.
+  taskMigrationPlacement: TaskMigrationPlacement
+  // Heading text used when `taskMigrationPlacement` is `'heading'`.
+  // Matched case-insensitively against existing `#`-level headings;
+  // created as a level-2 heading at the end of the note when missing.
+  // **Folder-honored** via `task-migration-heading`.
+  taskMigrationHeading: string
 }
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
+
+export type TaskMigrationPlacement =
+  | 'heading'
+  | 'after-last-task'
+  | 'top'
+  | 'end'
 
 import type { TaskFlow, TaskStatus } from './task-model.type'
 import {
@@ -272,4 +296,6 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultTaskFlow: 'Default',
   taskFlow: '',
   taskInteractionScope: 'lists',
+  taskMigrationPlacement: 'after-last-task',
+  taskMigrationHeading: 'Tasks',
 }

@@ -124,6 +124,49 @@ describe('migrateTaskSettings', () => {
     expect(result.taskFlows.Custom.rendering).toBe('plugin')
   })
 
+  describe('task migration (auto-wire migrated status)', () => {
+    function flowSettings(
+      statuses: JournalFolderSettings['taskFlows'][string]['statuses'],
+      migratedStatus?: string
+    ): JournalFolderSettings {
+      return {
+        ...DEFAULT_SETTINGS,
+        taskFlows: {
+          Flow: { statuses, rendering: 'plugin', migratedStatus },
+        },
+        defaultTaskFlow: 'Flow',
+        taskFlow: '',
+      }
+    }
+
+    it('sets migratedStatus to the inactive "[>]" status when unset', () => {
+      const result = migrateTaskSettings(
+        flowSettings(BUILTIN_TEMPLATES['bullet-journal'])
+      )
+      expect(result.taskFlows.Flow.migratedStatus).toBe('migrated')
+    })
+
+    it('is idempotent — re-running keeps the same designation', () => {
+      const once = migrateTaskSettings(
+        flowSettings(BUILTIN_TEMPLATES['bullet-journal'])
+      )
+      const twice = migrateTaskSettings(once)
+      expect(twice.taskFlows.Flow.migratedStatus).toBe('migrated')
+    })
+
+    it('leaves an explicit "" (deliberate clear) alone', () => {
+      const result = migrateTaskSettings(
+        flowSettings(BUILTIN_TEMPLATES['bullet-journal'], '')
+      )
+      expect(result.taskFlows.Flow.migratedStatus).toBe('')
+    })
+
+    it('leaves a flow without a "[>]" status unset', () => {
+      const result = migrateTaskSettings(flowSettings(BUILTIN_TEMPLATES.simple))
+      expect(result.taskFlows.Flow.migratedStatus).toBeUndefined()
+    })
+  })
+
   describe('v2 / v3a → v3 (rendering lifted to flow level)', () => {
     it('uses the legacy global taskCheckboxRendering when no per-status rendering is present', () => {
       const result = migrateTaskSettings({

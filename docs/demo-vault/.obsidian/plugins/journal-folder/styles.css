@@ -622,6 +622,83 @@
 	overflow-y: auto;
 }
 
+/* The task-migration picker modal borrows the same settings-dialog skin
+ * so the grouped task list has room to breathe. Sized smaller than the
+ * config modal — it's a focused pick-and-go list, not a full form. */
+.journal-folder-migrate-modal-wrap {
+	width: min(92vw, 640px);
+	max-width: 92vw;
+}
+
+.journal-folder-migrate-modal-wrap .modal-tab-header,
+.journal-folder-migrate-modal-wrap .vertical-tab-content-container {
+	display: none;
+}
+
+.jf-migrate-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75em;
+}
+
+.jf-migrate-picker-heading {
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+}
+
+.jf-migrate-picker-list {
+	max-height: 50vh;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+}
+
+.jf-migrate-picker-group-heading {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+}
+
+.jf-migrate-picker-group-count {
+	color: var(--text-muted);
+	font-weight: var(--font-normal);
+}
+
+.jf-migrate-picker-tasks {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	padding-left: 1.5em;
+	margin-top: 0.25em;
+}
+
+.jf-migrate-picker-task {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5em;
+	cursor: pointer;
+}
+
+.jf-migrate-picker-task-char {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+}
+
+.jf-migrate-picker-task-text {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jf-migrate-picker-actions {
+	margin-top: 0;
+}
+
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
  * the settings feature toggles `journal-folder-hide-config-notes` on the
  * <body>. The selector targets the explorer item by `data-path` ending in

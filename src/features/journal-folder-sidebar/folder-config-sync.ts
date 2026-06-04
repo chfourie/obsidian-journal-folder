@@ -22,7 +22,11 @@ import { type JournalFolderSettings, kebabCase } from '../../data-access'
 // `JournalFolderSettings` (`startOfWeek`, `defaultJournalFolder`,
 // `hideJournalFolderNotes`, `sidebarMode`, and every `tasks*` /
 // `task*` field) are global-only — see the JSDoc on each field in
-// `journal-folder-settings.type.ts`.
+// `journal-folder-settings.type.ts`. The two exceptions are
+// `taskMigrationPlacement` / `taskMigrationHeading`: migration
+// placement is a per-note *layout* concern (where copied lines land
+// in this folder's notes), not a process-wide model/UI preference, so
+// it is deliberately folder-honored.
 export const PER_FOLDER_FIELDS = [
   'dailyNoteTitlePattern',
   'dailyNoteShortTitlePattern',
@@ -52,6 +56,8 @@ export const PER_FOLDER_FIELDS = [
   'monthlyNoteAutoTemplateContent',
   'quarterlyNoteAutoTemplateContent',
   'yearlyNoteAutoTemplateContent',
+  'taskMigrationPlacement',
+  'taskMigrationHeading',
 ] as const satisfies ReadonlyArray<keyof JournalFolderSettings>
 
 type PerFolderField = (typeof PER_FOLDER_FIELDS)[number]

@@ -43,6 +43,11 @@ import { sortTasks } from './task-sorting'
 import { processDocumentTasks } from './document-tasks-processor'
 import { documentTaskLivePreviewExtension } from './document-task-live-preview'
 import { appendStatusMenuItems } from './document-task-menu'
+import {
+  appendEditorMigrationItem,
+  appendNoteMigrationItems,
+  type MigrationMenuContext,
+} from './task-migration-menu'
 
 export class JournalTasksFeature extends PluginFeature {
   readonly #cache: TaskCache
@@ -57,6 +62,17 @@ export class JournalTasksFeature extends PluginFeature {
   // hit-rate healthy when the user has both surfaces visible.
   get cache(): TaskCache {
     return this.#cache
+  }
+
+  // Context handed to the migration flows. `getSettingsFor` resolves
+  // folder-level overrides (front matter overlaid on global) so a
+  // folder's `task-flow` / `task-migration-*` keys are honoured.
+  private migrationContext(): MigrationMenuContext {
+    return {
+      app: this.plugin.app,
+      cache: this.#cache,
+      getSettingsFor: (file) => this.getSettings(file),
+    }
   }
 
   async load(): Promise<void> {
@@ -108,26 +124,42 @@ export class JournalTasksFeature extends PluginFeature {
     // recognises.
     this.plugin.registerEvent(
       this.plugin.app.workspace.on('editor-menu', (menu, editor, view) => {
-        if (this.globalSettings.taskInteractionScope !== 'everywhere') return
         if (!(view instanceof MarkdownView)) return
         const file = view.file
         if (!file) return
-        const cursor = editor.getCursor()
-        const lineText = editor.getLine(cursor.line)
-        const model = resolveTaskModel(this.globalSettings)
-        const parsed = model.parseLine(lineText)
-        if (!parsed) return
-        menu.addSeparator()
-        appendStatusMenuItems(
-          menu,
-          {
-            sourceFile: file,
-            sourceLine: cursor.line,
-            status: parsed.status,
-          },
-          model,
-          this.plugin.app
-        )
+        // Status cycling is gated on the `everywhere` scope (it changes
+        // document-body checkbox behaviour); migration is a list-level
+        // action that's always available on a task line in a journal note.
+        if (this.globalSettings.taskInteractionScope === 'everywhere') {
+          const cursor = editor.getCursor()
+          const lineText = editor.getLine(cursor.line)
+          const model = resolveTaskModel(this.globalSettings)
+          const parsed = model.parseLine(lineText)
+          if (parsed) {
+            menu.addSeparator()
+            appendStatusMenuItems(
+              menu,
+              {
+                sourceFile: file,
+                sourceLine: cursor.line,
+                status: parsed.status,
+              },
+              model,
+              this.plugin.app
+            )
+          }
+        }
+        appendEditorMigrationItem(menu, this.migrationContext(), file, editor)
+      })
+    )
+
+    // File-menu (right-click a note / its tab): whole-note migration
+    // flows — "from this note" and "to this note".
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on('file-menu', (menu, file) => {
+        if (file instanceof TFile) {
+          appendNoteMigrationItems(menu, this.migrationContext(), file)
+        }
       })
     )
 

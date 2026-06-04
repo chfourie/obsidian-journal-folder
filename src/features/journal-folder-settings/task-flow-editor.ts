@@ -39,6 +39,7 @@ import {
 import { reorder } from './reorder-statuses'
 import { buildTaskModel } from '../journal-tasks/task-models'
 import { renderStatusIcon } from '../journal-tasks/render-status-icon'
+import { eligibleMigratedStatuses } from '../journal-tasks/task-migration'
 
 // =============================================================
 // Top-level Tasks overview: list of flows + default-flow picker +
@@ -206,6 +207,44 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
           taskFlows: {
             ...settings.taskFlows,
             [flowName]: { ...flow, rendering },
+          },
+        })
+        rerender()
+      })
+    })
+
+  // ---- migrated status ------------------------------------------
+  // The status stamped on a task's origin when it's migrated to
+  // another note. Only inactive statuses qualify — migration closes
+  // the source out. With none configured, the migration commands stay
+  // hidden for folders on this flow.
+  const inactiveStatuses = eligibleMigratedStatuses(flow)
+  new Setting(containerEl)
+    .setName('Migrated status')
+    .setDesc(
+      inactiveStatuses.length === 0
+        ? 'Add a completed (inactive) status to this flow to enable task ' +
+            'migration — migrated tasks need a status to mark the origin with.'
+        : 'When a task is migrated to another note, its original line is ' +
+            'stamped with this status. Only completed (inactive) statuses ' +
+            'are eligible.'
+    )
+    .addDropdown((dd) => {
+      dd.addOption('', '(none — migration disabled)')
+      for (const s of inactiveStatuses) dd.addOption(s.id, s.label || s.id)
+      const current =
+        flow.migratedStatus && inactiveStatuses.some((s) => s.id === flow.migratedStatus)
+          ? flow.migratedStatus
+          : ''
+      dd.setValue(current).onChange(async (value) => {
+        await saveSettings({
+          ...settings,
+          taskFlows: {
+            ...settings.taskFlows,
+            // Empty string is an explicit "none" — distinct from
+            // `undefined`, so the settings-load auto-wire won't re-add
+            // a `[>]` status the user deliberately cleared.
+            [flowName]: { ...flow, migratedStatus: value },
           },
         })
         rerender()
@@ -543,7 +582,16 @@ function renderStatusRow(config: StatusRowConfig): void {
         const cleaned = nextStatuses.map((s) =>
           s.next === removedId ? { ...s, next: fallback } : s
         )
-        await updateFlow(cleaned)
+        const base = flow ?? { rendering: flowRendering }
+        const nextFlow = { ...base, statuses: cleaned }
+        // Drop the migrated-status designation if it pointed at the
+        // status we just removed (set explicit '' so it isn't auto-wired
+        // back on next settings load).
+        if (nextFlow.migratedStatus === removedId) nextFlow.migratedStatus = ''
+        await saveSettings({
+          ...settings,
+          taskFlows: { ...settings.taskFlows, [flowName]: nextFlow },
+        })
         rerender()
       }
     ).open()
