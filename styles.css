@@ -699,6 +699,41 @@
 	margin-top: 0;
 }
 
+/* A migration cross-reference (marker + link) rendered in reading view.
+ * The post-processor wraps the marker and its link in this span and sets
+ * `--jf-migration-ref-opacity` from the configured setting; the reference
+ * fades to that opacity and returns to full on hover. */
+/* Wraps the task label + its migration reference in one node so themes
+ * that render task rows as a CSS grid keep them in a single cell (grid
+ * blockifies direct children, which would otherwise drop the reference
+ * onto its own row). */
+.jf-migration-line {
+	display: inline;
+}
+
+.jf-migration-ref {
+	opacity: var(--jf-migration-ref-opacity, 0.3);
+	transition: opacity 120ms ease;
+	/* Keep the marker glued to its link so the reference never splits
+	 * across lines — it wraps as a single unit when space runs out. */
+	white-space: nowrap;
+}
+
+.jf-migration-ref:hover {
+	opacity: 1;
+}
+
+.jf-migration-ref-icon {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: text-bottom;
+}
+
+.jf-migration-ref-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
  * the settings feature toggles `journal-folder-hide-config-notes` on the
  * <body>. The selector targets the explorer item by `data-path` ending in

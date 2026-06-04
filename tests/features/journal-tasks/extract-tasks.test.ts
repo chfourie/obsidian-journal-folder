@@ -4,7 +4,10 @@ import {
   DEFAULT_SETTINGS,
   journalNoteFactoryWithSettings,
 } from '../../../src/data-access'
-import { extractTasks } from '../../../src/features/journal-tasks/extract-tasks'
+import {
+  extractTasks,
+  stripMigrationReferences,
+} from '../../../src/features/journal-tasks/extract-tasks'
 import { simpleTaskModel } from '../../../src/features/journal-tasks/task-models'
 
 function buildDailyNote(basename = '2026-06-03') {
@@ -21,6 +24,33 @@ function buildDailyNote(basename = '2026-06-03') {
   const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(file)
   return { file, note }
 }
+
+describe('stripMigrationReferences', () => {
+  it('removes a lucide marker and its link', () => {
+    expect(
+      stripMigrationReferences('Plan hike lucide:undo [[2026-W19]]', [
+        'lucide:redo',
+        'lucide:undo',
+      ])
+    ).toBe('Plan hike')
+  })
+
+  it('removes a glyph marker and its link', () => {
+    expect(
+      stripMigrationReferences('Dentist 09:30 → [[2026-06-04]]', ['→', '←'])
+    ).toBe('Dentist 09:30')
+  })
+
+  it('leaves ordinary links and text untouched', () => {
+    expect(
+      stripMigrationReferences('see [[Project]] for details', ['→', '←'])
+    ).toBe('see [[Project]] for details')
+  })
+
+  it('is a no-op when no markers are supplied', () => {
+    expect(stripMigrationReferences('task → [[x]]', [])).toBe('task → [[x]]')
+  })
+})
 
 describe('extractTasks', () => {
   it('returns one entry per task line', () => {

@@ -267,6 +267,50 @@ export class EmojiPickerModal extends Modal {
   }
 }
 
+// Modal wrapper around `renderLucidePicker` — the full searchable Lucide
+// grid plus a custom-name fallback, with Cancel / Use-icon actions.
+// Returns the bare icon name (no `lucide:` prefix); the caller wraps it
+// into the stored marker token.
+export class LucidePickerModal extends Modal {
+  private pending: string
+
+  constructor(
+    app: App,
+    private readonly current: string,
+    private readonly onPick: (name: string) => void
+  ) {
+    super(app)
+    this.pending = current
+  }
+
+  onOpen(): void {
+    this.titleEl.setText('Pick a Lucide icon')
+    const host = this.contentEl.createDiv()
+    renderLucidePicker({
+      containerEl: host,
+      value: this.current,
+      onChange: (name) => {
+        this.pending = name
+      },
+    })
+    const buttons = this.contentEl.createDiv({ cls: 'modal-button-container' })
+    new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+      this.close()
+    })
+    new ButtonComponent(buttons)
+      .setButtonText('Use icon')
+      .setCta()
+      .onClick(() => {
+        if (this.pending.trim()) this.onPick(this.pending.trim())
+        this.close()
+      })
+  }
+
+  onClose(): void {
+    this.contentEl.empty()
+  }
+}
+
 // ---- pager helper ----------------------------------------------
 
 type PagerState = {

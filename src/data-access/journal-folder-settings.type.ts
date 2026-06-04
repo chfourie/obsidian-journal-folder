@@ -223,6 +223,11 @@ export type JournalFolderSettings = {
   // ("migrated from" → origin). Empty = link only, no marker.
   // **Global only.**
   taskMigrationFromMarker: string
+  // Opacity (0–100) applied to the *whole* migration reference (marker +
+  // link) in reading view; the reference fades up to 100% on hover. Lets
+  // the cross-reference recede visually until the user looks for it.
+  // **Global only** — applied by the reading-view post-processor.
+  taskMigrationReferenceOpacity: number
 }
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
@@ -233,18 +238,26 @@ export type TaskMigrationPlacement =
   | 'top'
   | 'end'
 
-export type TaskMigrationReferenceStyle = 'text' | 'emoji'
+export type TaskMigrationReferenceStyle = 'text' | 'emoji' | 'lucide'
 
 // Default markers per reference style. Picking a style in the settings
 // tab reseeds the To / From markers from here. Exported so the settings
-// UI and any tests share one source of truth.
+// UI and any tests share one source of truth. Lucide markers are stored
+// as `lucide:<name>` tokens — written verbatim into the note and
+// rendered as icons by the reading-view post-processor.
 export const MIGRATION_REFERENCE_PRESETS: Record<
   TaskMigrationReferenceStyle,
   { to: string; from: string }
 > = {
   text: { to: '→', from: '←' },
   emoji: { to: '➡️', from: '⬅️' },
+  lucide: { to: 'lucide:redo', from: 'lucide:undo' },
 }
+
+// Prefix marking a Lucide-icon reference marker. The text after it is a
+// Lucide icon name; the reading-view post-processor renders it as an
+// icon, while editing/source view shows the readable token.
+export const LUCIDE_MARKER_PREFIX = 'lucide:'
 
 import type { TaskFlow, TaskStatus } from './task-model.type'
 import {
@@ -335,7 +348,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   taskMigrationHeading: 'Tasks',
   taskMigrationAddToReference: true,
   taskMigrationAddFromReference: true,
-  taskMigrationReferenceStyle: 'text',
-  taskMigrationToMarker: MIGRATION_REFERENCE_PRESETS.text.to,
-  taskMigrationFromMarker: MIGRATION_REFERENCE_PRESETS.text.from,
+  taskMigrationReferenceStyle: 'lucide',
+  taskMigrationToMarker: MIGRATION_REFERENCE_PRESETS.lucide.to,
+  taskMigrationFromMarker: MIGRATION_REFERENCE_PRESETS.lucide.from,
+  taskMigrationReferenceOpacity: 30,
 }

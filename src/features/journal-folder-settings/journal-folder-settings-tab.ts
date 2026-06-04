@@ -38,6 +38,7 @@ import {
   DEFAULT_TEMPLATE_ID,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  LUCIDE_MARKER_PREFIX,
   MIGRATION_REFERENCE_PRESETS,
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
@@ -55,7 +56,7 @@ import {
   renderStatusDetail,
   type StatusDetailSection,
 } from './status-detail-editor'
-import { EmojiPickerModal } from './icon-pickers'
+import { EmojiPickerModal, LucidePickerModal } from './icon-pickers'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
   'locale-default': 'Locale default',
@@ -710,6 +711,7 @@ class SettingsFormBuilder {
     const STYLE_LABELS: Record<TaskMigrationReferenceStyle, string> = {
       text: 'Text',
       emoji: 'Emoji',
+      lucide: 'Lucide',
     }
 
     new Setting(this.containerEl)
@@ -763,8 +765,10 @@ class SettingsFormBuilder {
       .setName('Reference style')
       .setDesc(
         'Text accepts any characters (the defaults are the → and ← arrow ' +
-          'glyphs). Emoji adds a picker. Switching style resets both ' +
-          'markers to that style’s defaults; you can still edit each one.'
+          'glyphs). Emoji and Lucide each add a picker; Lucide markers are ' +
+          'stored as “lucide:name” tokens and render as icons in reading ' +
+          'view. Switching style resets both markers to that style’s ' +
+          'defaults; you can still edit each one.'
       )
       .addDropdown((dd) => {
         for (const value of Object.keys(
@@ -807,6 +811,36 @@ class SettingsFormBuilder {
           '(e.g. “… ← [[2026-06-04]]”). Leave empty for just the link.'
       )
     }
+
+    new Setting(this.containerEl)
+      .setName('Reference opacity (reading view)')
+      .setDesc(
+        'Fades the whole reference (marker + link) in reading view so it ' +
+          'recedes until you look for it. Hovering restores full opacity. ' +
+          'Needs a non-empty marker to detect the reference.'
+      )
+      .addSlider((slider) => {
+        slider
+          .setLimits(0, 100, 5)
+          .setValue(settings.taskMigrationReferenceOpacity)
+          .setDynamicTooltip()
+          .onChange((value) => {
+            settings.taskMigrationReferenceOpacity = value
+            // noinspection JSIgnoredPromiseFromCall
+            this.saveSettings(settings)
+          })
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(async () => {
+            settings.taskMigrationReferenceOpacity =
+              DEFAULT_SETTINGS.taskMigrationReferenceOpacity
+            await this.saveSettings(settings)
+            this.render()
+          })
+      })
   }
 
   private createMigrationMarkerSetting(
@@ -829,8 +863,11 @@ class SettingsFormBuilder {
       )
     })
 
-    // Emoji mode gets a picker that reuses the task-status emoji grid.
-    if (settings.taskMigrationReferenceStyle === 'emoji') {
+    // Emoji / Lucide modes get a picker that reuses the task-status icon
+    // grids. Lucide stores a `lucide:<name>` token; the picker works in
+    // bare names, so strip / re-add the prefix around it.
+    const style = settings.taskMigrationReferenceStyle
+    if (style === 'emoji') {
       setting.addExtraButton((btn) => {
         btn
           .setIcon('smile-plus')
@@ -845,6 +882,23 @@ class SettingsFormBuilder {
                 await this.saveSettings(settings)
               }
             ).open()
+          })
+      })
+    } else if (style === 'lucide') {
+      setting.addExtraButton((btn) => {
+        btn
+          .setIcon('image')
+          .setTooltip('Pick a Lucide icon')
+          .onClick(() => {
+            const current = settings[field].startsWith(LUCIDE_MARKER_PREFIX)
+              ? settings[field].slice(LUCIDE_MARKER_PREFIX.length)
+              : settings[field]
+            new LucidePickerModal(this.config.app, current, async (name) => {
+              const token = `${LUCIDE_MARKER_PREFIX}${name}`
+              settings[field] = token
+              component.setValue(token)
+              await this.saveSettings(settings)
+            }).open()
           })
       })
     }

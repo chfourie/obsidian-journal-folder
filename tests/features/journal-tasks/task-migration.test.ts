@@ -11,6 +11,7 @@ import {
   type MigratableTask,
   transformOriginLine,
 } from '../../../src/features/journal-tasks/task-migration'
+import { matchTrailingMarker } from '../../../src/features/journal-tasks/render-migration-references'
 
 // Minimal task carrying just the fields the pure helpers read, with a
 // fake origin file whose basename drives the back-reference.
@@ -47,6 +48,37 @@ describe('eligibleMigratedStatuses', () => {
       rendering: 'plugin',
     }).map((s) => s.id)
     expect(ids).toEqual(['migrated', 'done'])
+  })
+})
+
+describe('matchTrailingMarker', () => {
+  it('matches a standalone marker at the end of the text', () => {
+    expect(matchTrailingMarker('do the thing → ', ['→', '←'])).toEqual({
+      marker: '→',
+      index: 13,
+    })
+  })
+
+  it('requires a whitespace (or start) boundary before the marker', () => {
+    // "a→" — the arrow is glued to a word char, so not a standalone marker.
+    expect(matchTrailingMarker('center→', ['→'])).toBeNull()
+  })
+
+  it('prefers the longest marker (lucide token over a bare arrow)', () => {
+    const out = matchTrailingMarker('task lucide:arrow-right ', [
+      '→',
+      'lucide:arrow-right',
+    ])
+    expect(out?.marker).toBe('lucide:arrow-right')
+    expect(out?.index).toBe(5)
+  })
+
+  it('ignores markers that are not at the end', () => {
+    expect(matchTrailingMarker('→ middle of text', ['→'])).toBeNull()
+  })
+
+  it('skips empty markers', () => {
+    expect(matchTrailingMarker('anything', ['', '   '])).toBeNull()
   })
 })
 

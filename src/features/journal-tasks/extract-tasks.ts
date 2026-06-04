@@ -40,6 +40,32 @@ function stripWikilinkSyntax(input: string): string {
   )
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Removes migration cross-references (`<marker> [[link]]`) from the task
+// text so the plugin's own task lists stay clean — the source-note chip
+// already shows provenance, and a raw `lucide:…` token would otherwise
+// read as literal text. Each configured marker followed by a wikilink is
+// dropped (marker + link). Reading-view rendering is unaffected: it works
+// off the raw markdown, not this display text. Exported for testing.
+export function stripMigrationReferences(
+  text: string,
+  markers: string[]
+): string {
+  let out = text
+  for (const marker of markers) {
+    const trimmed = marker.trim()
+    if (!trimmed) continue
+    out = out.replace(
+      new RegExp(`\\s*${escapeRegExp(trimmed)}\\s*\\[\\[[^\\]]*\\]\\]`, 'g'),
+      ''
+    )
+  }
+  return out.replace(/\s+$/, '')
+}
+
 // Pure helper — given file content, the active model, the source TFile,
 // and a pre-built JournalNote describing the file's tier, returns every
 // task in the file. Lines that don't parse as tasks for `model` are
@@ -48,7 +74,8 @@ export function extractTasks(
   content: string,
   model: TaskModel,
   file: TFile,
-  journalNote: JournalNote
+  journalNote: JournalNote,
+  migrationMarkers: string[] = []
 ): JournalTask[] {
   const lines = content.split('\n')
   const noteUnit = journalNote.getTimeUnit()
@@ -64,7 +91,9 @@ export function extractTasks(
       sourceFile: file,
       sourceLine: i,
       rawText: lines[i],
-      displayText: stripWikilinkSyntax(parsed.text),
+      displayText: stripWikilinkSyntax(
+        stripMigrationReferences(parsed.text, migrationMarkers)
+      ),
       status: parsed.status,
       noteUnit,
       noteRangeDays,

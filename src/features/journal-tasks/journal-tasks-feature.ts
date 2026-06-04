@@ -48,6 +48,7 @@ import {
   appendNoteMigrationItems,
   type MigrationMenuContext,
 } from './task-migration-menu'
+import { processMigrationReferences } from './render-migration-references'
 
 export class JournalTasksFeature extends PluginFeature {
   readonly #cache: TaskCache
@@ -104,6 +105,13 @@ export class JournalTasksFeature extends PluginFeature {
 
     this.plugin.registerMarkdownPostProcessor((el, ctx) => {
       processDocumentTasks(el, ctx, documentTaskCtx)
+    })
+
+    // Reading-view rendering of migration references: render `lucide:`
+    // markers as icons and fade the whole reference to the configured
+    // opacity (full on hover). Independent of `taskInteractionScope`.
+    this.plugin.registerMarkdownPostProcessor((el) => {
+      processMigrationReferences(el, this.globalSettings)
     })
 
     // Live-preview editor surface — a per-editor CodeMirror
@@ -180,6 +188,12 @@ export class JournalTasksFeature extends PluginFeature {
     // Switching the active model invalidates every cached entry —
     // their parsed status IDs are model-specific.
     this.#cache.clear()
+    // Keep the cache's marker list in step so task lists strip the
+    // current migration references from their display text.
+    this.#cache.setMigrationMarkers([
+      settings.taskMigrationToMarker,
+      settings.taskMigrationFromMarker,
+    ])
     // Force open CodeMirror editors to re-run their ViewPlugin
     // updates so toggles of `taskInteractionScope` and edits to the
     // active flow take effect without requiring the user to type.

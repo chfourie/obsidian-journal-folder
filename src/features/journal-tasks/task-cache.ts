@@ -34,8 +34,17 @@ interface CacheEntry {
 // rebuilds from scratch when the plugin reloads.
 export class TaskCache {
   private readonly entries = new Map<string, CacheEntry>()
+  // Migration markers stripped from each task's display text so the
+  // plugin's task lists don't show the cross-reference (and never a raw
+  // `lucide:…` token). Set from settings; changing them clears the cache
+  // via the feature's `useSettings`, so cached display text stays fresh.
+  private migrationMarkers: string[] = []
 
   constructor(private readonly app: App) {}
+
+  setMigrationMarkers(markers: string[]): void {
+    this.migrationMarkers = markers.filter((m) => m.trim().length > 0)
+  }
 
   async getTasks(
     file: TFile,
@@ -52,7 +61,13 @@ export class TaskCache {
       return existing.tasks
     }
     const content = await this.app.vault.cachedRead(file)
-    const tasks = extractTasks(content, model, file, journalNote)
+    const tasks = extractTasks(
+      content,
+      model,
+      file,
+      journalNote,
+      this.migrationMarkers
+    )
     this.entries.set(file.path, { mtime, modelId: model.id, tasks })
     return tasks
   }
