@@ -93,10 +93,10 @@ export class JournalSignifiersFeature extends PluginFeature {
     this.plugin.registerEvent(ws.on('layout-change', recompute))
     this.plugin.registerEvent(ws.on('file-open', recompute))
 
-    // Live-preview (editing-view) rendering via a stable CodeMirror
-    // decoration. Gated internally on `signifierLivePreviewEnabled`; the
-    // kill-switch means a settings change can disable it instantly (see
-    // `useSettings`, which re-applies editor extensions).
+    // Live-preview (editing-view) rendering via a CodeMirror decoration:
+    // always on, gutter-positioned, optionally hiding the matched tag
+    // (`signifierHideTagInLivePreview`). A settings change re-applies editor
+    // extensions instantly (see `useSettings`, which calls `updateOptions`).
     this.plugin.registerEditorExtension(
       signifierLivePreviewExtension({
         getSettings: () => this.globalSettings,
@@ -151,21 +151,19 @@ export class JournalSignifiersFeature extends PluginFeature {
 
   useSettings(settings: JournalFolderSettings): void {
     super.useSettings(settings)
-    // Re-apply editor extensions across open editors so signifier edits
-    // and the live-preview kill-switch take effect immediately.
+    // Re-apply editor extensions across open editors so signifier / placement
+    // / tag-hiding edits take effect in live preview immediately.
     this.plugin.app.workspace.updateOptions?.()
-    // Leaving the margin modes must drop the reserved left lane (the
-    // re-render below rebuilds content but the container keeps our inline
-    // padding); margin modes re-apply it through the positioning pass.
-    const placement = settings.signifierPlacement
-    if (placement !== 'margin' && placement !== 'margin-column') {
+    // Turning the reserved-lane toggle off must drop the inline padding the
+    // positioning pass left on the container; with it on, the pass re-applies
+    // the (possibly zero) deficit on the re-render below.
+    if (!settings.signifierReserveGutter) {
       clearAllReadingReserve()
     }
     // Reading-view markdown post-processors do NOT re-run on a settings
-    // change, so a placement / signifier edit would otherwise leave the
-    // previously-rendered markers in place (e.g. switching gutter→start
-    // would keep showing the gutter). Force open reading views to
-    // re-render so the new placement is applied to fresh DOM.
+    // change, so a placement / signifier / tag-hiding edit would otherwise
+    // leave the previously-rendered markers in place. Force open reading
+    // views to re-render so the new settings apply to fresh DOM.
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
       const view = leaf.view
       if (view instanceof MarkdownView) {

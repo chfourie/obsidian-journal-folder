@@ -101,19 +101,37 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
     )
 
   new Setting(containerEl)
-    .setName('Render signifiers in live preview')
+    .setName('Hide tag in live preview')
     .setDesc(
-      'Decorate tags with their signifier icon while editing. Turn off if ' +
-        'it ever interferes with editing — reading view and task lists are ' +
-        'unaffected.'
+      'On — live preview shows only the signifier icon (the tag reappears ' +
+        'while the cursor is on it, so it stays editable). Off — the tag stays ' +
+        'visible.'
     )
     .addToggle((toggle) =>
       toggle
-        .setValue(settings.signifierLivePreviewEnabled)
+        .setValue(settings.signifierHideTagInLivePreview)
         .onChange(async (value) => {
           await saveSettings({
             ...getSettings(),
-            signifierLivePreviewEnabled: value,
+            signifierHideTagInLivePreview: value,
+          })
+        })
+    )
+
+  new Setting(containerEl)
+    .setName('Reveal tags on the active line')
+    .setDesc(
+      'When hiding tags in live preview: on — putting the cursor anywhere on ' +
+        'a line shows all of that line’s tags; off — only the tag the cursor ' +
+        'touches is shown. No effect when tags aren’t hidden.'
+    )
+    .addToggle((toggle) =>
+      toggle
+        .setValue(settings.signifierShowTagsOnActiveLine)
+        .onChange(async (value) => {
+          await saveSettings({
+            ...getSettings(),
+            signifierShowTagsOnActiveLine: value,
           })
         })
     )
@@ -121,22 +139,13 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
   new Setting(containerEl)
     .setName('Placement in notes')
     .setDesc(
-      'Where the icon sits on a note line. Start / End render in normal text ' +
-        'flow; the two left-margin modes float the icon into the margin like a ' +
-        'physical journal (positioned by measurement, so they hold up across ' +
-        'themes and snippets). The plugin’s own task lists always render inline.'
+      'Both options hang the icon in the left margin, positioned by ' +
+        'measurement so they hold up across themes and snippets. The plugin’s ' +
+        'own task lists always render inline.'
     )
     .addDropdown((dd) => {
-      dd.addOption('start', 'Start of line — in text flow')
-      dd.addOption('end', 'End of line — in text flow')
-      dd.addOption(
-        'margin',
-        'Left margin, per entry — hangs by each line, indents with nesting'
-      )
-      dd.addOption(
-        'margin-column',
-        'Left margin, single column — all icons in one far-left column'
-      )
+      dd.addOption('margin', 'Per entry — indents with nesting')
+      dd.addOption('margin-column', 'Single column — all icons far-left')
       dd.setValue(settings.signifierPlacement).onChange(async (value) => {
         await saveSettings({
           ...getSettings(),
@@ -148,9 +157,8 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
   new Setting(containerEl)
     .setName('Reserve left margin for gutter signifiers')
     .setDesc(
-      'For the two left-margin placements only: indent the note content just ' +
-        'enough that the icons never clip when readable line width is off or ' +
-        'the view is narrow. On by default. No effect on Start / End.'
+      'Indent the note content just enough that the icons never clip when ' +
+        'readable line width is off or the view is narrow. On by default.'
     )
     .addToggle((toggle) =>
       toggle

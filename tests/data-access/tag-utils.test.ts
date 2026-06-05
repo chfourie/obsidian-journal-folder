@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   extractTags,
+  extractTagSpans,
   matchCategories,
   matchSignifiers,
   stripTags,
@@ -44,6 +45,34 @@ describe('extractTags', () => {
 
   it('returns nothing when there are no tags', () => {
     expect(extractTags('plain text only')).toEqual([])
+  })
+})
+
+describe('extractTagSpans', () => {
+  it('reports the [start, end) of each #tag token (excluding the boundary)', () => {
+    // "Line 1 #important" — the token starts at index 7 and spans 10 chars.
+    expect(extractTagSpans('Line 1 #important')).toEqual([
+      { name: 'important', start: 7, end: 17 },
+    ])
+    expect('Line 1 #important'.slice(7, 17)).toBe('#important')
+  })
+
+  it('locates a tag at the very start of the line', () => {
+    expect(extractTagSpans('#explore rest')).toEqual([
+      { name: 'explore', start: 0, end: 8 },
+    ])
+  })
+
+  it('reports every occurrence (no de-duplication) and handles nested tags', () => {
+    const spans = extractTagSpans('#important a #important/work')
+    expect(spans).toEqual([
+      { name: 'important', start: 0, end: 10 },
+      { name: 'important/work', start: 13, end: 28 },
+    ])
+  })
+
+  it('ignores non-tag hashes (mid-word, heading)', () => {
+    expect(extractTagSpans('foo#bar and # heading')).toEqual([])
   })
 })
 

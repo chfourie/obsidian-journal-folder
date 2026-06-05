@@ -15,5 +15,9 @@ Three signifiers #important #inspiration #explore .
 
 - [ ] Task one #important
 - [ ] Task two #important #inspiration
-- [ ] Task three #important #inspiration #explore
+- [ ] Task three #inspiration #explore
 	- [ ] Nested task #explore
+
+Line 1 #important
+Line 2 #inspiration
+Line 3 #explore

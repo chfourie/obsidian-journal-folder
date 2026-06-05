@@ -23,18 +23,13 @@ import {
 } from '../../data-access'
 import { renderSignifierIcon } from './render-signifier-icon'
 
-// Wrapper class per placement mode. `start` / `end` render in normal flow;
-// `margin` / `margin-column` are absolutely positioned (see styles.css).
-// Both margin modes share the `jf-signifier-gutter` base class; the single-
-// column variant additionally carries `jf-signifier-column` (see
-// `COLUMN_CLASS`) and a `--jf-sig-depth` custom property so CSS can pull it
-// back out of its nesting indentation into one shared column.
-const MARKER_CLASS: Record<SignifierPlacement, string> = {
-  start: 'jf-signifier-lead',
-  end: 'jf-signifier-trail',
-  margin: 'jf-signifier-gutter',
-  'margin-column': 'jf-signifier-gutter',
-}
+// Both placement modes (`margin` / `margin-column`) are absolutely-positioned
+// left-margin gutters and share the `jf-signifier-gutter` base class (see
+// styles.css). The single-column variant additionally carries
+// `jf-signifier-column` (see `COLUMN_CLASS`) and a `--jf-sig-depth` custom
+// property so CSS can pull it back out of its nesting indentation into one
+// shared column.
+const MARKER_CLASS = 'jf-signifier-gutter'
 
 // Modifier class for the single-column gutter variant.
 const COLUMN_CLASS = 'jf-signifier-column'
@@ -46,10 +41,9 @@ const COLUMN_CLASS = 'jf-signifier-column'
 const BLOCK_SELECTOR = 'li, p, blockquote, h1, h2, h3, h4, h5, h6'
 
 // Reading-view post-processor: for every tag bound to a configured
-// signifier, render the signifier's icon at the START of the entry, in
-// normal flow. Flow placement (rather than absolute positioning) is
-// deliberate — it can never overlap the bullet / checkbox and is immune to
-// themes and CSS snippets that restyle list layout. When
+// signifier, render the signifier's icon in a left-margin gutter just left
+// of the entry (the marker is absolutely positioned and placed by
+// measurement — see `gutter-positioner.ts`). When
 // `signifierHideTagInReadingView` is on the tag text itself is hidden.
 // Idempotent — anchors are stamped `data-jf-signifier` and each entry holds
 // at most one icon per signifier id. Signifiers apply to ALL rendered
@@ -70,7 +64,7 @@ export function processSignifiers(
     if (matched.length === 0) continue
 
     anchor.dataset.jfSignifier = '1'
-    const block = blockAncestor(anchor, el)
+    const block = lineSegmentFor(anchor, blockAncestor(anchor, el))
     const marker = ensureMarker(block, settings.signifierPlacement)
     for (const signifier of matched) {
       if (marker.querySelector(`[data-sig-id="${cssEscape(signifier.id)}"]`)) {
@@ -101,6 +95,48 @@ function blockAncestor(anchor: HTMLElement, el: HTMLElement): HTMLElement {
   return block && el.contains(block) ? block : el
 }
 
+// When a paragraph / heading carries soft line breaks (Obsidian's *Strict
+// line breaks* off — the default), every visual line lives in ONE `<p>`
+// separated by `<br>`s. Each line is its own logical entry, but they share a
+// block — so without this, every line's signifier would clump into a single
+// marker at the paragraph's start (start / margin) or end (end). We wrap the
+// run of nodes making up the anchor's line in a `.jf-signifier-line` span and
+// treat THAT as the entry, so each line gets its own marker on its own line.
+//
+// Scoped to paragraphs / headings: list items already separate entries into
+// their own `<li>`, and a soft break inside an `<li>` is a continuation of
+// that one entry, not a new one — so list items are returned unchanged. Blocks
+// with no `<br>` (the common path) are also returned unchanged.
+function lineSegmentFor(anchor: HTMLElement, block: HTMLElement): HTMLElement {
+  // Another tag on the same line wrapped it already — share that segment.
+  const existing = anchor.closest<HTMLElement>('.jf-signifier-line')
+  if (existing && block.contains(existing)) return existing
+  if (block.tagName === 'LI') return block
+
+  const children = Array.from(block.childNodes)
+  if (!children.some((n) => n.nodeName === 'BR')) return block
+
+  // The direct child of `block` that contains (or is) the anchor.
+  let topChild: HTMLElement = anchor
+  while (topChild.parentElement && topChild.parentElement !== block) {
+    topChild = topChild.parentElement
+  }
+  const idx = children.indexOf(topChild)
+  if (idx === -1) return block
+
+  // Grow the segment outward to the nearest `<br>` on each side.
+  let start = idx
+  while (start > 0 && children[start - 1].nodeName !== 'BR') start--
+  let end = idx
+  while (end < children.length - 1 && children[end + 1].nodeName !== 'BR') end++
+
+  const span = document.createElement('span')
+  span.className = 'jf-signifier-line'
+  block.insertBefore(span, children[start])
+  for (let i = start; i <= end; i++) span.appendChild(children[i])
+  return span
+}
+
 // The element that actually holds an entry's inline content. Obsidian
 // wraps list-item content (checkbox + text) in a `<p>` for "loose" list
 // items; markers must go INSIDE that `<p>` or they land on their own line
@@ -124,26 +160,19 @@ function findOwnMarker(block: HTMLElement, cls: string): HTMLElement | null {
   return null
 }
 
-// Gets (or creates) the single marker container for an entry, positioned
-// per the placement mode:
-//   start  — after the bullet / checkbox (and the plugin's task-status
-//            icon), immediately before the entry text, INSIDE the content
-//            host. Inline, so it never wraps and aligns at any nesting.
-//   end    — at the end of the line's own text (inside the content host,
-//            before any nested list), so it trails the line not the subtree.
-//   margin — placed in flow like `start`, but CSS positions it absolutely
-//            (`top: auto` keeps it on its line) anchored to the readable-
-//            width container, so all icons form one left-margin column.
+// Gets (or creates) the single marker container for an entry. Both placement
+// modes are left-margin gutters: the marker is prepended into the entry's
+// content host (which becomes the positioning context) and CSS positions it
+// absolutely just left of the host, vertically centred on the line.
 function ensureMarker(
   block: HTMLElement,
   placement: SignifierPlacement
 ): HTMLElement {
-  const cls = MARKER_CLASS[placement]
-  const existing = findOwnMarker(block, cls)
+  const existing = findOwnMarker(block, MARKER_CLASS)
   if (existing) return existing
 
   const marker = document.createElement('span')
-  marker.className = cls
+  marker.className = MARKER_CLASS
   if (placement === 'margin-column') {
     marker.classList.add(COLUMN_CLASS)
     // Stamp the entry's list-nesting depth so CSS can offset the marker back
@@ -151,7 +180,7 @@ function ensureMarker(
     // per-level indent step is measured once and supplied as a CSS variable.
     marker.style.setProperty('--jf-sig-depth', String(listDepth(block)))
   }
-  placeMarker(block, marker, placement)
+  placeMarker(block, marker)
   return marker
 }
 
@@ -170,52 +199,15 @@ export function listDepth(block: HTMLElement): number {
   return depth
 }
 
-function placeMarker(
-  block: HTMLElement,
-  marker: HTMLElement,
-  placement: SignifierPlacement
-): void {
+function placeMarker(block: HTMLElement, marker: HTMLElement): void {
+  // Make the entry's content host the positioning context (deterministic
+  // regardless of Obsidian's indentation-guide `li { position: relative }`),
+  // then CSS hangs the absolutely-positioned marker just left of it,
+  // vertically centred on the line. Insertion slot is irrelevant — the
+  // marker is taken out of flow by `position: absolute`.
   const host = contentHost(block)
-
-  if (placement === 'margin' || placement === 'margin-column') {
-    // Make the entry's content host the positioning context (deterministic
-    // regardless of Obsidian's indentation-guide `li { position: relative }`),
-    // then CSS hangs the absolutely-positioned marker just left of it,
-    // vertically centred on the line. Insertion slot is irrelevant — the
-    // marker is taken out of flow by `position: absolute`.
-    host.classList.add('jf-signifier-host')
-    host.prepend(marker)
-    return
-  }
-
-  if (placement === 'end') {
-    if (host !== block) {
-      host.append(marker)
-      return
-    }
-    const nested = block.querySelector<HTMLElement>(':scope > ul, :scope > ol')
-    if (nested) nested.before(marker)
-    else block.append(marker)
-    return
-  }
-
-  // start — after the checkbox + task-status icon when present, else after
-  // the bullet, else at the start of the content host.
-  const checkbox = block.querySelector<HTMLElement>(
-    'input.task-list-item-checkbox'
-  )
-  if (checkbox) {
-    let ref = checkbox
-    const sib = checkbox.nextElementSibling
-    if (sib instanceof HTMLElement && sib.classList.contains('jf-task-status')) {
-      ref = sib
-    }
-    ref.after(marker)
-    return
-  }
-  const bullet = host.querySelector<HTMLElement>(':scope > .list-bullet')
-  if (bullet) bullet.after(marker)
-  else host.prepend(marker)
+  host.classList.add('jf-signifier-host')
+  host.prepend(marker)
 }
 
 // Derives the bare, lowercased tag name from a tag anchor — preferring the

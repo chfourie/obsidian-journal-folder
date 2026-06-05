@@ -24,17 +24,15 @@ tasks or bullets.
 ### Where they render
 
 In **notes** (reading view and live preview) the placement is set by the
-global `signifierPlacement` setting:
+global `signifierPlacement` setting. Both values are left-margin gutters
+(physical-journal style):
 
-- **`start`** — the icon **leads the entry** in normal text flow
-  (`★ ☐ Downgrade Claude?`).
-- **`end`** — the icon **trails the line** in normal text flow.
 - **`margin`** — the icon hangs in the **margin just left of each entry**
-  (indented with nesting), physical-journal style.
+  (indented with nesting).
 - **`margin-column`** (**default**) — **every** icon aligns in **one far-left
   column** regardless of nesting (a physical journal's left rule).
 
-Both margin modes make the entry's content host / line a positioning context
+Both modes make the entry's content host / line a positioning context
 (`.jf-signifier-host`) and absolutely position the marker, vertically centred
 on the line (`top: 0; bottom: 0; align-items: center`). Their **horizontal**
 position is set by **measurement, not CSS constants** — that's what makes them
@@ -60,9 +58,9 @@ intrinsic layout metrics change (theme, font, the DOM itself).
 There is **no scroll recompute** (the offset is scroll-invariant). Markers are
 `visibility: hidden` until their first measurement reveals them
 (`.jf-positioned`) so there is no wrong-x flash. Because the horizontal
-position is measured from the live layout, the margin placements hold up across
-themes, snippets and indentation settings — which is why `margin-column` is the
-default rather than a warned opt-in.
+position is measured from the live layout, both placements hold up across
+themes, snippets and indentation settings — which is why they are the only two
+placement options.
 
 **Reserve left margin for gutter signifiers** (`signifierReserveGutter`, **off
 by default**, margin modes only): when on, the content container's
@@ -77,30 +75,34 @@ it) so re-applying never compounds.
 
 | Surface | Mechanism | Tag visibility |
 | --- | --- | --- |
-| Reading view | `processSignifiers` post-processor (`process-signifiers.ts`) inserts a `.jf-signifier-lead` marker at the start of the tag's nearest block ancestor (`li` / `p` / heading / …), after a task checkbox when present | Tag hidden when `signifierHideTagInReadingView`; otherwise the tag stays too |
-| Live preview | `signifierLivePreviewExtension` CodeMirror `ViewPlugin` (`signifier-live-preview.ts`) adds a side `-1` in-flow lead widget per line | Tag is **never hidden** — it stays fully editable |
+| Reading view | `processSignifiers` post-processor (`process-signifiers.ts`) inserts a `.jf-signifier-gutter` marker into the tag's nearest block ancestor (`li` / `p` / heading / …), made the positioning host | Tag hidden when `signifierHideTagInReadingView`; otherwise the tag stays too |
+| Live preview | `signifierLivePreviewExtension` CodeMirror `ViewPlugin` (`signifier-live-preview.ts`) adds a side `-1` gutter widget per line, positioned by measurement | Tag hidden when `signifierHideTagInLivePreview` (via a `replace` decoration), **revealed while the cursor / selection touches it** so it stays editable; otherwise the tag stays |
 | Plugin task lists | `TaskItem.svelte` renders `task.signifierIds` inline via `renderSignifierIcon` | Always hidden (tags stripped from `displayText` at extract time) |
 
-**Why measurement, not fixed CSS:** the margin modes absolutely-position the
-icon into the left margin. An earlier version used a fixed `translateX` offset,
+**Why measurement, not fixed CSS:** both modes absolutely-position the icon
+into the left margin. An earlier version used a fixed `translateX` offset,
 which looked right in a pristine vault but broke in real ones — CSS snippets
 and themes (e.g. AnuPpuccin, Minimal, list/checkbox/indent-guide snippets)
 restyle list layout and shift the reference frame, so the icon could land on
 top of the checkbox or off-screen. Measuring the live layout instead (and
-reserving the lane) makes the margin modes robust enough to be the default; the
-flow placements (`start` / `end`) remain as zero-measurement alternatives that
-sit in the line rather than hanging in the margin.
+reserving the lane) makes the gutter robust across themes/snippets — which is
+why these two left-margin modes are the only placement options.
 
-| Surface | start / end | margin / margin-column |
-| --- | --- | --- |
-| Reading view | `.jf-signifier-lead` / `.jf-signifier-trail` inserted in flow (after the checkbox, inside the content `<p>`) | `.jf-signifier-gutter` absolutely positioned against the entry's content host (`.jf-signifier-host`); `left` measured by `gutter-positioner.ts`. `margin-column` adds `.jf-signifier-column` |
-| Live preview | side `-1` / side `1` in-flow widget | widget absolutely positioned against the line (`.jf-signifier-host` line decoration); `left` measured via `coordsAtPos` |
+| Surface | Mechanism |
+| --- | --- |
+| Reading view | `.jf-signifier-gutter` absolutely positioned against the entry's content host (`.jf-signifier-host`); `left` measured by `gutter-positioner.ts`. `margin-column` adds `.jf-signifier-column` |
+| Live preview | side `-1` widget absolutely positioned against the line (`.jf-signifier-host` line decoration); `left` measured via `coordsAtPos` |
 
-Live preview uses a plain CodeMirror side `-1` widget (the idiomatic,
-non-destabilising mechanism — nothing hidden or replaced) and is gated by
-`signifierLivePreviewEnabled` (default on). That toggle is a deliberate
-kill-switch: turning it off reverts live preview to plain tags with reading
-view and task lists unaffected.
+Live preview always renders the gutter widget. When `signifierHideTagInLivePreview`
+is on (the default), each matched tag token is hidden with a `Decoration.replace`,
+**except** when the tag is revealed for editing. The reveal scope is the global
+`signifierShowTagsOnActiveLine` toggle (off by default): on — the cursor / a
+selection anywhere on a line reveals **all** of that line's tags; off — only the
+tag the selection actually touches is revealed. The decision is the pure,
+unit-tested `computeTagHideRanges` (returns the ranges to hide). The decoration
+set is rebuilt on `selectionSet` (only when tag-hiding is on). Soft breaks within
+one CodeMirror line don't arise (each editor line is its own line), so the
+reading-view `<br>` line-splitting has no editing-view counterpart.
 
 ### Modify signifiers on the current line
 

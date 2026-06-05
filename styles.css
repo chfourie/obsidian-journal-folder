@@ -2117,36 +2117,13 @@ li.task-list-item[data-task="-"] {
 	display: none;
 }
 
-/* Leading signifiers — the icon(s) that lead an entry in notes (reading
- * view + live preview). Rendered in normal text flow (NOT absolutely
- * positioned), so they can never overlap the bullet / checkbox and are
- * immune to themes and CSS snippets that restyle list layout. */
-.jf-signifier-lead {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	margin-inline-end: 0.35em;
-	vertical-align: text-bottom;
-}
-
-/* Trailing signifiers — same flow placement, at the end of the line. */
-.jf-signifier-trail {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	margin-inline-start: 0.35em;
-	vertical-align: text-bottom;
-}
-
-/* Inside a flow marker the icons carry no inline spacing — the flex gap
+/* Inside a gutter marker the icons carry no inline spacing — the flex gap
  * governs separation. */
-.jf-signifier-lead .jf-signifier,
-.jf-signifier-trail .jf-signifier,
 .jf-signifier-gutter .jf-signifier {
 	margin: 0;
 }
 
-/* Left-margin gutter placements (OPT-IN) — `margin` hangs the icon just left
+/* Left-margin gutter placements — `margin` hangs the icon just left
  * of EACH entry (indented with nesting); `margin-column` aligns every icon in
  * one far-left column (physical-journal left rule).
  *

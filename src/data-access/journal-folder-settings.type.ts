@@ -239,23 +239,24 @@ export type JournalFolderSettings = {
   // The plugin's own task lists ALWAYS hide the tag regardless. **Global
   // only** — applied by the reading-view post-processor.
   signifierHideTagInReadingView: boolean
-  // Kill-switch for the live-preview (editing-view) signifier
-  // decoration. On by default; turning it off reverts live preview to
-  // plain tags with no CodeMirror decoration, leaving reading view and
-  // task lists unaffected. **Global only** — gates an editor extension.
-  signifierLivePreviewEnabled: boolean
-  // Where signifier icons sit in notes (reading view + live preview):
-  //   `'start'`         — lead the entry, in normal text flow.
-  //   `'end'`           — trail the line, in normal text flow.
-  //   `'margin'`        — left-margin gutter, hanging just left of each entry
-  //                       and indented with its nesting (physical-journal
-  //                       gutter, per entry).
+  // Whether live preview hides the matched tag text (showing only the
+  // signifier icon) the way reading view does. On by default. The tag is
+  // revealed while the cursor / selection touches it so it stays editable.
+  // **Global only** — drives the live-preview CodeMirror extension.
+  signifierHideTagInLivePreview: boolean
+  // When hiding tags in live preview, whether placing the cursor on a line
+  // reveals ALL of that line's signifier tags (true) or only the single tag
+  // the cursor actually touches (false). Off by default. No effect when
+  // `signifierHideTagInLivePreview` is off. **Global only.**
+  signifierShowTagsOnActiveLine: boolean
+  // Where signifier icons sit in notes (reading view + live preview). Both
+  // values are left-margin gutters positioned by measurement (so they hold
+  // up across themes / snippets / indentation):
+  //   `'margin'`        — hangs just left of each entry, indented with its
+  //                       nesting (a per-entry gutter).
   //   `'margin-column'` — every icon aligned in ONE far-left column,
-  //                       regardless of nesting depth (a single journal
-  //                       gutter). **Default.**
-  // The margin placements are positioned by measurement (not theme-specific
-  // CSS), so they are robust across themes / snippets / indentation; the
-  // optional `signifierReserveGutter` keeps them from clipping in narrow /
+  //                       regardless of nesting depth. **Default.**
+  // The optional `signifierReserveGutter` keeps them from clipping in narrow /
   // readable-off views. **Global only.** Does not affect the plugin's own
   // task lists, which always render signifiers inline.
   signifierPlacement: SignifierPlacement
@@ -325,7 +326,7 @@ export type TasksSidebarRange =
 
 export type TasksSidebarFolderMode = 'note' | 'all' | 'specific'
 
-export type SignifierPlacement = 'start' | 'end' | 'margin' | 'margin-column'
+export type SignifierPlacement = 'margin' | 'margin-column'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -433,7 +434,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
     },
   ],
   signifierHideTagInReadingView: true,
-  signifierLivePreviewEnabled: true,
+  signifierHideTagInLivePreview: true,
+  signifierShowTagsOnActiveLine: false,
   signifierPlacement: 'margin-column',
   signifierReserveGutter: true,
   taskCategories: [

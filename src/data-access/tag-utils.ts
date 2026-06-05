@@ -40,6 +40,33 @@ export function extractTags(text: string): string[] {
   return out
 }
 
+// A tag occurrence located within a line: its bare lowercased `name` plus
+// the `[start, end)` offsets of the `#tag` token itself (excluding the
+// leading whitespace boundary). Unlike `extractTags`, occurrences are NOT
+// de-duplicated — every position is reported, so callers can hide / decorate
+// each one. Pure — used by the live-preview tag-hiding decoration.
+export interface TagSpan {
+  name: string
+  start: number
+  end: number
+}
+
+export function extractTagSpans(text: string): TagSpan[] {
+  const out: TagSpan[] = []
+  for (const match of text.matchAll(TAG_REGEX)) {
+    // match[0] includes the leading boundary char (start-of-line or a space);
+    // skip it so the span covers only the `#tag` token.
+    const lead = match[0].length - match[1].length - 1
+    const start = (match.index ?? 0) + lead
+    out.push({
+      name: match[1].toLowerCase(),
+      start,
+      end: start + match[1].length + 1,
+    })
+  }
+  return out
+}
+
 // True when `tag` equals `configured` or is a descendant of it — so the
 // configured tag `important` matches both `#important` and the nested
 // `#important/work`. Both inputs are compared case-insensitively.

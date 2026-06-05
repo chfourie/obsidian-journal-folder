@@ -31,6 +31,7 @@ import {
   type Signifier,
   type SignifierPlacement,
   extractTags,
+  extractTagSpans,
   matchSignifiers,
 } from '../../data-access'
 import { renderSignifierIcon } from './render-signifier-icon'
@@ -47,15 +48,13 @@ export interface SignifierLivePreviewContext {
 
 // Live-preview (editing-view) signifier rendering. A CodeMirror
 // `ViewPlugin` that, for every line carrying a configured signifier tag,
-// paints the signifier icon(s) at the START of the line in normal flow
-// (a side `-1` widget) — the tag text is left untouched and fully
-// editable. Flow placement (rather than an absolutely-positioned margin
-// marker) is deliberate: it can never overlap the bullet / checkbox and is
-// immune to themes and CSS snippets that restyle list layout. Nothing is
-// hidden or replaced, so there is no reveal-on-edit dance and no way for
-// the decoration to interfere with typing. Gated by
-// `signifierLivePreviewEnabled`; a settings change re-applies editor
-// extensions (see `JournalSignifiersFeature.useSettings`).
+// paints the signifier icon(s) in a left-margin gutter (an absolutely-
+// positioned side `-1` widget whose `left` is measured — see
+// `measureGutters`), mirroring the reading-view placement. When
+// `signifierHideTagInLivePreview` is on, the matched tag token is also
+// hidden via a `replace` decoration, BUT revealed while the cursor /
+// selection touches it so it stays editable. A settings change re-applies
+// editor extensions (see `JournalSignifiersFeature.useSettings`).
 export function signifierLivePreviewExtension(
   ctx: SignifierLivePreviewContext
 ): Extension {
@@ -63,33 +62,56 @@ export function signifierLivePreviewExtension(
     class implements PluginValue {
       decorations: DecorationSet
       private lastPlacement: SignifierPlacement
+      private lastHideTag: boolean
+      private lastRevealActiveLine: boolean
 
       constructor(view: EditorView) {
-        this.lastPlacement = ctx.getSettings().signifierPlacement
+        const s = ctx.getSettings()
+        this.lastPlacement = s.signifierPlacement
+        this.lastHideTag = s.signifierHideTagInLivePreview
+        this.lastRevealActiveLine = s.signifierShowTagsOnActiveLine
         this.decorations = this.build(view)
         this.measureGutters(view)
       }
 
       update(update: ViewUpdate): void {
-        const placement = ctx.getSettings().signifierPlacement
-        const placementChanged = placement !== this.lastPlacement
-        if (update.docChanged || update.viewportChanged || placementChanged) {
+        const settings = ctx.getSettings()
+        const placement = settings.signifierPlacement
+        const hideTag = settings.signifierHideTagInLivePreview
+        const revealActiveLine = settings.signifierShowTagsOnActiveLine
+        // A settings toggle reaches us via the reconfigure transaction
+        // (`updateOptions`); treat placement / hide-tag / reveal changes as a
+        // rebuild.
+        const settingsChanged =
+          placement !== this.lastPlacement ||
+          hideTag !== this.lastHideTag ||
+          revealActiveLine !== this.lastRevealActiveLine
+        // When tag-hiding is on, a cursor move can reveal / re-hide a tag, so
+        // the decoration set must rebuild on `selectionSet` too.
+        const rebuild =
+          update.docChanged ||
+          update.viewportChanged ||
+          settingsChanged ||
+          (update.selectionSet && hideTag)
+        if (rebuild) {
           this.decorations = this.build(update.view)
         }
         // Re-measure gutter positions on any geometry change too
         // (`geometryChanged` fires on window resize / font / readable-width),
-        // since the single column's offset includes the indentation. A
-        // placement change must also re-run so the reserved lane is applied
-        // or cleared.
+        // since the single column's offset includes the indentation. A reveal
+        // / re-hide redraws the line, so re-measure on those rebuilds as well.
         if (
           update.docChanged ||
           update.viewportChanged ||
           update.geometryChanged ||
-          placementChanged
+          settingsChanged ||
+          (update.selectionSet && hideTag)
         ) {
           this.measureGutters(update.view)
         }
         this.lastPlacement = placement
+        this.lastHideTag = hideTag
+        this.lastRevealActiveLine = revealActiveLine
       }
 
       // Position the editing-view gutter markers by measurement, using
@@ -136,63 +158,69 @@ export function signifierLivePreviewExtension(
       private build(view: EditorView): DecorationSet {
         const settings = ctx.getSettings()
         const signifiers = settings.signifiers
-        if (!settings.signifierLivePreviewEnabled || signifiers.length === 0) {
-          return Decoration.none
-        }
+        if (signifiers.length === 0) return Decoration.none
+        const placement = settings.signifierPlacement
+        const hideTag = settings.signifierHideTagInLivePreview
+        const revealActiveLine = settings.signifierShowTagsOnActiveLine
+        const selection = view.state.selection
         const collected: Range<Decoration>[] = []
 
         for (const { from, to } of view.visibleRanges) {
           let pos = from
           while (pos <= to) {
             const line = view.state.doc.lineAt(pos)
-            const matched = matchSignifiers(
-              extractTags(line.text),
-              signifiers
-            )
+            const matched = matchSignifiers(extractTags(line.text), signifiers)
             if (matched.length > 0) {
-              const placement = settings.signifierPlacement ?? 'start'
-              if (placement === 'end') {
-                collected.push(
-                  Decoration.widget({
-                    widget: new SignifierWidget(matched, 'jf-signifier-trail'),
-                    side: 1,
-                  }).range(line.to)
-                )
-              } else {
-                // Place after the line's `- [ ]` / bullet prefix (and the
-                // leading indentation) so the icon sits before the entry
-                // text and inherits the line's indent. For the margin modes
-                // the line becomes the positioning context
-                // (`jf-signifier-host`) so CSS can hang the marker just left
-                // of it, vertically centred.
-                const isMargin =
-                  placement === 'margin' || placement === 'margin-column'
-                const widgetPos = line.from + contentStartOffset(line.text)
-                if (isMargin) {
-                  collected.push(
-                    Decoration.line({ class: 'jf-signifier-host' }).range(
-                      line.from
-                    )
-                  )
+              // Both placements are left-margin gutters: the line becomes the
+              // positioning context (`jf-signifier-host`) and the icon marker
+              // is placed after the line's `- [ ]` / bullet prefix so it sits
+              // in the right `.cm-line`; CSS + the measured `left` hang it just
+              // left of the line, vertically centred.
+              const widgetPos = line.from + contentStartOffset(line.text)
+              collected.push(
+                Decoration.line({ class: 'jf-signifier-host' }).range(line.from)
+              )
+              // Single-column variant carries the column modifier + the line's
+              // indentation depth so CSS can pull every icon back into one
+              // shared far-left column.
+              const depth =
+                placement === 'margin-column'
+                  ? indentDepth(line.text, view.state.tabSize)
+                  : null
+              const cls =
+                placement === 'margin-column'
+                  ? 'jf-signifier-gutter jf-signifier-column'
+                  : 'jf-signifier-gutter'
+              collected.push(
+                Decoration.widget({
+                  widget: new SignifierWidget(matched, cls, depth),
+                  side: -1,
+                }).range(widgetPos)
+              )
+
+              // Hide each matched tag token (parity with reading view), but
+              // reveal it for editing per `computeTagHideRanges` — either the
+              // single tag under the cursor, or every tag on the active line.
+              if (hideTag) {
+                const tagRanges: TagRange[] = []
+                for (const span of extractTagSpans(line.text)) {
+                  if (matchSignifiers([span.name], signifiers).length === 0) {
+                    continue
+                  }
+                  tagRanges.push({
+                    from: line.from + span.start,
+                    to: line.from + span.end,
+                  })
                 }
-                // Single-column variant carries the column modifier + the
-                // line's indentation depth so CSS can pull every icon back
-                // into one shared far-left column.
-                const depth =
-                  placement === 'margin-column'
-                    ? indentDepth(line.text, view.state.tabSize)
-                    : null
-                const cls = !isMargin
-                  ? 'jf-signifier-lead'
-                  : placement === 'margin-column'
-                    ? 'jf-signifier-gutter jf-signifier-column'
-                    : 'jf-signifier-gutter'
-                collected.push(
-                  Decoration.widget({
-                    widget: new SignifierWidget(matched, cls, depth),
-                    side: -1,
-                  }).range(widgetPos)
-                )
+                for (const r of computeTagHideRanges(
+                  line.from,
+                  line.to,
+                  tagRanges,
+                  selection.ranges,
+                  revealActiveLine
+                )) {
+                  collected.push(Decoration.replace({}).range(r.from, r.to))
+                }
               }
             }
             pos = line.to + 1
@@ -205,11 +233,41 @@ export function signifierLivePreviewExtension(
   )
 }
 
+// A half-open `[from, to)` document range (CodeMirror offsets).
+export interface TagRange {
+  from: number
+  to: number
+}
+
+// Decides which of a line's signifier-tag ranges to HIDE in live preview,
+// given the editor selection. A tag stays hidden unless it is "revealed" for
+// editing:
+//   - `revealActiveLine` true  — placing the cursor / a selection anywhere on
+//     the line reveals ALL of the line's tags (returns none to hide).
+//   - `revealActiveLine` false — only the tag the selection actually touches
+//     is revealed; the rest stay hidden.
+// Pure / unit-tested. `lineFrom` / `lineTo` are the line's document offsets.
+export function computeTagHideRanges(
+  lineFrom: number,
+  lineTo: number,
+  tagRanges: readonly TagRange[],
+  selectionRanges: readonly { from: number; to: number }[],
+  revealActiveLine: boolean
+): TagRange[] {
+  const lineActive =
+    revealActiveLine &&
+    selectionRanges.some((r) => r.from <= lineTo && r.to >= lineFrom)
+  if (lineActive) return []
+  return tagRanges.filter(
+    (t) => !selectionRanges.some((r) => r.from <= t.to && r.to >= t.from)
+  )
+}
+
 // Offset within a line to the start of its content — past leading
 // indentation and any list marker (`- `, `* `, `1. `) and task checkbox
-// (`[ ] `). 0 for a plain paragraph line. Used so a `start` / `margin`
-// widget sits before the entry text and inherits the line's indentation,
-// instead of snapping to the far-left column at `line.from`.
+// (`[ ] `). 0 for a plain paragraph line. Used so a `margin` widget sits
+// before the entry text and inherits the line's indentation, instead of
+// snapping to the far-left column at `line.from`.
 function contentStartOffset(text: string): number {
   const match = text.match(/^\s*(?:[-*+]|\d+[.)])\s+(?:\[[^\]]\]\s+)?/)
   return match ? match[0].length : 0
@@ -359,9 +417,9 @@ export function indentDepth(text: string, tabSize: number): number {
   return depth + 1
 }
 
-// Renders the signifier icons for a line as a single marker. `className`
-// selects the placement styling (`jf-signifier-lead` / `-trail` /
-// `-gutter`).
+// Renders the signifier icons for a line as a single gutter marker.
+// `className` is the gutter styling (`jf-signifier-gutter`, plus
+// `jf-signifier-column` for the single-column variant).
 class SignifierWidget extends WidgetType {
   constructor(
     private readonly signifiers: Signifier[],

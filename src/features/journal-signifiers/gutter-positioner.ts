@@ -259,7 +259,7 @@ export function positionReadingGutters(
 // --- Scheduling (debounced, one rAF) -------------------------------------
 
 const pendingContainers = new Set<HTMLElement>()
-let scheduledPlacement: SignifierPlacement = 'start'
+let scheduledPlacement: SignifierPlacement = 'margin-column'
 let scheduledReserve = false
 let rafHandle = 0
 
