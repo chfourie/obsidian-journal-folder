@@ -2039,40 +2039,6 @@ li.task-list-item[data-task="-"] {
 	vertical-align: middle;
 }
 
-/* ------------------------------------------------------------
- * Preview-feature notice shown at the top of the Tasks tabs
- * (global + per-folder).
- * ------------------------------------------------------------ */
-
-.jf-tasks-preview-notice {
-	margin: 0 0 1.25em;
-	padding: 0.75em 1em;
-	border: 1px solid var(--background-modifier-border);
-	border-left: 3px solid var(--text-warning);
-	border-radius: 6px;
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	font-size: var(--font-ui-small);
-	line-height: 1.45;
-}
-
-.jf-tasks-preview-notice-title {
-	margin-bottom: 0.35em;
-	color: var(--text-warning);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	font-size: 0.8em;
-}
-
-.jf-tasks-preview-notice-body {
-	color: var(--text-muted);
-}
-
-.jf-tasks-preview-notice-body strong {
-	color: var(--text-normal);
-}
-
 /* ============================================================
  * Signifiers (tag → icon) and task categories
  * ============================================================ */
