@@ -448,7 +448,7 @@ class SettingsFormBuilder {
     ).setDesc('Used for compact in-line links to yearly notes.')
   }
 
-  private renderTasksPreviewNotice(): void {
+  private renderPreviewNotice(message: string): void {
     const notice = this.containerEl.createDiv({
       cls: 'jf-tasks-preview-notice',
     })
@@ -457,18 +457,20 @@ class SettingsFormBuilder {
       text: 'Preview feature',
     })
     const body = notice.createDiv({ cls: 'jf-tasks-preview-notice-body' })
-    body.appendText(
+    body.appendText(message)
+  }
+
+  private renderTasksPreviewNotice(): void {
+    this.renderPreviewNotice(
       'Task management is a new capability still in active development ' +
-        'and shipped as a preview. Behaviour, settings keys, and ' +
-        'persisted data shapes may change between releases — your ' +
-        'configured flows and statuses could need to be re-created. ' +
-        'New installs default to '
+        'and shipped as a preview.'
     )
-    body.createEl('strong', { text: 'task lists only' })
-    body.appendText(
-      ' so document-body checkboxes stay on Obsidian’s native ' +
-        'behaviour; opt in to ' +
-        'everywhere only if you understand the trade-off.'
+  }
+
+  private renderSignifiersPreviewNotice(): void {
+    this.renderPreviewNotice(
+      'Signifiers are a new capability still in active development ' +
+        'and shipped as a preview.'
     )
   }
 
@@ -554,6 +556,7 @@ class SettingsFormBuilder {
   // than living under Tasks. Task *categories* stay under Tasks because
   // they only shape task lists.
   renderSignifiersTab(settings: JournalFolderSettings): void {
+    this.renderSignifiersPreviewNotice()
     renderSignifiersSection({
       app: this.config.app,
       containerEl: this.containerEl,
