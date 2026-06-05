@@ -58,7 +58,7 @@ The chips on the primary row are deliberately minimal. Higher-order period jumps
 
 ![More popover, daily note](../screenshots/more-popover-daily.png)
 
-The **Jump to** section lists higher-order periods that contain the current note: year (`2026`), month (`May`), week (`W19`). For unspanning periods each link is shown only if a note exists for that period or if the period is current/future; when the current note straddles a tier boundary (e.g. a week that crosses March/April) all overlapping periods are listed, with past+missing entries rendered inactive. The **Show calendar** / **Hide calendar** toggle on the right opens or closes the inline calendar picker (see [Calendar picker](calendar.md)).
+The **Jump to** section lists higher-order periods that contain the current note: year (`2026`), month (`May`), week (`W19`) — plus the containing quarter (`2026 Quarter 2`) when [quarterly notes](quarters.md) are enabled, as in the screenshot above. For unspanning periods each link is shown only if a note exists for that period or if the period is current/future; when the current note straddles a tier boundary (e.g. a week that crosses March/April) all overlapping periods are listed, with past+missing entries rendered inactive. The **Show calendar** / **Hide calendar** toggle on the right opens or closes the inline calendar picker (see [Calendar picker](calendar.md)).
 
 ### From a weekly note
 

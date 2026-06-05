@@ -68,6 +68,9 @@ A handful of fields are intentionally **not** honoured at the folder or embedded
 - `tasksSidebarEnabled`, `tasksSidebarReference`, `tasksSidebarFolders`, `tasksShowCompleted`, `tasksMaxItems` — sidebar / process-wide task UI.
 - `taskFlows`, `defaultTaskFlow` — flow definitions live globally; folders pick which flow they use, not what's in it.
 - `taskInteractionScope` — interception runs at process-wide layers (markdown post-processor, editor extension).
+- `signifiers`, `signifierPlacement`, `signifierHideTagInReadingView`, `signifierHideTagInLivePreview`, `signifierShowTagsOnActiveLine`, `signifierReserveGutter` — one signifier set per vault; see [Signifiers](signifiers.md).
+- `taskCategories`, `taskCategoryShowUnderNote` — category definitions are vault-wide.
+- the migration *reference* fields (`taskMigrationAddToReference`, `taskMigrationAddFromReference`, `taskMigrationReferenceStyle`, `taskMigrationToMarker`, `taskMigrationFromMarker`, `taskMigrationReferenceOpacity`). The **exception** is `taskMigrationPlacement` / `taskMigrationHeading`, which *are* folder-honoured — they're a per-note layout concern, not a process-wide preference.
 
 ## Layer 2 — per-folder `journal-folder.md`
 
@@ -155,6 +158,20 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `default-task-flow`                  | Name of the flow used by folders without an override. **Global only.** |
 | `task-flows`                         | Dictionary of named flows. **Global only.** See *Task-flow data shape* below. |
 | `task-interaction-scope`             | `'lists'` (default) — interactions only on the plugin's own task surfaces. `'everywhere'` — intercept every task checkbox in rendered documents. **Global only.** |
+| `task-migration-placement`           | Where migrated task copies land in the destination note: `after-last-task` (default), `top`, `end`, or `heading`. Per-folder. See [Migrating tasks](tasks.md#migrating-tasks-between-notes). |
+| `task-migration-heading`             | Heading text used when `task-migration-placement` is `heading` (default `Tasks`). Per-folder. |
+| `task-migration-add-to-reference`    | Whether the origin task gets a forward reference to the destination (default true). **Global only.** |
+| `task-migration-add-from-reference`  | Whether the migrated copy gets a back reference to its origin (default true). **Global only.** |
+| `task-migration-reference-style`     | `text` / `emoji` / `lucide` (default) — how reference markers render. **Global only.** |
+| `task-migration-to-marker` / `task-migration-from-marker` | The forward / back marker for the active style (Lucide markers are `lucide:<name>` tokens). **Global only.** |
+| `task-migration-reference-opacity`   | How faded references render, 0–100 (default 30). **Global only.** |
+| `signifier-placement`                | `margin-column` (default, all icons far-left) or `margin` (per-entry). **Global only.** See [Signifiers](signifiers.md). |
+| `signifier-hide-tag-in-reading-view` / `signifier-hide-tag-in-live-preview` | Replace the matched tag with just the icon in reading view / live preview (both default true). **Global only.** |
+| `signifier-show-tags-on-active-line` | When hiding tags in live preview, reveal *all* of the cursor line's tags (default false reveals only the touched tag). **Global only.** |
+| `signifier-reserve-gutter`           | Reserve left-margin space so gutter icons never clip (default true). **Global only.** |
+| `signifiers`                         | Array of tag→icon bindings. Managed in the **Signifiers** settings tab, not by hand. **Global only.** |
+| `task-categories`                    | Array of tag→category groupings shown atop task lists. Managed in the **Tasks** settings tab. **Global only.** |
+| `task-category-show-under-note`      | Whether a categorised task *also* appears in its note group (default false). **Global only.** |
 
 ## Task-flow data shape
 
@@ -251,5 +268,6 @@ max-items: 30                       # defaults to global tasksMaxItems
 
 ## See also
 
+- [Tasks](tasks.md) and [Signifiers](signifiers.md) — the preview features whose settings are summarised above; both are managed through their own settings tabs rather than by hand-editing.
 - [Per-folder layer in the architecture docs](../settings-resolution.md) — developer-focused notes on the resolver and key-case conversion.
 - [Plugin source — `JournalFolderSettings`](../../src/data-access/journal-folder-settings.type.ts) — authoritative type definition with per-field JSDoc rationale.
