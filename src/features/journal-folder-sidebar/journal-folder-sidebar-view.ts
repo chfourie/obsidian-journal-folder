@@ -16,13 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  ItemView,
-  Menu,
-  type Plugin,
-  TFile,
-  type WorkspaceLeaf,
-} from 'obsidian'
+import { ItemView, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
   configPathFor,
@@ -51,10 +45,6 @@ type ViewRegistry = {
   unregister: (v: JournalFolderSidebarView) => void
 }
 
-export type MenuTrigger =
-  | { kind: 'mouse'; event: MouseEvent }
-  | { kind: 'keyboard'; rect: DOMRect }
-
 // Callback the Svelte component registers so the view can push settings
 // updates and active-leaf events into reactive state without re-mounting.
 export type SidebarUpdateApi = {
@@ -77,11 +67,9 @@ export type ActiveFileSnapshot = {
   parentPath: string
 }
 
-// Items the Svelte component pushes into the *More...* menu. The view
-// translates them into Obsidian `Menu` API calls (`addItem` /
-// `addSeparator`) so we don't have to ship a custom popover for the
-// sidebar — Obsidian's native menu styling, keyboard handling, and
-// dismiss-on-click-outside come for free.
+// Items the Svelte component renders in its `<body>`-portaled menu /
+// folder-picker panels (`SidebarMenuPanel.svelte`). Both the More... menu
+// and the journal-folder picker share this shape.
 export type SidebarMenuItem =
   | {
       kind: 'item'
@@ -143,8 +131,6 @@ export class JournalFolderSidebarView extends ItemView {
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
-        showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) =>
-          this.showMoreMenu(trigger, items),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -271,29 +257,6 @@ export class JournalFolderSidebarView extends ItemView {
     new FolderConfigModal(this.plugin.app, folderPath, () =>
       this.getSettings()
     ).open()
-  }
-
-  private showMoreMenu(trigger: MenuTrigger, items: SidebarMenuItem[]): void {
-    const menu = new Menu()
-    for (const item of items) {
-      if (item.kind === 'separator') {
-        menu.addSeparator()
-        continue
-      }
-      menu.addItem((mi) => {
-        mi.setTitle(item.title)
-        if (item.icon) mi.setIcon(item.icon)
-        mi.onClick(() => item.onClick())
-      })
-    }
-    if (trigger.kind === 'mouse') {
-      menu.showAtMouseEvent(trigger.event)
-    } else {
-      menu.showAtPosition({
-        x: trigger.rect.left,
-        y: trigger.rect.bottom,
-      })
-    }
   }
 
   private openInitFolderPicker(): void {

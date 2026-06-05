@@ -17,16 +17,38 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
   import { setIcon } from 'obsidian'
+  import type { Snippet } from 'svelte'
   import type { SidebarMenuItem } from './journal-folder-sidebar-view'
 
   type Props = {
-    label: string
     // Resolved lazily when the panel opens so item visibility / titles
     // reflect the current settings + selection.
     getItems: () => SidebarMenuItem[]
+    // Default trigger is a plain text link showing `label`. Pass a
+    // `trigger` snippet instead to render custom trigger content (e.g. the
+    // folder picker's label + caret); `triggerClass` styles the wrapper.
+    label?: string
+    trigger?: Snippet
+    triggerClass?: string
+    triggerId?: string
+    disabled?: boolean
+    // Horizontal edge of the trigger the panel aligns to. The More... link
+    // hangs its right edge under the trigger; the wide folder button reads
+    // better aligned to its left edge and matching its width.
+    align?: 'left' | 'right'
+    matchTriggerWidth?: boolean
   }
 
-  const { label, getItems }: Props = $props()
+  const {
+    getItems,
+    label,
+    trigger,
+    triggerClass = 'jf-sidebar-link jf-sidebar-more-link',
+    triggerId,
+    disabled = false,
+    align = 'right',
+    matchTriggerWidth = false,
+  }: Props = $props()
 
   let open = $state(false)
   let items = $state<SidebarMenuItem[]>([])
@@ -52,13 +74,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     if (!triggerEl) return
     const rect = triggerEl.getBoundingClientRect()
     const gap = 6
+    // `min-width` is baked into `panelStyle` (not set imperatively): the
+    // reactive `style={panelStyle}` binding rewrites the whole inline
+    // style whenever it changes, which would otherwise wipe an
+    // imperatively-set width on the first open.
+    const minWidthCss = matchTriggerWidth ? ` min-width: ${rect.width}px;` : ''
+    if (panelEl) panelEl.style.minWidth = matchTriggerWidth
+      ? `${rect.width}px`
+      : ''
     const width = panelEl?.offsetWidth ?? 220
-    let left = rect.right - width
+    let left = align === 'left' ? rect.left : rect.right - width
     if (left < 8) left = 8
     if (left + width > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - width - 8)
     }
-    panelStyle = `top: ${rect.bottom + gap}px; left: ${left}px;`
+    panelStyle = `top: ${rect.bottom + gap}px; left: ${left}px;${minWidthCss}`
   }
 
   function openPanel() {
@@ -72,6 +102,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 
   function toggle() {
+    if (disabled) return
     if (open) closePanel()
     else openPanel()
   }
@@ -122,16 +153,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <span
   bind:this={triggerEl}
+  id={triggerId}
   role="button"
-  tabindex="0"
-  class="jf-sidebar-link jf-sidebar-more-link"
+  tabindex={disabled ? -1 : 0}
+  class={triggerClass}
   class:open
+  class:is-disabled={disabled}
   aria-haspopup="menu"
   aria-expanded={open}
+  aria-disabled={disabled}
   onclick={toggle}
   onkeydown={activate(toggle)}
 >
-  {label}
+  {#if trigger}
+    {@render trigger()}
+  {:else}
+    {label}
+  {/if}
 </span>
 
 {#if open}

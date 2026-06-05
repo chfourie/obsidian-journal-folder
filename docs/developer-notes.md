@@ -76,8 +76,9 @@ note, view mode, UI state, crop region). Edit it to add or retune a shot.
 > the CLI's `eval` dispatches real DOM events that fire Svelte handlers, so
 > there's no need for hardware clicks, AX queries, or hand-tuned window
 > coordinates. The one thing the CLI *can't* drive is a native Obsidian `Menu`
-> (it dismisses on the focus change `dev:screenshot` causes), so the
-> `sidebar-folder-picker` shot is captured by hand; everything else is
+> (it dismisses on the focus change `dev:screenshot` causes) — but the plugin
+> no longer uses one: the folder picker is now a `<body>`-portaled panel like
+> the More… menu, so every shot (including `sidebar-folder-picker`) is
 > reproducible with the commands above. See the harness README for the full
 > list of gotchas (`plugin:reload` vs `app:reload`, the session-sticky calendar
 > store, the hidden live-preview header copy, mobile emulation, …).

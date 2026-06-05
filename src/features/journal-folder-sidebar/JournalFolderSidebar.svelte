@@ -32,7 +32,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   } from './sidebar-selection'
   import type {
     ActiveFileSnapshot,
-    MenuTrigger,
     SidebarMenuItem,
     SidebarUpdateApi,
     TaskPanelSnapshot,
@@ -60,7 +59,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
     openPluginSettings: () => void
-    showMenu: (trigger: MenuTrigger, items: SidebarMenuItem[]) => void
     buildAnchorNote: (
       folderPath: string,
       anchorBasename: string
@@ -81,7 +79,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     onInitJournalFolder,
     onEditFolderConfig,
     openPluginSettings,
-    showMenu,
     buildAnchorNote,
     confirmCreate,
     navigate,
@@ -421,19 +418,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       (p) => p !== '' && p !== '/'
     )
   }
-
-  function openFolderMenu(evt: MouseEvent | KeyboardEvent) {
-    if (evt instanceof MouseEvent) {
-      showMenu({ kind: 'mouse', event: evt }, buildFolderMenuItems())
-      return
-    }
-    const target = evt.currentTarget as HTMLElement | null
-    if (!target) return
-    showMenu(
-      { kind: 'keyboard', rect: target.getBoundingClientRect() },
-      buildFolderMenuItems()
-    )
-  }
 </script>
 
 <div class="jf-sidebar-root">
@@ -448,33 +432,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <SidebarMenuPanel label="More..." getItems={buildMenuItems} />
     </div>
 
-    <span
-      id="jf-sidebar-folder"
-      role="button"
-      tabindex="0"
-      class="jf-sidebar-folder-button"
-      class:is-disabled={knownFolders.length === 0}
-      aria-haspopup="menu"
-      aria-disabled={knownFolders.length === 0}
-      onclick={(e) => {
-        if (knownFolders.length === 0) return
-        openFolderMenu(e)
-      }}
-      onkeydown={(e) => {
-        if (knownFolders.length === 0) return
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          openFolderMenu(e)
-        }
-      }}
+    <SidebarMenuPanel
+      getItems={buildFolderMenuItems}
+      triggerId="jf-sidebar-folder"
+      triggerClass="jf-sidebar-folder-button"
+      disabled={knownFolders.length === 0}
+      align="left"
+      matchTriggerWidth
     >
-      <span class="jf-sidebar-folder-button-label">
-        {knownFolders.length === 0
-          ? '(no journal folders found)'
-          : folderLabel(selected)}
-      </span>
-      <span class="jf-sidebar-folder-button-caret" aria-hidden="true">▾</span>
-    </span>
+      {#snippet trigger()}
+        <span class="jf-sidebar-folder-button-label">
+          {knownFolders.length === 0
+            ? '(no journal folders found)'
+            : folderLabel(selected)}
+        </span>
+        <span class="jf-sidebar-folder-button-caret" aria-hidden="true">▾</span>
+      {/snippet}
+    </SidebarMenuPanel>
   </div>
 
   <div class="jf-sidebar-section">

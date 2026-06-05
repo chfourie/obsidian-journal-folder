@@ -791,10 +791,10 @@ body.journal-folder-hide-config-notes
 	align-items: baseline;
 }
 
-/* Folder picker — rendered as a `<span role="button">` rather than a
- * `<select>` so the popup is an Obsidian `Menu` (matching the *More...*
- * popover) rather than a native OS `<select>` dropdown whose styling
- * can't be brought in line with the rest of the floating panels. */
+/* Folder picker — rendered as a `<span role="button">` trigger for a
+ * `SidebarMenuPanel` (the same <body>-portaled panel as the *More...*
+ * menu) rather than a native OS `<select>` dropdown whose styling can't
+ * be brought in line with the rest of the floating panels. */
 .journal-folder-sidebar .jf-sidebar-folder-button {
 	display: flex;
 	align-items: center;

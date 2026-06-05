@@ -79,11 +79,11 @@ available inside `--rect` / `--setup` (`Q`, `QA`, `rectOf`, `union`, `bodyRect`,
   toggling it on you may need to re-open the note to force the cached reading
   view to re-render.
 - **Custom panels survive a screenshot; native menus do not.** The More… panel,
-  task scope panel, and modals (migration picker, settings) are plain portaled
-  DOM and stay open across the `eval`/`dev:screenshot` calls. A native Obsidian
-  `Menu` (`.menu`, e.g. the sidebar folder dropdown) dismisses on the window
-  focus change `dev:screenshot` causes — so `sidebar-folder-picker` is **not**
-  auto-regenerated; recapture it by hand if needed.
+  folder picker, task scope panel, and modals (migration picker, settings) are
+  plain portaled DOM and stay open across the `eval`/`dev:screenshot` calls, so
+  they all auto-regenerate. A native Obsidian `Menu` (`.menu`) would dismiss on
+  the window focus change `dev:screenshot` causes — the plugin no longer uses
+  one (the folder picker was the last, now a `.jf-sidebar-menu-panel`).
 - **Recreate the sidebar leaf per scenario.** The sidebar's More…/Scope panels
   keep their open-state between scenarios; `detachLeavesOfType` + a fresh
   `setViewState` resets it. The harness also normalises the right-split width to

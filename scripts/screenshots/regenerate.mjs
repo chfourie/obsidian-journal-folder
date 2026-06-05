@@ -150,12 +150,14 @@ const SCENARIOS = [
     name: 'sidebar-more-menu',
     args: ['--note', 'Personal/2026-05-04', '--setup', `${SIDEBAR_OPEN}; await sleep(400); click(document.querySelector('.jf-sidebar-more-link'))`, '--rect', sidebarRect('.jf-sidebar-menu-panel'), '--pad', '0'],
   },
-  // NOTE: `sidebar-folder-picker` (the folder dropdown) is NOT auto-regenerated.
-  // It is a native Obsidian Menu (`.menu`), which dismisses on the window-focus
-  // change that `dev:screenshot` triggers — so it can't be captured open via the
-  // CLI. Custom panels/modals (More… panel, scope panel, migration picker) are
-  // plain portaled DOM and survive, so we prefer those in the docs. Recapture
-  // the folder picker by hand if it's ever needed.
+  // The folder picker is now the same <body>-portaled `.jf-sidebar-menu-panel`
+  // as the More… menu (it replaced the old native Obsidian Menu, which couldn't
+  // be captured open because it dismissed on the window-focus change that
+  // `dev:screenshot` triggers). Open it by clicking the folder button.
+  {
+    name: 'sidebar-folder-picker',
+    args: ['--note', 'Personal/2026-05-04', '--setup', `${SIDEBAR_OPEN}; await sleep(400); click(document.querySelector('.jf-sidebar-folder-button'))`, '--rect', sidebarRect('.jf-sidebar-menu-panel'), '--pad', '0'],
+  },
 
   // ---- Migration picker modal (new) -------------------------------------
   {

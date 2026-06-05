@@ -7,6 +7,22 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.4.1]
+
+### Changed
+- **Sidebar folder picker is now a styled panel.** The journal-folder
+  dropdown in the sidebar opens the same `<body>`-portaled panel as the
+  **More…** menu instead of a native Obsidian menu — the last native menu
+  in the sidebar is gone, so both popups look and behave consistently.
+- **Documentation consolidated into the README.** All the user guides now
+  live in a single README page, so the links resolve when viewing the plugin
+  from Obsidian's community-plugin screen (relative links to separate doc
+  files didn't work there). Developer/internals docs remain separate.
+
+### Fixed
+- The sidebar folder-picker panel now matches the trigger width on the very
+  first open (previously it rendered too narrow until the second open).
+
 ## [2.4.0]
 
 ### Added
