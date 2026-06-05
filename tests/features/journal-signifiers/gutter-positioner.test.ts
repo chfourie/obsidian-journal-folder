@@ -16,12 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  COLUMN_INSET_PX,
+  EDGE_MARGIN_PX,
+  ROW_GAP_PX,
   columnAnchorX,
   computeColumnLeft,
   computeReserve,
   computeRowLeft,
+  maxGutterReserve,
+  scheduleReadingGutters,
 } from '../../../src/features/journal-signifiers/gutter-positioner'
 
 describe('computeRowLeft', () => {
@@ -73,5 +78,71 @@ describe('computeReserve', () => {
   it('reserves nothing when the icon already clears the edge', () => {
     // icon at x=80, clip edge at x=30 → plenty of room, no reserve.
     expect(computeReserve(80, 30)).toBe(0)
+  })
+})
+
+describe('maxGutterReserve', () => {
+  it('bounds the lane to the icon-stack width plus the gaps', () => {
+    expect(maxGutterReserve(40)).toBe(
+      40 + ROW_GAP_PX + COLUMN_INSET_PX + EDGE_MARGIN_PX
+    )
+  })
+
+  it('clamps a runaway deficit so content can never be pushed off screen', () => {
+    // A corrupt mid-resize measurement asks for a 9999px lane; the real icon
+    // stack is 48px wide, so the lane is capped at its intrinsic extent.
+    const corruptDeficit = 9999
+    const clamped = Math.min(corruptDeficit, maxGutterReserve(48))
+    expect(clamped).toBe(48 + ROW_GAP_PX + COLUMN_INSET_PX + EDGE_MARGIN_PX)
+    expect(clamped).toBeLessThan(100)
+  })
+})
+
+describe('scheduleReadingGutters', () => {
+  let frames: FrameRequestCallback[]
+
+  beforeEach(() => {
+    frames = []
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      frames.push(cb)
+      return frames.length
+    })
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  // A container with no markers so the positioner reads nothing and returns
+  // early — we're only exercising the rAF scheduling, not layout.
+  function emptyContainer(): HTMLElement {
+    return { isConnected: true, querySelectorAll: () => [] } as unknown as HTMLElement
+  }
+
+  // Run every currently-queued frame callback (each may queue more).
+  function runFrame(): void {
+    const pending = frames
+    frames = []
+    for (const cb of pending) cb(0)
+  }
+
+  it('runs a single pass and arms no further frames', () => {
+    scheduleReadingGutters(emptyContainer(), 'margin-column', true)
+    expect(frames.length).toBe(1) // one frame armed
+
+    runFrame() // the pass runs and arms nothing further (no confirm chain)
+    expect(frames.length).toBe(0)
+  })
+
+  it('coalesces repeated requests into a single frame', () => {
+    const c = emptyContainer()
+    scheduleReadingGutters(c, 'margin-column', true)
+    scheduleReadingGutters(c, 'margin-column', true)
+    scheduleReadingGutters(c, 'margin-column', true)
+    expect(frames.length).toBe(1)
+    runFrame()
+    expect(frames.length).toBe(0)
+  })
+
+  it('does nothing for a non-margin placement', () => {
+    scheduleReadingGutters(emptyContainer(), 'start' as never, true)
+    expect(frames.length).toBe(0)
   })
 })

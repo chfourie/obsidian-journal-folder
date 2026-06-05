@@ -40,6 +40,7 @@ import {
   EDGE_MARGIN_PX,
   ROW_GAP_PX,
   computeReserve,
+  maxGutterReserve,
 } from './gutter-positioner'
 
 export interface SignifierLivePreviewContext {
@@ -98,14 +99,19 @@ export function signifierLivePreviewExtension(
         }
         // Re-measure gutter positions on any geometry change too
         // (`geometryChanged` fires on window resize / font / readable-width),
-        // since the single column's offset includes the indentation. A reveal
-        // / re-hide redraws the line, so re-measure on those rebuilds as well.
+        // since the single column's offset includes the indentation.
+        //
+        // Deliberately NOT on `selectionSet`: gutter `left`s and the reserved
+        // lane depend only on layout geometry, not the cursor. Measuring on
+        // every cursor move made the lane flicker (and sometimes collapse and
+        // stay collapsed) because a transient `coordsAtPos` miss mid-navigation
+        // released it. Revealing a tag reuses the existing widget DOM, so its
+        // already-measured `left` survives the rebuild without re-measuring.
         if (
           update.docChanged ||
           update.viewportChanged ||
           update.geometryChanged ||
-          settingsChanged ||
-          (update.selectionSet && hideTag)
+          settingsChanged
         ) {
           this.measureGutters(update.view)
         }
@@ -129,19 +135,35 @@ export function signifierLivePreviewExtension(
           key: 'jf-signifier-gutters',
           read: (v) => {
             if (!isMargin) return { lefts: [], reserve: null }
-            const { lefts, minIconLeft } = measureGutterLefts(v, placement)
-            // Reserve is opt-in (off by default); null releases the lane. When
-            // on, reserve only the deficit by which the leftmost icon would
-            // clip past the editor's edge (0 when the existing margin fits).
+            const { lefts, minIconLeft, maxWidth } = measureGutterLefts(
+              v,
+              placement
+            )
+            // `reserve === null` releases the lane. When the toggle is on,
+            // reserve only the deficit by which the leftmost icon would clip
+            // past the editor's edge (0 when the existing margin fits).
             let reserve: number | null = null
-            if (
-              ctx.getSettings().signifierReserveGutter &&
-              minIconLeft !== Infinity
-            ) {
-              const clipLeft =
-                v.scrollDOM.getBoundingClientRect().left + EDGE_MARGIN_PX
-              const applied = cmAppliedShortfall.get(v.contentDOM) ?? 0
-              reserve = computeReserve(minIconLeft - applied, clipLeft)
+            if (ctx.getSettings().signifierReserveGutter) {
+              if (minIconLeft !== Infinity) {
+                const clipLeft =
+                  v.scrollDOM.getBoundingClientRect().left + EDGE_MARGIN_PX
+                const applied = cmAppliedShortfall.get(v.contentDOM) ?? 0
+                // Clamp to the icon stack's own extent — a transient
+                // mis-measurement must never push content off screen.
+                reserve = Math.min(
+                  computeReserve(minIconLeft - applied, clipLeft),
+                  maxGutterReserve(maxWidth)
+                )
+              } else if (
+                v.dom.querySelector('.cm-line.jf-signifier-host .jf-signifier-gutter')
+              ) {
+                // Markers ARE present but the measurement transiently failed
+                // (e.g. `coordsAtPos` returned null mid-layout). Keep the lane
+                // we already reserved instead of releasing it — releasing here
+                // is what made the margin collapse and shift content. Re-applying
+                // the same value is a no-op.
+                reserve = cmAppliedShortfall.get(v.contentDOM) ?? null
+              }
             }
             return { lefts, reserve }
           },
@@ -282,7 +304,11 @@ function contentStartOffset(text: string): number {
 function measureGutterLefts(
   view: EditorView,
   placement: 'margin' | 'margin-column'
-): { lefts: { marker: HTMLElement; left: number }[]; minIconLeft: number } {
+): {
+  lefts: { marker: HTMLElement; left: number }[]
+  minIconLeft: number
+  maxWidth: number
+} {
   // Gather the gutter-bearing lines first (all reads happen in this measure
   // phase — no writes).
   const rows: {
@@ -314,7 +340,10 @@ function measureGutterLefts(
 
   // Build the host-relative `left`s plus the leftmost icon's viewport x (the
   // icon's visible left edge — CSS `translateX(-100%)` shifts it left of its
-  // box by its own width). The leftmost feeds the reserve-deficit calc.
+  // box by its own width). The leftmost feeds the reserve-deficit calc; the
+  // widest marker bounds it (the lane can never need more than the icon stack
+  // plus the gaps — a clamp against a runaway mis-measurement).
+  const maxWidth = rows.reduce((m, r) => Math.max(m, r.width), 0)
   const lefts: { marker: HTMLElement; left: number }[] = []
   let minIconLeft = Infinity
   const push = (marker: HTMLElement, left: number, hostLeft: number, w: number) => {
@@ -335,10 +364,10 @@ function measureGutterLefts(
         columnX = columnX === null ? origin.left : Math.min(columnX, origin.left)
       }
     }
-    if (columnX === null) return { lefts: [], minIconLeft }
+    if (columnX === null) return { lefts: [], minIconLeft, maxWidth }
     const target = columnX - COLUMN_INSET_PX
     for (const r of rows) push(r.marker, target - r.hostLeft, r.hostLeft, r.width)
-    return { lefts, minIconLeft }
+    return { lefts, minIconLeft, maxWidth }
   }
 
   // Per-row: just left of each line's list marker — past the leading
@@ -352,7 +381,7 @@ function measureGutterLefts(
     if (!markStart) continue
     push(r.marker, markStart.left - ROW_GAP_PX - r.hostLeft, r.hostLeft, r.width)
   }
-  return { lefts, minIconLeft }
+  return { lefts, minIconLeft, maxWidth }
 }
 
 // The editor content's own CSS padding-inline-start (px), cached before we

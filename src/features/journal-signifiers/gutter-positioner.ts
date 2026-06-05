@@ -86,6 +86,17 @@ export function computeReserve(naturalIconLeft: number, clipLeft: number): numbe
 // Small breathing room kept between the leftmost icon and the pane's edge.
 export const EDGE_MARGIN_PX = 4
 
+// Upper bound on the reserved lane, given the widest icon-stack marker. The
+// icon hangs at most its own width plus the per-row gap and the column inset
+// left of the entry, so the lane can NEVER legitimately need more than this.
+// A transient mis-measurement during resize that computes a huge deficit must
+// not push the note content off screen — clamping the deficit to this intrinsic
+// bound (marker width + constants, independent of the corrupted pane geometry)
+// keeps the layout recoverable. Pure / unit-tested.
+export function maxGutterReserve(maxMarkerWidth: number): number {
+  return maxMarkerWidth + ROW_GAP_PX + COLUMN_INSET_PX + EDGE_MARGIN_PX
+}
+
 // --- Reading-view DOM pass ------------------------------------------------
 
 interface GutterRead {
@@ -238,7 +249,14 @@ export function positionReadingGutters(
       (parseFloat(container.style.paddingInlineStart) || 0) - base
     )
     const naturalLeft = minIconLeft - ourReserve
-    shortfall = computeReserve(naturalLeft, clipLeft)
+    // Safety clamp (see `maxGutterReserve`): a transient mis-measurement during
+    // resize must never push the content off screen (observed: an enormous lane
+    // that emptied the pane).
+    const maxMarkerWidth = reads.reduce((m, r) => Math.max(m, r.width), 0)
+    shortfall = Math.min(
+      computeReserve(naturalLeft, clipLeft),
+      maxGutterReserve(maxMarkerWidth)
+    )
   }
 
   // WRITE phase. The `left`s are host-relative deltas, so padding the container
@@ -265,6 +283,13 @@ let rafHandle = 0
 
 // Coalesce positioning requests into a single animation frame. Multiple
 // post-processor calls (one per rendered section) collapse to one reflow.
+//
+// Exactly ONE pass per frame — no confirmation / re-measure chain. A second
+// deferred pass races the next frame's pass during a continuous resize (each
+// reads a half-settled layout), which made the reserved lane oscillate and
+// the content jerk. Settling after a resize is handled upstream by debouncing
+// the resize trigger (see the feature's ResizeObserver) so the single pass
+// runs once on the final, settled geometry.
 export function scheduleReadingGutters(
   container: HTMLElement,
   placement: SignifierPlacement,

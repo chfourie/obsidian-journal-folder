@@ -10,7 +10,7 @@ Three signifiers #important #inspiration #explore .
 
 - Bullet one #important
 - Bullet two #important #inspiration
-- Bullet three #important #inspiration #explore
+- Bullet three #inspiration #explore
 	- Nested bullet two #important #explore
 
 - [ ] Task one #important

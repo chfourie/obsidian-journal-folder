@@ -54,11 +54,49 @@ export class JournalSignifiersFeature extends PluginFeature {
     // sidebar toggle — none of which reliably fire a workspace event we can
     // catch — and the RESERVE depends on that width (the pane's clip edge). So
     // a ResizeObserver on each rendered sizer is the robust re-measure trigger.
-    // Observe the BORDER box: our own `padding-inline-start` leaves it
-    // unchanged, so the reserve can't feed back into an observer loop.
+    //
+    // CRITICAL — observe only WIDTH, not height: writing our reserve
+    // `padding-inline-start` narrows the content, which reflows it TALLER, which
+    // changes the sizer's border-box HEIGHT — re-firing this observer and
+    // feeding back into an endless recompute → write → reflow loop (seen as the
+    // whole view flickering on/off). The reserve depends solely on width, so we
+    // track each sizer's border-box inline size and recompute ONLY when it
+    // actually changes. Our padding write never changes border-box width, so it
+    // can't re-trigger us — the loop is broken at the source.
+    //
+    // DEBOUNCED (trailing): a width drag fires the observer every frame; the
+    // icon `left`s are host-relative (invariant to resize / re-centering), so
+    // only the reserve needs recomputing — once, after the drag settles.
     const observed = new WeakSet<Element>()
-    const sizerObserver = new ResizeObserver(() => recompute())
-    this.plugin.register(() => sizerObserver.disconnect())
+    const lastWidth = new WeakMap<Element, number>()
+    let resizeDebounce = 0
+    const sizerObserver = new ResizeObserver((entries) => {
+      let widthChanged = false
+      for (const entry of entries) {
+        const width =
+          entry.borderBoxSize?.[0]?.inlineSize ??
+          (entry.target as HTMLElement).getBoundingClientRect().width
+        const prev = lastWidth.get(entry.target)
+        if (prev === undefined || Math.abs(prev - width) > 0.5) {
+          lastWidth.set(entry.target, width)
+          widthChanged = true
+        }
+      }
+      if (!widthChanged) return
+      if (resizeDebounce) window.clearTimeout(resizeDebounce)
+      resizeDebounce = window.setTimeout(() => {
+        resizeDebounce = 0
+        recompute()
+      }, 150)
+    })
+    this.plugin.register(() => {
+      if (resizeDebounce) window.clearTimeout(resizeDebounce)
+      sizerObserver.disconnect()
+      // Strip any reserve we applied so a later reload (or disabling the
+      // plugin) starts from the theme's own padding — never a stale inflated
+      // value that a fresh measurement would then read back as the base.
+      clearAllReadingReserve()
+    })
 
     // Reading-view rendering: replace / annotate configured tags with
     // their signifier icon. Independent of tasks.
