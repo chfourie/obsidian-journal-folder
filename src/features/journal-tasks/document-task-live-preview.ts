@@ -79,7 +79,10 @@ class LivePreviewPlugin implements PluginValue {
     // before CM's own pointer handling and can cancel the editor's
     // default (caret placement / widget selection). The paired `click`
     // listener then swallows the trailing click so Obsidian's native
-    // checkbox toggle doesn't undo the write.
+    // checkbox toggle doesn't undo the write. There is intentionally no
+    // keyboard handler: in the live-preview editor Enter/Space/Tab are
+    // text-editing keys, so keyboard users cycle a status by editing the
+    // `[ ]` character directly — the icon is a mouse affordance only.
     this.view.dom.addEventListener('mousedown', this.onMouseDown, true)
     this.view.dom.addEventListener('click', this.onClick, true)
     this.view.dom.addEventListener('contextmenu', this.onContextMenu, true)
@@ -119,25 +122,35 @@ class LivePreviewPlugin implements PluginValue {
     // middle/aux clicks shouldn't cycle.
     if (evt.button !== 0) return
     if (!this.ctx.isEnabled()) return
-    const target = this.taskCheckboxTarget(evt.target)
-    if (!target) return
-    const mutation = this.mutationTargetFor(target)
+    const mutation = this.mutationFor(evt.target)
     if (!mutation) return
-    const model = this.ctx.resolveModel()
     // Cancel the editor's own pointer default (caret placement / widget
     // selection) and stop the event before CM sees it. Arm the click
     // suppressor so the trailing click can't trigger a native toggle.
     evt.preventDefault()
     evt.stopPropagation()
     this.suppressClick = true
+    this.cycle(mutation)
+  }
+
+  // Resolves the task at an event target (icon or native checkbox) to a
+  // mutation target, or null when the target isn't a task we own.
+  private mutationFor(
+    eventTarget: EventTarget | null
+  ): TaskMutationTarget | null {
+    const checkbox = this.taskCheckboxTarget(eventTarget)
+    return checkbox ? this.mutationTargetFor(checkbox) : null
+  }
+
+  // Advances the task one step along the active flow.
+  private cycle(mutation: TaskMutationTarget): void {
+    const model = this.ctx.resolveModel()
     this.applyStatus(mutation, model.nextStatus(mutation.status), model)
   }
 
   private onContextMenu(evt: MouseEvent): void {
     if (!this.ctx.isEnabled()) return
-    const target = this.taskCheckboxTarget(evt.target)
-    if (!target) return
-    const mutation = this.mutationTargetFor(target)
+    const mutation = this.mutationFor(evt.target)
     if (!mutation) return
     const model = this.ctx.resolveModel()
     evt.preventDefault()
@@ -384,9 +397,14 @@ class LivePreviewPlugin implements PluginValue {
   private buildIcon(statusId: TaskStatusId, model: TaskModel): HTMLElement {
     const span = document.createElement('span')
     span.setAttribute(ICON_ATTR, '')
-    span.setAttribute('role', 'button')
-    span.setAttribute('tabindex', '0')
-    span.setAttribute('aria-label', `Task status: ${statusId}`)
+    // Purely decorative: a mouse affordance only, so it's `aria-hidden`
+    // and not focusable. It deliberately does NOT carry `role="button"`
+    // / `tabindex` (unlike the reading-view icon): inside the live-
+    // preview editor Enter/Space/Tab are text-editing keys, so it can't
+    // be a real keyboard target. Keyboard users cycle the status by
+    // editing the `[ ]` character in the source line; screen readers
+    // read that source text rather than this redundant glyph.
+    span.setAttribute('aria-hidden', 'true')
     renderStatusIconById(span, statusId, model)
     // NOTE: deliberately NOT tagged `jf-doc-task-status`. In live preview
     // the icon is appended after the (hidden) native checkbox and
