@@ -49,6 +49,7 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'signifierHideTagInReadingView',
   'signifierLivePreviewEnabled',
   'signifierPlacement',
+  'signifierReserveGutter',
   'taskCategories',
   'taskCategoryShowUnderNote',
 ])

@@ -88,4 +88,15 @@ describe('stripTags', () => {
   it('is a no-op when the tag is absent', () => {
     expect(stripTags('nothing here', ['important'])).toBe('nothing here')
   })
+
+  it('preserves leading indentation (does not de-indent nested list items)', () => {
+    // Two tabs of nesting must survive — collapsing them would jump the
+    // bullet toward the top level.
+    expect(stripTags('\t\t- Subtask #important', ['important'])).toBe(
+      '\t\t- Subtask'
+    )
+    // Even with no tag removed (the empty-name / absent case still runs the
+    // whitespace pass), indentation is kept.
+    expect(stripTags('\t\t- Subtask', [])).toBe('\t\t- Subtask')
+  })
 })

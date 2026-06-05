@@ -29,11 +29,17 @@ import {
 import {
   type JournalFolderSettings,
   type Signifier,
+  type SignifierPlacement,
   extractTags,
   matchSignifiers,
 } from '../../data-access'
 import { renderSignifierIcon } from './render-signifier-icon'
-import { COLUMN_INSET_PX, ROW_GAP_PX } from './gutter-positioner'
+import {
+  COLUMN_INSET_PX,
+  EDGE_MARGIN_PX,
+  ROW_GAP_PX,
+  computeReserve,
+} from './gutter-positioner'
 
 export interface SignifierLivePreviewContext {
   getSettings: () => JournalFolderSettings
@@ -56,26 +62,34 @@ export function signifierLivePreviewExtension(
   return ViewPlugin.fromClass(
     class implements PluginValue {
       decorations: DecorationSet
+      private lastPlacement: SignifierPlacement
 
       constructor(view: EditorView) {
+        this.lastPlacement = ctx.getSettings().signifierPlacement
         this.decorations = this.build(view)
         this.measureGutters(view)
       }
 
       update(update: ViewUpdate): void {
-        if (update.docChanged || update.viewportChanged) {
+        const placement = ctx.getSettings().signifierPlacement
+        const placementChanged = placement !== this.lastPlacement
+        if (update.docChanged || update.viewportChanged || placementChanged) {
           this.decorations = this.build(update.view)
         }
         // Re-measure gutter positions on any geometry change too
         // (`geometryChanged` fires on window resize / font / readable-width),
-        // since the single column's offset includes the indentation.
+        // since the single column's offset includes the indentation. A
+        // placement change must also re-run so the reserved lane is applied
+        // or cleared.
         if (
           update.docChanged ||
           update.viewportChanged ||
-          update.geometryChanged
+          update.geometryChanged ||
+          placementChanged
         ) {
           this.measureGutters(update.view)
         }
+        this.lastPlacement = placement
       }
 
       // Position the editing-view gutter markers by measurement, using
@@ -83,18 +97,38 @@ export function signifierLivePreviewExtension(
       // `requestMeasure` (reads then writes — no layout thrash). The marker
       // is an absolutely-positioned child of its `.cm-line` host; we set its
       // `left` so it hangs left of the line's list marker (per row) or lands
-      // in one shared far-left column (single column).
+      // in one shared far-left column (single column). We also reserve a
+      // left lane on `.cm-content` so the widest stack never clips.
       private measureGutters(view: EditorView): void {
         const placement = ctx.getSettings().signifierPlacement
-        if (placement !== 'margin' && placement !== 'margin-column') return
+        const isMargin =
+          placement === 'margin' || placement === 'margin-column'
         view.requestMeasure({
           key: 'jf-signifier-gutters',
-          read: (v) => measureGutterLefts(v, placement),
-          write: (lefts) => {
+          read: (v) => {
+            if (!isMargin) return { lefts: [], reserve: null }
+            const { lefts, minIconLeft } = measureGutterLefts(v, placement)
+            // Reserve is opt-in (off by default); null releases the lane. When
+            // on, reserve only the deficit by which the leftmost icon would
+            // clip past the editor's edge (0 when the existing margin fits).
+            let reserve: number | null = null
+            if (
+              ctx.getSettings().signifierReserveGutter &&
+              minIconLeft !== Infinity
+            ) {
+              const clipLeft =
+                v.scrollDOM.getBoundingClientRect().left + EDGE_MARGIN_PX
+              const applied = cmAppliedShortfall.get(v.contentDOM) ?? 0
+              reserve = computeReserve(minIconLeft - applied, clipLeft)
+            }
+            return { lefts, reserve }
+          },
+          write: ({ lefts, reserve }, v) => {
             for (const { marker, left } of lefts) {
               marker.style.left = `${left}px`
               marker.classList.add('jf-positioned')
             }
+            applyContentReserve(v.contentDOM, reserve)
           },
         })
       }
@@ -190,11 +224,15 @@ function contentStartOffset(text: string): number {
 function measureGutterLefts(
   view: EditorView,
   placement: 'margin' | 'margin-column'
-): { marker: HTMLElement; left: number }[] {
+): { lefts: { marker: HTMLElement; left: number }[]; minIconLeft: number } {
   // Gather the gutter-bearing lines first (all reads happen in this measure
   // phase — no writes).
-  const rows: { marker: HTMLElement; line: { from: number; text: string }; hostLeft: number }[] =
-    []
+  const rows: {
+    marker: HTMLElement
+    line: { from: number; text: string }
+    hostLeft: number
+    width: number
+  }[] = []
   const lineEls = view.dom.querySelectorAll<HTMLElement>(
     '.cm-line.jf-signifier-host'
   )
@@ -208,7 +246,23 @@ function measureGutterLefts(
       continue
     }
     const line = view.state.doc.lineAt(pos)
-    rows.push({ marker, line, hostLeft: lineEl.getBoundingClientRect().left })
+    rows.push({
+      marker,
+      line,
+      hostLeft: lineEl.getBoundingClientRect().left,
+      width: marker.getBoundingClientRect().width,
+    })
+  }
+
+  // Build the host-relative `left`s plus the leftmost icon's viewport x (the
+  // icon's visible left edge — CSS `translateX(-100%)` shifts it left of its
+  // box by its own width). The leftmost feeds the reserve-deficit calc.
+  const lefts: { marker: HTMLElement; left: number }[] = []
+  let minIconLeft = Infinity
+  const push = (marker: HTMLElement, left: number, hostLeft: number, w: number) => {
+    lefts.push({ marker, left })
+    const iconLeft = hostLeft + left - w
+    if (iconLeft < minIconLeft) minIconLeft = iconLeft
   }
 
   if (placement === 'margin-column') {
@@ -223,24 +277,53 @@ function measureGutterLefts(
         columnX = columnX === null ? origin.left : Math.min(columnX, origin.left)
       }
     }
-    if (columnX === null) return []
+    if (columnX === null) return { lefts: [], minIconLeft }
     const target = columnX - COLUMN_INSET_PX
-    return rows.map((r) => ({ marker: r.marker, left: target - r.hostLeft }))
+    for (const r of rows) push(r.marker, target - r.hostLeft, r.hostLeft, r.width)
+    return { lefts, minIconLeft }
   }
 
   // Per-row: just left of each line's list marker — past the leading
   // indentation but BEFORE the bullet / checkbox — so the icon hangs in the
   // margin indented with nesting (CSS `translateX(-100%)` shifts it left of
   // this point by its own width).
-  const out: { marker: HTMLElement; left: number }[] = []
   for (const r of rows) {
     const markStart = view.coordsAtPos(
       r.line.from + leadingWhitespaceLength(r.line.text)
     )
     if (!markStart) continue
-    out.push({ marker: r.marker, left: markStart.left - ROW_GAP_PX - r.hostLeft })
+    push(r.marker, markStart.left - ROW_GAP_PX - r.hostLeft, r.hostLeft, r.width)
   }
-  return out
+  return { lefts, minIconLeft }
+}
+
+// The editor content's own CSS padding-inline-start (px), cached before we
+// override it so the reserved deficit is added on top and never compounds.
+const cmReserveBase = new WeakMap<HTMLElement, number>()
+// The deficit we're currently adding (subtracted from the measured icon x to
+// recover its natural position, so the next pass doesn't oscillate).
+const cmAppliedShortfall = new WeakMap<HTMLElement, number>()
+
+// Reserve (or, when `reserve` is null / 0, release) the left lane on
+// `.cm-content` — only the deficit by which the leftmost editing-view icon
+// would clip past the editor edge, so nothing is added when the existing
+// margin already fits.
+function applyContentReserve(
+  content: HTMLElement,
+  reserve: number | null
+): void {
+  if (reserve === null || reserve <= 0) {
+    content.style.paddingInlineStart = ''
+    cmAppliedShortfall.set(content, 0)
+    return
+  }
+  let base = cmReserveBase.get(content)
+  if (base === undefined) {
+    base = parseFloat(getComputedStyle(content).paddingInlineStart) || 0
+    cmReserveBase.set(content, base)
+  }
+  content.style.paddingInlineStart = `${base + reserve}px`
+  cmAppliedShortfall.set(content, reserve)
 }
 
 // Length of a line's leading whitespace (the indentation before its list

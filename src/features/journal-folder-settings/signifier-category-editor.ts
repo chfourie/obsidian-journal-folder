@@ -147,6 +147,26 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
       })
     })
 
+  new Setting(containerEl)
+    .setName('Reserve left margin for gutter signifiers')
+    .setDesc(
+      'For the two left-margin placements only: indent the note content far ' +
+        'enough to fit the widest row of icons, so they never clip when ' +
+        'readable line width is off or the view is narrow. Off by default — ' +
+        'icons then hang into whatever margin exists and may clip in a narrow ' +
+        'view. No effect on Start / End.'
+    )
+    .addToggle((toggle) =>
+      toggle
+        .setValue(settings.signifierReserveGutter)
+        .onChange(async (value) => {
+          await saveSettings({
+            ...getSettings(),
+            signifierReserveGutter: value,
+          })
+        })
+    )
+
   const listEl = containerEl.createDiv({ cls: 'jf-signifier-list' })
   settings.signifiers.forEach((signifier, index) => {
     const setting = new Setting(listEl)

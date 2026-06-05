@@ -63,6 +63,17 @@ There is **no scroll recompute** (the offset is scroll-invariant). Markers are
 warned, layout-dependent opt-ins; the flow placements (`start`/`end`) are
 immune. The settings dropdown lists each option's pros/cons.
 
+**Reserve left margin for gutter signifiers** (`signifierReserveGutter`, **off
+by default**, margin modes only): when on, the content container's
+`padding-inline-start` is set to `max(theme padding, widest icon stack + gap)`
+— enough room that icons never clip even with readable line width off or a
+narrow view. It's `max`, not an addition, so it doesn't stack on the theme's
+existing margin; and the reserve is the *intrinsic* widest-stack width
+(measured once per pass), so it can't oscillate. When off (or on a flow
+placement) the lane is released and icons hang into whatever margin exists. The
+per-container base padding is cached in a `WeakMap` (read before we override
+it) so re-applying never compounds.
+
 | Surface | Mechanism | Tag visibility |
 | --- | --- | --- |
 | Reading view | `processSignifiers` post-processor (`process-signifiers.ts`) inserts a `.jf-signifier-lead` marker at the start of the tag's nearest block ancestor (`li` / `p` / heading / …), after a task checkbox when present | Tag hidden when `signifierHideTagInReadingView`; otherwise the tag stays too |

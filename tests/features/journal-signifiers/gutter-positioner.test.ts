@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest'
 import {
   columnAnchorX,
   computeColumnLeft,
+  computeReserve,
   computeRowLeft,
 } from '../../../src/features/journal-signifiers/gutter-positioner'
 
@@ -60,5 +61,17 @@ describe('columnAnchorX', () => {
 
   it('returns null when there is nothing to anchor to', () => {
     expect(columnAnchorX([], 6)).toBeNull()
+  })
+})
+
+describe('computeReserve', () => {
+  it('reserves the deficit when the icon would clip past the edge', () => {
+    // icon's natural left x=10, pane clip edge x=30 → must shift right by 20.
+    expect(computeReserve(10, 30)).toBe(20)
+  })
+
+  it('reserves nothing when the icon already clears the edge', () => {
+    // icon at x=80, clip edge at x=30 → plenty of room, no reserve.
+    expect(computeReserve(80, 30)).toBe(0)
   })
 })

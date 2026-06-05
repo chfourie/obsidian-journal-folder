@@ -23,6 +23,7 @@ import {
 } from '../../data-access'
 import { processSignifiers } from './process-signifiers'
 import {
+  clearAllReadingReserve,
   repositionAllReadingGutters,
   scheduleReadingGutters,
 } from './gutter-positioner'
@@ -51,7 +52,11 @@ export class JournalSignifiersFeature extends PluginFeature {
       const placement = this.globalSettings.signifierPlacement
       if (placement === 'margin' || placement === 'margin-column') {
         const container = el.closest<HTMLElement>('.markdown-preview-sizer') ?? el
-        scheduleReadingGutters(container, placement)
+        scheduleReadingGutters(
+          container,
+          placement,
+          this.globalSettings.signifierReserveGutter
+        )
       }
     })
 
@@ -61,15 +66,41 @@ export class JournalSignifiersFeature extends PluginFeature {
     // possibly width-relative indentation, window `resize`.
     this.plugin.registerEvent(
       this.plugin.app.workspace.on('css-change', () => {
-        repositionAllReadingGutters(this.globalSettings.signifierPlacement)
+        repositionAllReadingGutters(
+          this.globalSettings.signifierPlacement,
+          this.globalSettings.signifierReserveGutter
+        )
       })
     )
     this.plugin.registerEvent(
       this.plugin.app.workspace.on('resize', () => {
         if (this.globalSettings.signifierPlacement === 'margin-column') {
-          repositionAllReadingGutters('margin-column')
+          repositionAllReadingGutters(
+            'margin-column',
+            this.globalSettings.signifierReserveGutter
+          )
         }
       })
+    )
+    // Navigating away and back can restore a cached preview WITHOUT re-running
+    // the post-processor, leaving the gutter icons at stale positions (and any
+    // reserve unrecomputed). Reposition on leaf / layout changes too. Cheap:
+    // only on-screen sizers hold markers, and the pass is rAF-coalesced.
+    const repositionNow = () =>
+      repositionAllReadingGutters(
+        this.globalSettings.signifierPlacement,
+        this.globalSettings.signifierReserveGutter
+      )
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on('active-leaf-change', repositionNow)
+    )
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on('layout-change', repositionNow)
+    )
+    // In-leaf navigation (clicking a link, the back button) fires `file-open`,
+    // NOT `active-leaf-change`, so cover it too.
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on('file-open', repositionNow)
     )
 
     // Live-preview (editing-view) rendering via a stable CodeMirror
@@ -133,6 +164,13 @@ export class JournalSignifiersFeature extends PluginFeature {
     // Re-apply editor extensions across open editors so signifier edits
     // and the live-preview kill-switch take effect immediately.
     this.plugin.app.workspace.updateOptions?.()
+    // Leaving the margin modes must drop the reserved left lane (the
+    // re-render below rebuilds content but the container keeps our inline
+    // padding); margin modes re-apply it through the positioning pass.
+    const placement = settings.signifierPlacement
+    if (placement !== 'margin' && placement !== 'margin-column') {
+      clearAllReadingReserve()
+    }
     // Reading-view markdown post-processors do NOT re-run on a settings
     // change, so a placement / signifier edit would otherwise leave the
     // previously-rendered markers in place (e.g. switching gutter→start

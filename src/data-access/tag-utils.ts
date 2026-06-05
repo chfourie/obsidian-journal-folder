@@ -103,6 +103,11 @@ export function stripTags(text: string, tagNames: string[]): string {
     )
     out = out.replace(pattern, (_full, lead) => (lead === '' ? '' : ' '))
   }
-  // Collapse the runs of whitespace the removals may have produced.
-  return out.replace(/[ \t]{2,}/g, ' ').replace(/\s+$/, '')
+  // Collapse the runs of whitespace the removals may have produced — but
+  // PRESERVE the leading indentation (a list item's tabs/spaces decide its
+  // nesting level; collapsing them would de-indent the line). Only the body
+  // is collapsed and right-trimmed.
+  const leading = out.match(/^[ \t]*/)?.[0] ?? ''
+  const body = out.slice(leading.length)
+  return leading + body.replace(/[ \t]{2,}/g, ' ').replace(/\s+$/, '')
 }
