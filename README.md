@@ -311,7 +311,7 @@ The `%% … %%` line is an Obsidian hidden comment — it doesn't render in read
 
 Flip the *Use a different template per note type* toggle on (or set `auto-template-per-tier: true` per-folder) and the per-tier fields apply. For example, to give a folder a checklist for daily notes and a review prompt for weekly notes — while leaving monthly and yearly notes on the built-in default:
 
-```markdown
+````markdown
 ---
 auto-template-enabled: true
 auto-template-per-tier: true
@@ -337,7 +337,7 @@ weekly-note-auto-template-content: |
 
   ## What to drop
 ---
-```
+````
 
 When a tier-specific field is blank in this mode, the resolver falls through to the built-in default (the generic *Default template* is ignored while per-tier mode is on). The folder body (markdown below the front matter) still wins over every tier-specific field — leave it empty if you want the per-tier templates to be used.
 
