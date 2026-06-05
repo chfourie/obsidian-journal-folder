@@ -13,7 +13,8 @@ You can run as many independent journals as you like in the same vault. A folder
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](docs/usage/sidebar.md)
 - **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](docs/usage/auto-template.md)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](docs/usage/quarters.md)
-- **Tasks (preview)** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows and a scope picker (anchor × range + folder) for choosing exactly which tasks appear. [Read more →](docs/usage/tasks.md)
+- **Tasks (preview)** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](docs/usage/tasks.md)
+- **Signifiers (preview)** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](docs/usage/signifiers.md)
 
 ## Why folder-based?
 
@@ -87,6 +88,7 @@ User guides (start here):
 - [Auto-fill new journal notes](docs/usage/auto-template.md)
 - [Quarterly notes (opt-in)](docs/usage/quarters.md)
 - [Tasks (preview)](docs/usage/tasks.md)
+- [Signifiers (preview)](docs/usage/signifiers.md)
 - [Using with a theme that styles tasks](docs/usage/themes-with-tasks.md)
 - [Using with the Obsidian Tasks plugin](docs/usage/obsidian-tasks-plugin.md)
 - [Advanced configuration](docs/usage/advanced-configuration.md)
@@ -101,6 +103,7 @@ Developer / contributor docs:
 - [Sidebar internals](docs/sidebar.md)
 - [Auto-template internals](docs/auto-template.md)
 - [Tasks design](docs/tasks-design.md)
+- [Signifiers & task categories](docs/signifiers.md)
 
 ## License
 

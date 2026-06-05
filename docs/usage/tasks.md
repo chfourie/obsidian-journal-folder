@@ -78,6 +78,57 @@ Optional keys (case-insensitive, separators tolerant):
 
 Inside a journal note, the **reference range** is the host's range — so a `journal-tasks` block in a weekly note lists tasks from that week's daily notes (plus the weekly itself). Inside a non-journal note, the reference range falls back to today.
 
+## Migrating tasks between notes
+
+Bullet-journal style, *migration* moves an unfinished task from one note to
+another **within the same folder** — say, rolling today's leftovers onto
+tomorrow, or a week's open items up into the next week. It doesn't just move
+text; it leaves a trail in both directions.
+
+When you migrate one or more tasks:
+
+1. The **origin** line is stamped with the flow's *migrated* status (an inactive
+   status such as `[>]`) so it reads as moved, not done, and drops out of active
+   lists.
+2. A **copy** is written into the destination note at the position you've
+   configured (see below), as a fresh top-level task.
+3. **Cross-references** are added so you can hop between the two: a *forward*
+   reference on the origin pointing at the destination, and a *back* reference
+   on the copy pointing at the origin.
+
+![Migration reference in reading view](../screenshots/task-migration-reading.png)
+
+In reading view each reference renders as a small marker plus a link, faded to
+the background (full opacity on hover) so the note stays readable. The plugin's
+own task lists strip the reference markers from the displayed text.
+
+### Triggering a migration
+
+Three entry points, all scoped to a single folder:
+
+- **Per-task** — right-click a task (editor menu) → *Migrate this task…*.
+- **From this note / To this note** — the file menu (⋯) offers *Migrate
+  tasks from this note…* and *…to this note*, which open a grouped multi-select
+  picker. Nothing is selected by default — tick the tasks you want and confirm.
+
+![Migration picker](../screenshots/migration-picker.png)
+
+### Settings
+
+Migration is configured under *Settings → … → Journal Folder → Tasks* (and the
+placement keys are also honoured per-folder, since they're a per-note layout
+concern):
+
+- **Migration placement / heading** — where copies land in the destination:
+  *After the last task*, *Top of note*, *End of note*, or *Under a heading* (with
+  the heading text you specify).
+- **Reference on the original task** / **Reference on the migrated copy** —
+  toggle either direction off if you only want one trail.
+- **Reference style** — *text*, *emoji*, or *lucide* (the default; markers are
+  stored as `lucide:<name>` tokens and rendered as icons in reading view). Each
+  style has editable *to* / *from* markers (the defaults are redo/undo arrows).
+- **Reference opacity** — how faded the references render (default 30%).
+
 ## Scope of task interactions
 
 `task-interaction-scope` controls where the plugin's task-icon rendering and click handling apply:
