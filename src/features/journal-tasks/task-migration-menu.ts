@@ -33,9 +33,18 @@ import {
 } from './task-scope'
 import { allTimeRange } from './reference-range'
 import { sortTasks } from './task-sorting'
-import { migrateTasks, type MigratableTask } from './task-migration'
+import {
+  availableMigrationActions,
+  migrateTasks,
+  migratableTaskOnLine,
+  type MigratableTask,
+} from './task-migration'
 import { MigrationPickerModal } from './migration-picker-modal'
 import { MigrationTargetModal } from './migration-target-modal'
+import {
+  type MigrationAction,
+  MigrationActionModal,
+} from './migration-action-modal'
 
 // Everything the migration flows need from the host feature. `getSettingsFor`
 // resolves folder-level settings (front matter overlaid on global), so a
@@ -248,19 +257,142 @@ export function appendEditorMigrationItem(
   const resolved = resolveNote(ctx, file)
   if (!resolved) return
   const cursor = editor.getCursor()
-  const lineText = editor.getLine(cursor.line)
-  const parsed = resolved.model.parseLine(lineText)
-  if (!parsed || resolved.model.isDone(parsed.status)) return
-  const task: MigratableTask = {
-    sourceFile: file,
-    sourceLine: cursor.line,
-    rawText: lineText,
-    status: parsed.status,
-  }
+  const task = migratableTaskOnLine(
+    resolved.model,
+    file,
+    cursor.line,
+    editor.getLine(cursor.line)
+  )
+  if (!task) return
   menu.addItem((item) => {
     item
       .setTitle('Migrate task…')
       .setIcon('arrow-right-from-line')
       .onClick(() => pickTargetThenMigrate(ctx, resolved, file, [task]))
   })
+}
+
+// Shown by the keyboard commands when the active note can't host a
+// migration (not a journal note, not in a journal folder, or its flow
+// declares no migrated status). The menu entry points stay silent in
+// the same situation — they just omit themselves.
+const UNAVAILABLE_MESSAGE =
+  'Task migration is unavailable here — open a journal note whose ' +
+  'flow defines a migrated status.'
+
+// Keyboard-command entry point: migrate the task on the cursor line.
+// Unlike the menu item (which silently omits itself when unavailable),
+// a hotkey press wants feedback, so each bail path emits a Notice.
+export function migrateTaskOnLine(
+  ctx: MigrationMenuContext,
+  file: TFile,
+  editor: Editor
+): void {
+  const resolved = resolveNote(ctx, file)
+  if (!resolved) {
+    new Notice(UNAVAILABLE_MESSAGE)
+    return
+  }
+  const cursor = editor.getCursor()
+  const task = migratableTaskOnLine(
+    resolved.model,
+    file,
+    cursor.line,
+    editor.getLine(cursor.line)
+  )
+  if (!task) {
+    new Notice('No active task on the current line to migrate.')
+    return
+  }
+  pickTargetThenMigrate(ctx, resolved, file, [task])
+}
+
+// Keyboard-command entry point: open the "migrate tasks from this note"
+// picker for the given file (the same flow as the file-menu item).
+export async function migrateTasksFromNote(
+  ctx: MigrationMenuContext,
+  file: TFile
+): Promise<void> {
+  const resolved = resolveNote(ctx, file)
+  if (!resolved) {
+    new Notice(UNAVAILABLE_MESSAGE)
+    return
+  }
+  await runFromNoteFlow(ctx, file, resolved)
+}
+
+// Keyboard-command entry point: open the "migrate tasks to this note"
+// picker for the given file (the same flow as the file-menu item).
+export async function migrateTasksToNote(
+  ctx: MigrationMenuContext,
+  file: TFile
+): Promise<void> {
+  const resolved = resolveNote(ctx, file)
+  if (!resolved) {
+    new Notice(UNAVAILABLE_MESSAGE)
+    return
+  }
+  await runToNoteFlow(ctx, file, resolved)
+}
+
+// Unified keyboard-command entry point: open a chooser of the migration
+// flows that apply right now, then run the picked one. The cursor-line
+// option appears only on an active task line; the "from this note"
+// option only when the note has active tasks; "to this note" always.
+export async function migrateInteractive(
+  ctx: MigrationMenuContext,
+  file: TFile,
+  editor: Editor
+): Promise<void> {
+  const resolved = resolveNote(ctx, file)
+  if (!resolved) {
+    new Notice(UNAVAILABLE_MESSAGE)
+    return
+  }
+
+  const cursor = editor.getCursor()
+  const lineTask = migratableTaskOnLine(
+    resolved.model,
+    file,
+    cursor.line,
+    editor.getLine(cursor.line)
+  )
+  const active = await gatherNoteActiveTasks(
+    ctx,
+    file,
+    resolved.settings,
+    resolved.model
+  )
+
+  const kinds = availableMigrationActions({
+    hasLineTask: lineTask !== null,
+    activeOnPageCount: active.length,
+  })
+
+  const builders: Record<(typeof kinds)[number], () => MigrationAction> = {
+    line: () => ({
+      title: 'Migrate the task on the current line',
+      // `lineTask` is non-null whenever the `line` kind is offered.
+      run: () => pickTargetThenMigrate(ctx, resolved, file, [lineTask!]),
+    }),
+    from: () => ({
+      title: `Migrate tasks from this note (${active.length} active)`,
+      run: () => {
+        // noinspection JSIgnoredPromiseFromCall
+        runFromNoteFlow(ctx, file, resolved)
+      },
+    }),
+    to: () => ({
+      title: 'Migrate tasks to this note',
+      run: () => {
+        // noinspection JSIgnoredPromiseFromCall
+        runToNoteFlow(ctx, file, resolved)
+      },
+    }),
+  }
+
+  new MigrationActionModal(
+    ctx.app,
+    kinds.map((kind) => builders[kind]())
+  ).open()
 }

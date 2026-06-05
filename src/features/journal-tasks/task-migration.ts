@@ -36,6 +36,47 @@ export interface MigratableTask {
   status: TaskStatusId
 }
 
+// Builds the `MigratableTask` for a single line, or null when the line
+// is not an *active* (non-done) task the model recognises. Shared by the
+// editor-menu item and the keyboard command so both agree on exactly
+// which lines can be migrated. Lives here (not in the menu module) so it
+// stays free of the menu's Svelte-modal imports and remains unit-testable.
+export function migratableTaskOnLine(
+  model: TaskModel,
+  file: TFile,
+  lineNumber: number,
+  lineText: string
+): MigratableTask | null {
+  const parsed = model.parseLine(lineText)
+  if (!parsed || model.isDone(parsed.status)) return null
+  return {
+    sourceFile: file,
+    sourceLine: lineNumber,
+    rawText: lineText,
+    status: parsed.status,
+  }
+}
+
+// The three migration flows the unified command can offer.
+export type MigrationActionKind = 'line' | 'from' | 'to'
+
+// Decides which migration flows make sense in the current context, in
+// the order they should be offered: migrate the cursor-line task (only
+// when the line *is* an active task), migrate tasks *from* this note
+// (only when the note has active tasks), and migrate tasks *to* this
+// note (always — `runToNoteFlow` reports an empty folder itself). Pure
+// so the conditional logic is unit-testable without a modal.
+export function availableMigrationActions(opts: {
+  hasLineTask: boolean
+  activeOnPageCount: number
+}): MigrationActionKind[] {
+  const kinds: MigrationActionKind[] = []
+  if (opts.hasLineTask) kinds.push('line')
+  if (opts.activeOnPageCount > 0) kinds.push('from')
+  kinds.push('to')
+  return kinds
+}
+
 // The flow's inactive statuses — the only valid candidates for a
 // migrated-status designation (migration closes the origin out). Drives
 // both the flow-editor picker and the Active-toggle guard.

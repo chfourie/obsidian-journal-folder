@@ -36,6 +36,7 @@ import { ErrorMessage } from '../../ui'
 import TaskList from './TaskList.svelte'
 import { TaskCache } from './task-cache'
 import { resolveTaskModel } from './task-models'
+import { computeTaskLineEdit } from './task-line-command'
 import { parseJournalTasksBlock } from './parse-block-config'
 import { buildReferenceRange } from './reference-range'
 import { effectiveUnits, findTaskCandidates } from './task-scope'
@@ -46,6 +47,10 @@ import { appendStatusMenuItems } from './document-task-menu'
 import {
   appendEditorMigrationItem,
   appendNoteMigrationItems,
+  migrateInteractive,
+  migrateTaskOnLine,
+  migrateTasksFromNote,
+  migrateTasksToNote,
   type MigrationMenuContext,
 } from './task-migration-menu'
 import { processMigrationReferences } from './render-migration-references'
@@ -77,6 +82,88 @@ export class JournalTasksFeature extends PluginFeature {
   }
 
   async load(): Promise<void> {
+    // Keyboard-driven task entry: on the cursor line, convert a plain
+    // line into a task (at the active flow's first status) or, when it
+    // is already a task, advance it to the flow's next status. Operates
+    // directly on the editor's live buffer — no cache round-trip — so
+    // it works on any markdown line, journal note or not. The model is
+    // resolved against the active file so a folder's `task-flow`
+    // override is honoured.
+    this.plugin.addCommand({
+      id: 'cycle-or-create-task-on-line',
+      name: 'Toggle task / advance status on current line',
+      editorCallback: (editor, ctx) => {
+        const file = ctx.file ?? null
+        const settings = file ? this.getSettings(file) : this.globalSettings
+        const model = resolveTaskModel(settings)
+        const cursor = editor.getCursor()
+        const original = editor.getLine(cursor.line)
+        const updated = computeTaskLineEdit(original, model)
+        if (updated === null || updated === original) return
+        editor.setLine(cursor.line, updated)
+        // Keep the cursor on the same character of the original text by
+        // shifting it past any prefix the rewrite inserted ahead of it.
+        const delta = updated.length - original.length
+        if (delta !== 0) {
+          editor.setCursor({
+            line: cursor.line,
+            ch: Math.max(0, cursor.ch + delta),
+          })
+        }
+      },
+    })
+
+    // Unified migration entry point: a single hotkey that opens a
+    // chooser of the migration flows available in the current context
+    // (this line / from this note / to this note).
+    this.plugin.addCommand({
+      id: 'migrate-tasks',
+      name: 'Migrate tasks…',
+      editorCallback: (editor, ctx) => {
+        const file = ctx.file
+        if (!file) return
+        // noinspection JSIgnoredPromiseFromCall
+        migrateInteractive(this.migrationContext(), file, editor)
+      },
+    })
+
+    // Migrate the task on the cursor line into another note in the same
+    // folder — the keyboard equivalent of the editor-menu "Migrate
+    // task…" item.
+    this.plugin.addCommand({
+      id: 'migrate-task-on-line',
+      name: 'Migrate task on current line…',
+      editorCallback: (editor, ctx) => {
+        const file = ctx.file
+        if (!file) return
+        migrateTaskOnLine(this.migrationContext(), file, editor)
+      },
+    })
+
+    // Whole-note migration flows — keyboard equivalents of the two
+    // file-menu items. They operate on the active file, so they use a
+    // plain command callback rather than an editor callback.
+    this.plugin.addCommand({
+      id: 'migrate-tasks-from-note',
+      name: 'Migrate tasks from this note…',
+      callback: () => {
+        const file = this.plugin.app.workspace.getActiveFile()
+        if (!file) return
+        // noinspection JSIgnoredPromiseFromCall
+        migrateTasksFromNote(this.migrationContext(), file)
+      },
+    })
+    this.plugin.addCommand({
+      id: 'migrate-tasks-to-note',
+      name: 'Migrate tasks to this note…',
+      callback: () => {
+        const file = this.plugin.app.workspace.getActiveFile()
+        if (!file) return
+        // noinspection JSIgnoredPromiseFromCall
+        migrateTasksToNote(this.migrationContext(), file)
+      },
+    })
+
     this.plugin.registerEvent(
       this.plugin.app.vault.on('modify', (file) => {
         if (file instanceof TFile) this.#cache.invalidate(file.path)
