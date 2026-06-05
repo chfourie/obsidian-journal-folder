@@ -92,4 +92,45 @@ describe('extractTasks', () => {
     expect(task.noteTitleShort).not.toBe('')
     expect(task.noteTitle).not.toBe('')
   })
+
+  it('matches signifiers / categories and strips their tags from displayText', () => {
+    const { file, note } = buildDailyNote()
+    const signifiers = [
+      {
+        id: 'priority',
+        label: 'Priority',
+        tags: ['important'],
+        icon: { source: { kind: 'lucide' as const, name: 'star' } },
+      },
+      {
+        id: 'explore',
+        label: 'Explore',
+        tags: ['explore'],
+        icon: { source: { kind: 'lucide' as const, name: 'eye' } },
+      },
+    ]
+    const categories = [
+      { id: 'important', label: 'Important', tags: ['important'] },
+    ]
+    const [task] = extractTasks(
+      '- [ ] Plan #important #explore #keep',
+      simpleTaskModel,
+      file,
+      note,
+      [],
+      signifiers,
+      categories
+    )
+    expect(task.displayText).toBe('Plan #keep')
+    expect(task.signifierIds).toEqual(['priority', 'explore'])
+    expect(task.categoryIds).toEqual(['important'])
+  })
+
+  it('leaves signifierIds / categoryIds empty when nothing matches', () => {
+    const { file, note } = buildDailyNote()
+    const [task] = extractTasks('- [ ] Buy milk #groceries', simpleTaskModel, file, note)
+    expect(task.displayText).toBe('Buy milk #groceries')
+    expect(task.signifierIds).toEqual([])
+    expect(task.categoryIds).toEqual([])
+  })
 })

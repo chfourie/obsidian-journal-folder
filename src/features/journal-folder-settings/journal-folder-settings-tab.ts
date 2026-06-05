@@ -57,6 +57,10 @@ import {
   renderStatusDetail,
   type StatusDetailSection,
 } from './status-detail-editor'
+import {
+  renderCategoriesSection,
+  renderSignifiersSection,
+} from './signifier-category-editor'
 import { EmojiPickerModal, LucidePickerModal } from './icon-pickers'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
@@ -147,7 +151,13 @@ export function renderSettingsForm(config: SettingsFormConfig): void {
 
 // Tab identifiers used by the settings form's top tab strip. Order
 // here drives the tab order in the UI.
-type TabId = 'general' | 'templates' | 'patterns' | 'tasks' | 'reset'
+type TabId =
+  | 'general'
+  | 'templates'
+  | 'patterns'
+  | 'tasks'
+  | 'signifiers'
+  | 'reset'
 
 type TabDef = {
   id: TabId
@@ -528,6 +538,28 @@ class SettingsFormBuilder {
         this.activeStatusSection = 'basics'
         this.render()
       },
+    })
+
+    renderCategoriesSection({
+      app: this.config.app,
+      containerEl: this.containerEl,
+      getSettings: () => settings,
+      saveSettings: (next: JournalFolderSettings) => this.saveSettings(next),
+      rerender: () => this.render(),
+    })
+  }
+
+  // Signifiers are a feature in their own right (they apply to any
+  // rendered markdown, not just tasks), so they get a dedicated tab rather
+  // than living under Tasks. Task *categories* stay under Tasks because
+  // they only shape task lists.
+  renderSignifiersTab(settings: JournalFolderSettings): void {
+    renderSignifiersSection({
+      app: this.config.app,
+      containerEl: this.containerEl,
+      getSettings: () => settings,
+      saveSettings: (next: JournalFolderSettings) => this.saveSettings(next),
+      rerender: () => this.render(),
     })
   }
 
@@ -1455,6 +1487,12 @@ const TABS: TabDef[] = [
       isFolder
         ? builder.renderFolderTasksTab(settings)
         : builder.renderTasksTab(settings),
+  },
+  {
+    id: 'signifiers',
+    label: 'Signifiers',
+    isVisible: (isFolder) => !isFolder,
+    render: (builder, settings) => builder.renderSignifiersTab(settings),
   },
   {
     id: 'reset',

@@ -45,6 +45,12 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'taskFlows',
   'defaultTaskFlow',
   'taskInteractionScope',
+  'signifiers',
+  'signifierHideTagInReadingView',
+  'signifierLivePreviewEnabled',
+  'signifierPlacement',
+  'taskCategories',
+  'taskCategoryShowUnderNote',
 ])
 
 export class FolderSettingsResolver {

@@ -16,17 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './link.type'
-export * from './journal-folder-settings.type'
-export * from './plugin-feature'
-export * from './journal-note'
-export * from './folder-settings-resolver'
-export * from './string-utils'
-export * from './apply-start-of-week'
-export * from './journal-folder-detection'
-export * from './journal-task'
-export * from './task-model.type'
-export * from './signifier.type'
-export * from './tag-utils'
-export * from './task-templates'
-export * from './sanitize-svg'
+export * from './journal-signifiers-feature'
+export * from './render-signifier-icon'
+export * from './process-signifiers'
+export * from './signifier-line-edit'

@@ -49,4 +49,13 @@ export interface JournalTask {
   // date out properly.
   noteTitle: string
   folderPath: string
+  // Ids of the configured signifiers whose tags appear on this task line,
+  // in signifier-configuration order. Drives the inline signifier icons
+  // shown in the plugin's task lists. The matched tags are stripped from
+  // `displayText`.
+  signifierIds: string[]
+  // Ids of the configured task categories whose tags appear on this task
+  // line. A task is listed under every matching category. The matched
+  // tags are stripped from `displayText`.
+  categoryIds: string[]
 }

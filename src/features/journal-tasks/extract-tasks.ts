@@ -17,7 +17,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type { TFile } from 'obsidian'
-import type { JournalNote, JournalTask } from '../../data-access'
+import type {
+  JournalNote,
+  JournalTask,
+  Signifier,
+  TaskCategory,
+} from '../../data-access'
+import {
+  extractTags,
+  matchCategories,
+  matchSignifiers,
+  stripTags,
+} from '../../data-access'
 import type { TaskModel } from './task-models'
 
 // Number of calendar days each tier covers. Used for sorting (smaller =
@@ -75,7 +86,9 @@ export function extractTasks(
   model: TaskModel,
   file: TFile,
   journalNote: JournalNote,
-  migrationMarkers: string[] = []
+  migrationMarkers: string[] = [],
+  signifiers: readonly Signifier[] = [],
+  categories: readonly TaskCategory[] = []
 ): JournalTask[] {
   const lines = content.split('\n')
   const noteUnit = journalNote.getTimeUnit()
@@ -87,12 +100,25 @@ export function extractTasks(
   for (let i = 0; i < lines.length; i++) {
     const parsed = model.parseLine(lines[i])
     if (!parsed) continue
+    // Match signifiers / categories against the tags on the task text,
+    // then strip those matched tags from the display text so they don't
+    // surface as raw `#important`. Unmatched tags are left in place.
+    const tags = extractTags(parsed.text)
+    const matchedSignifiers = matchSignifiers(tags, signifiers)
+    const matchedCategories = matchCategories(tags, categories)
+    const tagsToStrip = [
+      ...matchedSignifiers.flatMap((s) => s.tags),
+      ...matchedCategories.flatMap((c) => c.tags),
+    ]
     tasks.push({
       sourceFile: file,
       sourceLine: i,
       rawText: lines[i],
       displayText: stripWikilinkSyntax(
-        stripMigrationReferences(parsed.text, migrationMarkers)
+        stripTags(
+          stripMigrationReferences(parsed.text, migrationMarkers),
+          tagsToStrip
+        )
       ),
       status: parsed.status,
       noteUnit,
@@ -100,6 +126,8 @@ export function extractTasks(
       noteTitleShort,
       noteTitle,
       folderPath,
+      signifierIds: matchedSignifiers.map((s) => s.id),
+      categoryIds: matchedCategories.map((c) => c.id),
     })
   }
   return tasks

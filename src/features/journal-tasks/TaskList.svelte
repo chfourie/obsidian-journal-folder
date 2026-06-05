@@ -19,7 +19,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   import type { App } from 'obsidian'
   import type { SvelteSet } from 'svelte/reactivity'
   import type {
+    IconSpec,
     JournalTask,
+    Signifier,
+    TaskCategory,
     TasksSidebarAnchor,
     TasksSidebarFolderMode,
     TasksSidebarRange,
@@ -27,6 +30,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   import type { TaskModel } from './task-models'
   import TaskItem from './TaskItem.svelte'
   import TaskScopePanel from './TaskScopePanel.svelte'
+  import { groupTasksByCategory } from './group-tasks-by-category'
+  import { renderSignifierIcon } from '../journal-signifiers'
 
   type Props = {
     tasks: JournalTask[]
@@ -45,6 +50,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     // snapshot updates, in-note block remounts on vault changes)
     // because the caller keeps the same reference around.
     collapsedNotePaths: SvelteSet<string>
+    // Signifier config (resolves `task.signifierIds` → icons) and category
+    // config (drives the category sections at the top of the list). Both
+    // are global settings, threaded in from the mount sites.
+    signifiers?: Signifier[]
+    categories?: TaskCategory[]
+    categoryShowUnderNote?: boolean
     caption?: string
     // Sidebar scope panel state + setters. Present only for the sidebar
     // surfaces; the in-note block leaves these undefined and keeps its
@@ -73,6 +84,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     truncated,
     header,
     collapsedNotePaths,
+    signifiers = [],
+    categories = [],
+    categoryShowUnderNote = false,
     caption,
     anchor,
     range,
@@ -158,9 +172,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     title: string
     tasks: JournalTask[]
   }
+  // Category sections (shown above the note groups) and the remaining
+  // note-grouped tasks. A categorized task appears under every matching
+  // category and, when `categoryShowUnderNote` is on, also under its note.
+  const categoryGrouping = $derived(
+    groupTasksByCategory(tasks, categories, categoryShowUnderNote)
+  )
+
+  // Svelte action: paint a category `IconSpec` into the host span.
+  function categoryIcon(node: HTMLElement, icon: IconSpec) {
+    renderSignifierIcon(node, icon)
+    return {
+      update(next: IconSpec) {
+        renderSignifierIcon(node, next)
+      },
+    }
+  }
+
   const groups = $derived.by(() => {
     const byPath = new Map<string, TaskGroup>()
-    for (const task of tasks) {
+    for (const task of categoryGrouping.noteTasks) {
       let group = byPath.get(task.sourceFile.path)
       if (!group) {
         group = {
@@ -231,6 +262,52 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   {#if tasks.length === 0}
     <p class="journal-folder-tasks-empty">No tasks in range.</p>
   {:else}
+    {#each categoryGrouping.categorySections as section (section.category.id)}
+      {@const catKey = 'cat:' + section.category.id}
+      {@const collapsed = isCollapsed(catKey)}
+      <div
+        class="journal-folder-tasks-group journal-folder-tasks-category"
+        class:is-collapsed={collapsed}
+      >
+        <div class="journal-folder-tasks-group-heading">
+          <span
+            class="journal-folder-tasks-group-caret"
+            role="button"
+            tabindex="0"
+            aria-label={collapsed ? 'Expand category' : 'Collapse category'}
+            aria-expanded={!collapsed}
+            onclick={() => toggleCollapsed(catKey)}
+            onkeydown={activate(() => toggleCollapsed(catKey))}
+          >{collapsed ? '▸' : '▾'}</span>
+          {#if section.category.icon}
+            <span
+              class="jf-signifier"
+              aria-label={section.category.label}
+              use:categoryIcon={section.category.icon}
+            ></span>
+          {/if}
+          <span class="journal-folder-tasks-group-title">
+            {section.category.label}
+          </span>
+          <span class="journal-folder-tasks-group-count">
+            ({section.tasks.length})
+          </span>
+        </div>
+        {#if !collapsed}
+          <div class="journal-folder-tasks-list contains-task-list">
+            {#each section.tasks as task (task.sourceFile.path + ':' + task.sourceLine)}
+              <TaskItem
+                task={task}
+                model={model}
+                app={app}
+                signifiers={signifiers}
+                showNoteChip={true}
+              />
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/each}
     {#each groups as group (group.path)}
       {@const collapsed = isCollapsed(group.path)}
       <div
@@ -268,6 +345,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                 task={task}
                 model={model}
                 app={app}
+                signifiers={signifiers}
               />
             {/each}
           </div>

@@ -2072,3 +2072,158 @@ li.task-list-item[data-task="-"] {
 .jf-tasks-preview-notice-body strong {
 	color: var(--text-normal);
 }
+
+/* ============================================================
+ * Signifiers (tag → icon) and task categories
+ * ============================================================ */
+
+/* Inline signifier icon wrapper — used in reading view, the live-preview
+ * widget, task lists, the picker modal, and category headers. The icon's
+ * own colour is set inline by `renderSignifierIcon` (from the configured
+ * `ColorRef`); this baseline only governs layout and the fallback colour
+ * for emoji / uncoloured icons. */
+.jf-signifier {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: text-bottom;
+	color: var(--text-normal);
+}
+
+.jf-signifier + .jf-signifier {
+	margin-inline-start: 0.15em;
+}
+
+/* Small gap when a signifier sits before a tag (reading view, tag shown)
+ * or before the task text. */
+.jf-signifier {
+	margin-inline-end: 0.2em;
+}
+
+.jf-signifier-icon,
+.jf-signifier .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.jf-signifier img {
+	width: 1em;
+	height: 1em;
+	object-fit: contain;
+}
+
+/* When the reading-view post-processor is set to hide the tag, the original
+ * tag anchor is collapsed so only the margin signifier icon shows. */
+.jf-signifier-hidden-tag {
+	display: none;
+}
+
+/* Leading signifiers — the icon(s) that lead an entry in notes (reading
+ * view + live preview). Rendered in normal text flow (NOT absolutely
+ * positioned), so they can never overlap the bullet / checkbox and are
+ * immune to themes and CSS snippets that restyle list layout. */
+.jf-signifier-lead {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin-inline-end: 0.35em;
+	vertical-align: text-bottom;
+}
+
+/* Trailing signifiers — same flow placement, at the end of the line. */
+.jf-signifier-trail {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin-inline-start: 0.35em;
+	vertical-align: text-bottom;
+}
+
+/* Inside a flow marker the icons carry no inline spacing — the flex gap
+ * governs separation. */
+.jf-signifier-lead .jf-signifier,
+.jf-signifier-trail .jf-signifier,
+.jf-signifier-gutter .jf-signifier {
+	margin: 0;
+}
+
+/* Left-margin gutter placements (OPT-IN) — `margin` hangs the icon just left
+ * of EACH entry (indented with nesting); `margin-column` aligns every icon in
+ * one far-left column (physical-journal left rule).
+ *
+ * Horizontal placement is done by MEASUREMENT, not theme-specific CSS: JS
+ * writes each marker's `left` (see gutter-positioner.ts for reading view and
+ * the live-preview ViewPlugin for editing view). That keeps the gutter correct
+ * across themes / snippets / indentation settings, where a fixed CSS offset
+ * would collide with restyled bullets or checkboxes. CSS here only:
+ *  - makes the entry's content host / line the positioning context,
+ *  - centres the icon vertically on the line, and
+ *  - hides the marker until its first measurement lands (no wrong-x flash). */
+.jf-signifier-host {
+	position: relative;
+}
+
+.jf-signifier-gutter {
+	position: absolute;
+	/* Anchor to the entry's FIRST line, not the whole block. A parent list
+	 * item's host (`.jf-signifier-host`) spans its nested children, so
+	 * `top:0; bottom:0` would centre the icon over the entire subtree and drop
+	 * it below its own line. A one-line-tall box from the top keeps it on the
+	 * entry's line (`1lh` = the line height; `em` is the older-engine
+	 * fallback). `align-items: center` then centres the icon within it. */
+	top: 0;
+	bottom: auto;
+	height: 1.5em;
+	height: 1lh;
+	/* `left` is overwritten by the measured value; this is only the pre-paint
+	 * fallback (the marker is hidden until measured anyway). */
+	left: 0;
+	/* Per-row: the measured `left` marks the entry's bullet / checkbox start,
+	 * so shift the icon left by its own width to hang it in the margin. The
+	 * single-column variant overrides this — its measured `left` already is
+	 * the icon's left edge. */
+	/* Both modes hang the icon LEFT of the measured anchor: the measured
+	 * `left` puts the icon's box at the anchor x, and this shifts it left by
+	 * its own width. Per-row anchor = the entry's bullet/checkbox; column
+	 * anchor = the shared far-left column x. */
+	transform: translateX(-100%);
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	white-space: nowrap;
+	pointer-events: none;
+	visibility: hidden;
+}
+
+/* Revealed by the positioner once `left` has been measured. */
+.jf-signifier-gutter.jf-positioned {
+	visibility: visible;
+}
+
+/* Category section reuses the task-group frame; nudge the header icon to
+ * sit between the caret and the title. */
+.journal-folder-tasks-category .journal-folder-tasks-group-heading .jf-signifier {
+	flex: 0 0 auto;
+}
+
+/* Source-note chip shown on a task inside a category section (where the
+ * note header is absent). Muted, pushed to the trailing edge. */
+.journal-folder-tasks-note-chip {
+	flex: 0 0 auto;
+	margin-inline-start: 0.5em;
+	padding: 0 0.4em;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-smallest);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.journal-folder-tasks-note-chip:hover {
+	color: var(--text-normal);
+}
+
+/* Signifier icons in a task row never shrink. */
+.journal-folder-tasks-row .jf-signifier {
+	flex: 0 0 auto;
+}

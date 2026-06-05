@@ -355,6 +355,16 @@ Moves active tasks from one journal note to another **within the same folder** (
 - **Placement** — `computeInsertion` (pure) inserts per the `taskMigrationPlacement` setting: `after-last-task` (default) / `heading` (uses `taskMigrationHeading`, created if absent) / `top` / `end`. Placement + heading are **folder-honored** (the only `task*` fields that are — they're a per-note layout concern).
 - **Triggers** — (1) `editor-menu` on a task line → migrate that one task → note picker; (2) `file-menu` *"Migrate tasks from this note…"* → grouped multi-select of the note's active tasks → note picker; (3) `file-menu` *"Migrate tasks to this note…"* → destination is the clicked note, grouped multi-select of the folder's active tasks (destination excluded). The multi-select picker is **opt-in** — nothing is selected by default; the user ticks tasks (or whole notes via the group checkbox). Note pickers (`listJournalNotesInFolder`) and the to-note candidate set are confined to the single folder.
 
+## Task categories
+
+Task lists (the in-note block and both sidebar panels) show **category
+sections** above the per-note groups. Categories are tag-driven and
+**global-only**; a task matching several categories appears under each, and the
+global `taskCategoryShowUnderNote` toggle controls whether categorized tasks
+also still appear in their note group. Tasks also render any matching
+**signifier** icons inline (tag hidden). Both are described in
+[signifiers.md](signifiers.md); the grouping is `groupTasksByCategory`.
+
 ## Out of scope (v1)
 
 - Per-status filters in the header (only the binary Show/Hide completed link).

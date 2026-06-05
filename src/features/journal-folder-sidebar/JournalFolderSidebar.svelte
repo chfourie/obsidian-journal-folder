@@ -517,6 +517,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         truncated={taskPanel.truncated}
         header="sidebar"
         collapsedNotePaths={sidebarCollapsedPaths}
+        signifiers={settings.signifiers}
+        categories={settings.taskCategories}
+        categoryShowUnderNote={settings.taskCategoryShowUnderNote}
         anchor={settings.tasksSidebarAnchor}
         range={settings.tasksSidebarRange}
         folderMode={settings.tasksSidebarFolderMode}

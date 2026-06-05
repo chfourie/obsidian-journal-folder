@@ -148,6 +148,12 @@ describe('FolderSettingsResolver', () => {
             'default-journal-folder': 'OtherFolder',
             'hide-journal-folder-notes': false,
             'sidebar-mode': 'static',
+            // Signifiers / categories are global-only too — a folder must
+            // not be able to redefine them.
+            signifiers: [],
+            'task-categories': [],
+            'signifier-hide-tag-in-reading-view': false,
+            'task-category-show-under-note': true,
             // Sanity check: a non-global-only key on the same file still applies.
             'journal-folder-title': 'My Journal',
           },
@@ -164,6 +170,14 @@ describe('FolderSettingsResolver', () => {
         DEFAULT_SETTINGS.hideJournalFolderNotes
       )
       expect(resolved.sidebarMode).toBe(DEFAULT_SETTINGS.sidebarMode)
+      expect(resolved.signifiers).toBe(DEFAULT_SETTINGS.signifiers)
+      expect(resolved.taskCategories).toBe(DEFAULT_SETTINGS.taskCategories)
+      expect(resolved.signifierHideTagInReadingView).toBe(
+        DEFAULT_SETTINGS.signifierHideTagInReadingView
+      )
+      expect(resolved.taskCategoryShowUnderNote).toBe(
+        DEFAULT_SETTINGS.taskCategoryShowUnderNote
+      )
       expect(resolved.journalFolderTitle).toBe('My Journal')
     })
 

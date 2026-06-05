@@ -17,7 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type { App, TFile } from 'obsidian'
-import type { JournalNote, JournalTask } from '../../data-access'
+import type {
+  JournalNote,
+  JournalTask,
+  Signifier,
+  TaskCategory,
+} from '../../data-access'
 import { extractTasks } from './extract-tasks'
 import type { TaskModel } from './task-models'
 
@@ -39,11 +44,24 @@ export class TaskCache {
   // `lucide:…` token). Set from settings; changing them clears the cache
   // via the feature's `useSettings`, so cached display text stays fresh.
   private migrationMarkers: string[] = []
+  // Signifiers / categories used to annotate tasks and strip their tags
+  // from display text. Set from settings; the feature's `useSettings`
+  // clears the cache on any settings change, so cached tasks stay fresh.
+  private signifiers: readonly Signifier[] = []
+  private categories: readonly TaskCategory[] = []
 
   constructor(private readonly app: App) {}
 
   setMigrationMarkers(markers: string[]): void {
     this.migrationMarkers = markers.filter((m) => m.trim().length > 0)
+  }
+
+  setSignifiers(signifiers: readonly Signifier[]): void {
+    this.signifiers = signifiers
+  }
+
+  setCategories(categories: readonly TaskCategory[]): void {
+    this.categories = categories
   }
 
   async getTasks(
@@ -66,7 +84,9 @@ export class TaskCache {
       model,
       file,
       journalNote,
-      this.migrationMarkers
+      this.migrationMarkers,
+      this.signifiers,
+      this.categories
     )
     this.entries.set(file.path, { mtime, modelId: model.id, tasks })
     return tasks

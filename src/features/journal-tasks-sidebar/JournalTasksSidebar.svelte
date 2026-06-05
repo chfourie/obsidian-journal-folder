@@ -125,6 +125,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     truncated={snapshot.truncated}
     header="sidebar"
     collapsedNotePaths={collapsedNotePaths}
+    signifiers={settings.signifiers}
+    categories={settings.taskCategories}
+    categoryShowUnderNote={settings.taskCategoryShowUnderNote}
     anchor={settings.tasksOnlySidebarAnchor}
     range={settings.tasksOnlySidebarRange}
     folderMode={settings.tasksOnlySidebarFolderMode}

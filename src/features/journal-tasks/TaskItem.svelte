@@ -17,23 +17,53 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
   import { type App, Menu } from 'obsidian'
-  import type { JournalTask } from '../../data-access'
+  import type { IconSpec, JournalTask, Signifier } from '../../data-access'
   import type { TaskModel } from './task-models'
   import StatusIcon from './StatusIcon.svelte'
   import { cycleTaskStatus, setTaskStatus } from './task-transition'
+  import { renderSignifierIcon } from '../journal-signifiers'
 
   type Props = {
     task: JournalTask
     model: TaskModel
     app: App
+    // Configured signifiers used to resolve `task.signifierIds` into icons.
+    signifiers?: Signifier[]
+    // Shown inside category sections, where the note header is absent, so
+    // each task still carries its source-note provenance.
+    showNoteChip?: boolean
   }
 
-  const { task, model, app }: Props = $props()
+  const { task, model, app, signifiers = [], showNoteChip = false }: Props =
+    $props()
 
   const statusEntry = $derived(model.statuses.find((s) => s.id === task.status))
   const isDone = $derived(model.isDone(task.status))
   const statusChar = $derived(statusEntry?.char ?? ' ')
   const rendering = $derived(model.rendering)
+
+  // Resolve this task's signifier ids to their configured icons, in
+  // signifier-config order (ids were captured in that order at extract).
+  const taskSignifiers = $derived(
+    task.signifierIds
+      .map((id) => signifiers.find((s) => s.id === id))
+      .filter((s): s is Signifier => !!s)
+  )
+
+  // Svelte action: paint a signifier `IconSpec` into the host span.
+  function signifierIcon(node: HTMLElement, icon: IconSpec) {
+    renderSignifierIcon(node, icon)
+    return {
+      update(next: IconSpec) {
+        renderSignifierIcon(node, next)
+      },
+    }
+  }
+
+  function openNoteFromChip(evt: MouseEvent) {
+    evt.stopPropagation()
+    app.workspace.openLinkText(task.sourceFile.path, '', false)
+  }
 
   function openSourceLine() {
     app.workspace.openLinkText(task.sourceFile.path, '', false)
@@ -78,6 +108,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     onClick={onIconClick}
     onContextMenu={onIconContextMenu}
   />
+  {#each taskSignifiers as signifier (signifier.id)}
+    <span
+      class="jf-signifier"
+      aria-label={signifier.label}
+      use:signifierIcon={signifier.icon}
+    ></span>
+  {/each}
   <span
     class="journal-folder-tasks-text"
     role="button"
@@ -92,4 +129,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   >
     {task.displayText}
   </span>
+  {#if showNoteChip}
+    <span
+      class="journal-folder-tasks-note-chip"
+      role="button"
+      tabindex="0"
+      title="Open this note"
+      onclick={openNoteFromChip}
+      onkeydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          openNoteFromChip(e as unknown as MouseEvent)
+        }
+      }}
+    >
+      {task.noteTitleShort}
+    </span>
+  {/if}
 </div>

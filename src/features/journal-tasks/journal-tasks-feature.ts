@@ -281,6 +281,10 @@ export class JournalTasksFeature extends PluginFeature {
       settings.taskMigrationToMarker,
       settings.taskMigrationFromMarker,
     ])
+    // Keep the cache's signifier / category config in step so task lists
+    // annotate tasks and strip their tags from display text.
+    this.#cache.setSignifiers(settings.signifiers)
+    this.#cache.setCategories(settings.taskCategories)
     // Force open CodeMirror editors to re-run their ViewPlugin
     // updates so toggles of `taskInteractionScope` and edits to the
     // active flow take effect without requiring the user to type.
@@ -502,6 +506,9 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         truncated,
         header: 'note',
         collapsedNotePaths: this.collapsedNotePaths,
+        signifiers: settings.signifiers,
+        categories: settings.taskCategories,
+        categoryShowUnderNote: settings.taskCategoryShowUnderNote,
         caption: this.blockConfig.caption,
         onToggleShowCompleted: () => {
           this.showCompleted = !this.showCompleted

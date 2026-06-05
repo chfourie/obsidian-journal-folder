@@ -228,6 +228,52 @@ export type JournalFolderSettings = {
   // the cross-reference recede visually until the user looks for it.
   // **Global only** — applied by the reading-view post-processor.
   taskMigrationReferenceOpacity: number
+  // Signifiers bind an icon to one or more tags (BUJO-style). The
+  // standard signifiers (priority / inspiration / explore) ship by
+  // default. **Global only** — never overridable per task-flow or per
+  // folder; the dictionary is the single source of truth for tag→icon
+  // rendering everywhere.
+  signifiers: Signifier[]
+  // Whether reading view *hides* the matched tag and shows only the
+  // signifier icon (true) or shows both the icon and the tag (false).
+  // The plugin's own task lists ALWAYS hide the tag regardless. **Global
+  // only** — applied by the reading-view post-processor.
+  signifierHideTagInReadingView: boolean
+  // Kill-switch for the live-preview (editing-view) signifier
+  // decoration. On by default; turning it off reverts live preview to
+  // plain tags with no CodeMirror decoration, leaving reading view and
+  // task lists unaffected. **Global only** — gates an editor extension.
+  signifierLivePreviewEnabled: boolean
+  // Where signifier icons sit in notes (reading view + live preview):
+  //   `'start'`         — lead the entry, in normal text flow (default;
+  //                       robust, never overlaps, immune to themes /
+  //                       snippets).
+  //   `'end'`           — trail the line, in normal text flow.
+  //   `'margin'`        — absolutely positioned in the left margin, hanging
+  //                       just left of each entry and indented with its
+  //                       nesting (physical-journal gutter, per entry).
+  //                       Opt-in: looks best in a vanilla vault but can
+  //                       collide with themes / CSS snippets that restyle
+  //                       list bullets, checkboxes, or indentation.
+  //   `'margin-column'` — every icon aligned in ONE far-left column,
+  //                       regardless of nesting depth (a single journal
+  //                       gutter). Most layout-dependent: the horizontal
+  //                       offset is measured once per render and recomputed
+  //                       on theme / width changes, and nested icons sit far
+  //                       from their entry.
+  // **Global only.** Does not affect the plugin's own task lists, which
+  // always render signifiers inline.
+  signifierPlacement: SignifierPlacement
+  // Task categories group tasks by tag at the top of every task list.
+  // An ordered list — the editor order is the section order. An
+  // "Important" category (bound to `#important`, the priority
+  // signifier's tag) ships by default. **Global only.**
+  taskCategories: TaskCategory[]
+  // Single global toggle: when true, a categorized task ALSO appears in
+  // its note's group below the category sections; when false it appears
+  // only under its category. Uncategorized tasks always appear under
+  // their note. **Global only.**
+  taskCategoryShowUnderNote: boolean
 }
 
 export type TaskInteractionScope = 'lists' | 'everywhere'
@@ -260,6 +306,7 @@ export const MIGRATION_REFERENCE_PRESETS: Record<
 export const LUCIDE_MARKER_PREFIX = 'lucide:'
 
 import type { TaskFlow, TaskStatus } from './task-model.type'
+import type { Signifier, TaskCategory } from './signifier.type'
 import {
   BUILTIN_TEMPLATES,
   cloneTemplate,
@@ -277,6 +324,8 @@ export type TasksSidebarRange =
   | 'all'
 
 export type TasksSidebarFolderMode = 'note' | 'all' | 'specific'
+
+export type SignifierPlacement = 'start' | 'end' | 'margin' | 'margin-column'
 
 export type SidebarMode = 'static' | 'dynamic'
 
@@ -352,4 +401,50 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   taskMigrationToMarker: MIGRATION_REFERENCE_PRESETS.lucide.to,
   taskMigrationFromMarker: MIGRATION_REFERENCE_PRESETS.lucide.from,
   taskMigrationReferenceOpacity: 30,
+  // Standard Bullet-Journal signifiers. Priority shares the `important`
+  // tag with the default Important category below.
+  signifiers: [
+    {
+      id: 'priority',
+      label: 'Priority',
+      tags: ['important'],
+      icon: {
+        source: { kind: 'lucide', name: 'star' },
+        color: { kind: 'token', var: '--color-yellow' },
+      },
+    },
+    {
+      id: 'inspiration',
+      label: 'Inspiration',
+      tags: ['inspiration'],
+      icon: {
+        source: { kind: 'lucide', name: 'lightbulb' },
+        color: { kind: 'token', var: '--color-yellow' },
+      },
+    },
+    {
+      id: 'explore',
+      label: 'Explore',
+      tags: ['explore'],
+      icon: {
+        source: { kind: 'lucide', name: 'eye' },
+        color: { kind: 'token', var: '--color-blue' },
+      },
+    },
+  ],
+  signifierHideTagInReadingView: true,
+  signifierLivePreviewEnabled: true,
+  signifierPlacement: 'start',
+  taskCategories: [
+    {
+      id: 'important',
+      label: 'Important',
+      tags: ['important'],
+      icon: {
+        source: { kind: 'lucide', name: 'star' },
+        color: { kind: 'token', var: '--color-yellow' },
+      },
+    },
+  ],
+  taskCategoryShowUnderNote: false,
 }

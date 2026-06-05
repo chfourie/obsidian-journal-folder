@@ -6,6 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"push": "node scripts/deploy-plugin.mjs",
+		"deploy": "npm run build && node scripts/deploy-plugin.mjs",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"test": "vitest run",
 		"test:watch": "vitest"

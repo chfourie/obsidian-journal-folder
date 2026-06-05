@@ -18,6 +18,13 @@ main.js
 # obsidian
 data.json
 
+# Hot-Reload marker — local dev artifact.
+.hotreload
+
+# Local deploy targets for `npm run deploy` / `npm run push`. Machine-specific
+# vault paths — keep the committed deploy-targets.example.json as the template.
+deploy-targets.json
+
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 
