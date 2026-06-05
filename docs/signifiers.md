@@ -26,12 +26,12 @@ tasks or bullets.
 In **notes** (reading view and live preview) the placement is set by the
 global `signifierPlacement` setting:
 
-- **`start`** (default) — the icon **leads the entry** in normal text flow
-  (`★ ☐ Downgrade Claude?`). Robust everywhere.
+- **`start`** — the icon **leads the entry** in normal text flow
+  (`★ ☐ Downgrade Claude?`).
 - **`end`** — the icon **trails the line** in normal text flow.
-- **`margin`** (opt-in) — the icon hangs in the **margin just left of each
-  entry** (indented with nesting), physical-journal style.
-- **`margin-column`** (opt-in) — **every** icon aligns in **one far-left
+- **`margin`** — the icon hangs in the **margin just left of each entry**
+  (indented with nesting), physical-journal style.
+- **`margin-column`** (**default**) — **every** icon aligns in **one far-left
   column** regardless of nesting (a physical journal's left rule).
 
 Both margin modes make the entry's content host / line a positioning context
@@ -59,9 +59,10 @@ intrinsic layout metrics change (theme, font, the DOM itself).
 
 There is **no scroll recompute** (the offset is scroll-invariant). Markers are
 `visibility: hidden` until their first measurement reveals them
-(`.jf-positioned`) so there is no wrong-x flash. ⚠ both margin modes are the
-warned, layout-dependent opt-ins; the flow placements (`start`/`end`) are
-immune. The settings dropdown lists each option's pros/cons.
+(`.jf-positioned`) so there is no wrong-x flash. Because the horizontal
+position is measured from the live layout, the margin placements hold up across
+themes, snippets and indentation settings — which is why `margin-column` is the
+default rather than a warned opt-in.
 
 **Reserve left margin for gutter signifiers** (`signifierReserveGutter`, **off
 by default**, margin modes only): when on, the content container's
@@ -80,15 +81,15 @@ it) so re-applying never compounds.
 | Live preview | `signifierLivePreviewExtension` CodeMirror `ViewPlugin` (`signifier-live-preview.ts`) adds a side `-1` in-flow lead widget per line | Tag is **never hidden** — it stays fully editable |
 | Plugin task lists | `TaskItem.svelte` renders `task.signifierIds` inline via `renderSignifierIcon` | Always hidden (tags stripped from `displayText` at extract time) |
 
-**Why flow placement is the default, not the margin gutter:** the `margin`
-mode absolutely-positions the icon into the left margin. That looks right in a
-pristine vault but breaks in real ones — CSS snippets and themes (e.g.
-AnuPpuccin, Minimal, list/checkbox/indent-guide snippets) restyle list layout
-and shift the reference frame the absolute marker depends on, so the icon can
-land on top of the checkbox. The flow placements (`start` / `end`) can't
-overlap anything and are immune to themes/snippets, at the cost of the icon
-sitting in the line rather than hanging in the page margin — so they're the
-default and `margin` is an explicit, warned opt-in.
+**Why measurement, not fixed CSS:** the margin modes absolutely-position the
+icon into the left margin. An earlier version used a fixed `translateX` offset,
+which looked right in a pristine vault but broke in real ones — CSS snippets
+and themes (e.g. AnuPpuccin, Minimal, list/checkbox/indent-guide snippets)
+restyle list layout and shift the reference frame, so the icon could land on
+top of the checkbox or off-screen. Measuring the live layout instead (and
+reserving the lane) makes the margin modes robust enough to be the default; the
+flow placements (`start` / `end`) remain as zero-measurement alternatives that
+sit in the line rather than hanging in the margin.
 
 | Surface | start / end | margin / margin-column |
 | --- | --- | --- |

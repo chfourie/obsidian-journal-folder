@@ -121,23 +121,21 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
   new Setting(containerEl)
     .setName('Placement in notes')
     .setDesc(
-      'Where the icon sits on a note line. Start / End render in normal ' +
-        'text flow and are robust everywhere. The two margin modes float the ' +
-        'icon into the left margin like a physical journal — opt-in, and may ' +
-        'collide with themes or CSS snippets that restyle list bullets, ' +
-        'checkboxes, or indentation. (The plugin’s own task lists always ' +
-        'render inline.)'
+      'Where the icon sits on a note line. Start / End render in normal text ' +
+        'flow; the two left-margin modes float the icon into the margin like a ' +
+        'physical journal (positioned by measurement, so they hold up across ' +
+        'themes and snippets). The plugin’s own task lists always render inline.'
     )
     .addDropdown((dd) => {
-      dd.addOption('start', 'Start of line — in text flow, robust everywhere')
-      dd.addOption('end', 'End of line — in text flow, robust everywhere')
+      dd.addOption('start', 'Start of line — in text flow')
+      dd.addOption('end', 'End of line — in text flow')
       dd.addOption(
         'margin',
-        '⚠ Left margin, per entry — hangs by each line, indents with nesting'
+        'Left margin, per entry — hangs by each line, indents with nesting'
       )
       dd.addOption(
         'margin-column',
-        '⚠ Left margin, single column — all icons in one far-left column'
+        'Left margin, single column — all icons in one far-left column'
       )
       dd.setValue(settings.signifierPlacement).onChange(async (value) => {
         await saveSettings({
@@ -150,11 +148,9 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
   new Setting(containerEl)
     .setName('Reserve left margin for gutter signifiers')
     .setDesc(
-      'For the two left-margin placements only: indent the note content far ' +
-        'enough to fit the widest row of icons, so they never clip when ' +
-        'readable line width is off or the view is narrow. Off by default — ' +
-        'icons then hang into whatever margin exists and may clip in a narrow ' +
-        'view. No effect on Start / End.'
+      'For the two left-margin placements only: indent the note content just ' +
+        'enough that the icons never clip when readable line width is off or ' +
+        'the view is narrow. On by default. No effect on Start / End.'
     )
     .addToggle((toggle) =>
       toggle

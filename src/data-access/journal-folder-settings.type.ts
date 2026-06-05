@@ -245,30 +245,24 @@ export type JournalFolderSettings = {
   // task lists unaffected. **Global only** — gates an editor extension.
   signifierLivePreviewEnabled: boolean
   // Where signifier icons sit in notes (reading view + live preview):
-  //   `'start'`         — lead the entry, in normal text flow (default;
-  //                       robust, never overlaps, immune to themes /
-  //                       snippets).
+  //   `'start'`         — lead the entry, in normal text flow.
   //   `'end'`           — trail the line, in normal text flow.
-  //   `'margin'`        — absolutely positioned in the left margin, hanging
-  //                       just left of each entry and indented with its
-  //                       nesting (physical-journal gutter, per entry).
-  //                       Opt-in: looks best in a vanilla vault but can
-  //                       collide with themes / CSS snippets that restyle
-  //                       list bullets, checkboxes, or indentation.
+  //   `'margin'`        — left-margin gutter, hanging just left of each entry
+  //                       and indented with its nesting (physical-journal
+  //                       gutter, per entry).
   //   `'margin-column'` — every icon aligned in ONE far-left column,
   //                       regardless of nesting depth (a single journal
-  //                       gutter). Most layout-dependent: the horizontal
-  //                       offset is measured once per render and recomputed
-  //                       on theme / width changes, and nested icons sit far
-  //                       from their entry.
-  // **Global only.** Does not affect the plugin's own task lists, which
-  // always render signifiers inline.
+  //                       gutter). **Default.**
+  // The margin placements are positioned by measurement (not theme-specific
+  // CSS), so they are robust across themes / snippets / indentation; the
+  // optional `signifierReserveGutter` keeps them from clipping in narrow /
+  // readable-off views. **Global only.** Does not affect the plugin's own
+  // task lists, which always render signifiers inline.
   signifierPlacement: SignifierPlacement
   // For the margin (gutter) placements only: reserve a left lane (pad the
-  // note content right by the widest icon stack) so signifiers never clip
-  // when readable line width is off or the view is narrowed. Off by default
-  // — gutter icons then hang into whatever left margin exists and may clip
-  // in a narrow view. No effect on the flow placements. **Global only.**
+  // note content right just enough) so signifiers never clip when readable
+  // line width is off or the view is narrowed. On by default; recomputed on
+  // any sizer-width change. No effect on the flow placements. **Global only.**
   signifierReserveGutter: boolean
   // Task categories group tasks by tag at the top of every task list.
   // An ordered list — the editor order is the section order. An
@@ -440,8 +434,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   ],
   signifierHideTagInReadingView: true,
   signifierLivePreviewEnabled: true,
-  signifierPlacement: 'start',
-  signifierReserveGutter: false,
+  signifierPlacement: 'margin-column',
+  signifierReserveGutter: true,
   taskCategories: [
     {
       id: 'important',

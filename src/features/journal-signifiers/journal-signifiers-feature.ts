@@ -42,6 +42,24 @@ export class JournalSignifiersFeature extends PluginFeature {
   }
 
   async load(): Promise<void> {
+    // Recompute gutter positions + reserve for the active margin placement
+    // (no-ops for the flow placements).
+    const recompute = () =>
+      repositionAllReadingGutters(
+        this.globalSettings.signifierPlacement,
+        this.globalSettings.signifierReserveGutter
+      )
+
+    // A sizer's WIDTH changes on readable-line-width toggle, window resize and
+    // sidebar toggle — none of which reliably fire a workspace event we can
+    // catch — and the RESERVE depends on that width (the pane's clip edge). So
+    // a ResizeObserver on each rendered sizer is the robust re-measure trigger.
+    // Observe the BORDER box: our own `padding-inline-start` leaves it
+    // unchanged, so the reserve can't feed back into an observer loop.
+    const observed = new WeakSet<Element>()
+    const sizerObserver = new ResizeObserver(() => recompute())
+    this.plugin.register(() => sizerObserver.disconnect())
+
     // Reading-view rendering: replace / annotate configured tags with
     // their signifier icon. Independent of tasks.
     this.plugin.registerMarkdownPostProcessor((el) => {
@@ -57,51 +75,23 @@ export class JournalSignifiersFeature extends PluginFeature {
           placement,
           this.globalSettings.signifierReserveGutter
         )
+        if (!observed.has(container)) {
+          observed.add(container)
+          sizerObserver.observe(container, { box: 'border-box' })
+        }
       }
     })
 
-    // Re-measure gutter positions when the layout metrics change. The offset
-    // is scroll-invariant, so we do NOT listen on scroll — only theme
-    // (`css-change`) and, because the single column's offset includes the
-    // possibly width-relative indentation, window `resize`.
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on('css-change', () => {
-        repositionAllReadingGutters(
-          this.globalSettings.signifierPlacement,
-          this.globalSettings.signifierReserveGutter
-        )
-      })
-    )
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on('resize', () => {
-        if (this.globalSettings.signifierPlacement === 'margin-column') {
-          repositionAllReadingGutters(
-            'margin-column',
-            this.globalSettings.signifierReserveGutter
-          )
-        }
-      })
-    )
-    // Navigating away and back can restore a cached preview WITHOUT re-running
-    // the post-processor, leaving the gutter icons at stale positions (and any
-    // reserve unrecomputed). Reposition on leaf / layout changes too. Cheap:
-    // only on-screen sizers hold markers, and the pass is rAF-coalesced.
-    const repositionNow = () =>
-      repositionAllReadingGutters(
-        this.globalSettings.signifierPlacement,
-        this.globalSettings.signifierReserveGutter
-      )
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on('active-leaf-change', repositionNow)
-    )
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on('layout-change', repositionNow)
-    )
-    // In-leaf navigation (clicking a link, the back button) fires `file-open`,
-    // NOT `active-leaf-change`, so cover it too.
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on('file-open', repositionNow)
-    )
+    // Theme changes (`css-change`) can shift bullet / icon metrics WITHOUT
+    // resizing the sizer, and navigation can restore a cached preview without
+    // re-running the post-processor (`active-leaf-change` on pane switch,
+    // `file-open` for in-leaf link / back navigation, `layout-change`). Size
+    // changes themselves are covered by the ResizeObserver above.
+    const ws = this.plugin.app.workspace
+    this.plugin.registerEvent(ws.on('css-change', recompute))
+    this.plugin.registerEvent(ws.on('active-leaf-change', recompute))
+    this.plugin.registerEvent(ws.on('layout-change', recompute))
+    this.plugin.registerEvent(ws.on('file-open', recompute))
 
     // Live-preview (editing-view) rendering via a stable CodeMirror
     // decoration. Gated internally on `signifierLivePreviewEnabled`; the

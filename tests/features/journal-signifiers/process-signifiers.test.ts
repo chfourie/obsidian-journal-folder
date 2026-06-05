@@ -37,7 +37,13 @@ function tagEl(): HTMLElement {
 describe('processSignifiers', () => {
   it('renders the icon in a leading marker on the block and hides the tag when configured', () => {
     const root = tagEl()
-    processSignifiers(root, settingsWith({ signifierHideTagInReadingView: true }))
+    processSignifiers(
+      root,
+      settingsWith({
+        signifierPlacement: 'start',
+        signifierHideTagInReadingView: true,
+      })
+    )
     const lead = root.querySelector('.jf-signifier-lead')
     const anchor = root.querySelector('a.tag') as HTMLElement
     expect(lead).not.toBeNull()
@@ -52,7 +58,10 @@ describe('processSignifiers', () => {
     const root = tagEl()
     processSignifiers(
       root,
-      settingsWith({ signifierHideTagInReadingView: false })
+      settingsWith({
+        signifierPlacement: 'start',
+        signifierHideTagInReadingView: false,
+      })
     )
     const anchor = root.querySelector('a.tag') as HTMLElement
     expect(root.querySelector('.jf-signifier-lead .jf-signifier')).not.toBeNull()
