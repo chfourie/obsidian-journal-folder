@@ -18,11 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { type App, type Editor, MarkdownView, Menu } from 'obsidian'
 import { type Extension } from '@codemirror/state'
-import {
-  EditorView,
-  type PluginValue,
-  ViewPlugin,
-} from '@codemirror/view'
+import { EditorView, type PluginValue, ViewPlugin } from '@codemirror/view'
 import type { TaskStatusId } from '../../data-access'
 import type { TaskModel } from './task-models'
 import { setTaskStatus, type TaskMutationTarget } from './task-transition'
@@ -161,7 +157,9 @@ class LivePreviewPlugin implements PluginValue {
   // span (which sits as the input's next sibling). Both resolve back
   // to the native input — that's the only element CodeMirror can map
   // to a source position with `posAtDOM`.
-  private taskCheckboxTarget(eventTarget: EventTarget | null): HTMLInputElement | null {
+  private taskCheckboxTarget(
+    eventTarget: EventTarget | null
+  ): HTMLInputElement | null {
     if (!(eventTarget instanceof Element)) return null
     if (
       eventTarget instanceof HTMLInputElement &&
@@ -383,10 +381,7 @@ class LivePreviewPlugin implements PluginValue {
     input.after(icon)
   }
 
-  private buildIcon(
-    statusId: TaskStatusId,
-    model: TaskModel
-  ): HTMLElement {
+  private buildIcon(statusId: TaskStatusId, model: TaskModel): HTMLElement {
     const span = document.createElement('span')
     span.setAttribute(ICON_ATTR, '')
     span.setAttribute('role', 'button')
@@ -425,4 +420,3 @@ class LivePreviewPlugin implements PluginValue {
 // transaction on each editor; that re-triggers the plugin's
 // scheduleScan via the MutationObserver naturally. See
 // `JournalTasksFeature.useSettings` for the wiring.
-
