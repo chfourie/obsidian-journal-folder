@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, Menu } from 'obsidian'
+import { type App, type Editor, MarkdownView, Menu } from 'obsidian'
 import { type Extension } from '@codemirror/state'
 import {
   EditorView,
@@ -39,15 +39,23 @@ export interface LivePreviewTaskContext {
 // inserted (so the disable path can find + remove them).
 const SWAPPED_ATTR = 'data-jf-task-swapped'
 const ICON_ATTR = 'data-jf-task-icon'
+// Cached on the icon so a re-scan can tell whether the icon already
+// reflects the current parsed status + model. Without this check every
+// scan would remove and re-append the icon, and that DOM mutation would
+// re-trigger the MutationObserver — a self-feeding rescan loop.
+const ICON_STATUS_ATTR = 'data-jf-icon-status'
+const ICON_MODEL_ATTR = 'data-jf-icon-model'
 
 // Per-editor ViewPlugin — registered once via `registerEditorExtension`
 // and instantiated by CodeMirror automatically for every editor that
-// opens. Modelled after obsidian-tasks-group/obsidian-tasks'
-// `LivePreviewExtension`: click handling lives on `view.dom`, the
-// source mutation goes through `view.dispatch` (not `vault.process`),
-// and `view.posAtDOM(target)` on the *native* checkbox is the only
-// reliable way to map a DOM event back to a source position — our
-// own injected spans aren't part of the source tree.
+// opens. Status cycling is driven from `mousedown` on `view.dom` (the
+// trailing `click` is swallowed so Obsidian's native checkbox toggle
+// can't undo the write); the source line is located via
+// `view.posAtDOM` on the *native* checkbox (our injected icon isn't
+// part of the source tree); and the edit is committed through
+// Obsidian's `Editor` API — see `applyStatus` for why a raw
+// `view.dispatch` / `vault.process` write doesn't stick in live
+// preview.
 export function documentTaskLivePreviewExtension(
   ctx: LivePreviewTaskContext
 ): Extension {
@@ -57,14 +65,26 @@ export function documentTaskLivePreviewExtension(
 class LivePreviewPlugin implements PluginValue {
   private readonly observer: MutationObserver
   private scanScheduled = false
+  // Set when we handle a status-cycling mousedown, consumed by the
+  // click handler. We cycle on `mousedown`, but the browser still
+  // fires the matching `click` afterwards, and Obsidian's native
+  // checkbox handler toggles our freshly-written status straight back.
+  // Swallowing that one click is what makes the change stick.
+  private suppressClick = false
 
   constructor(
     private readonly view: EditorView,
     private readonly ctx: LivePreviewTaskContext
   ) {
+    this.onMouseDown = this.onMouseDown.bind(this)
     this.onClick = this.onClick.bind(this)
     this.onContextMenu = this.onContextMenu.bind(this)
-    // Capture-phase so we beat Obsidian's own checkbox click handler.
+    // We cycle on `mousedown`, not `click`: capture-phase so we run
+    // before CM's own pointer handling and can cancel the editor's
+    // default (caret placement / widget selection). The paired `click`
+    // listener then swallows the trailing click so Obsidian's native
+    // checkbox toggle doesn't undo the write.
+    this.view.dom.addEventListener('mousedown', this.onMouseDown, true)
     this.view.dom.addEventListener('click', this.onClick, true)
     this.view.dom.addEventListener('contextmenu', this.onContextMenu, true)
     this.observer = new MutationObserver(() => this.scheduleScan())
@@ -73,23 +93,47 @@ class LivePreviewPlugin implements PluginValue {
   }
 
   destroy(): void {
+    this.view.dom.removeEventListener('mousedown', this.onMouseDown, true)
     this.view.dom.removeEventListener('click', this.onClick, true)
     this.view.dom.removeEventListener('contextmenu', this.onContextMenu, true)
     this.observer.disconnect()
     this.restoreAll()
   }
 
-  // ---------- click / context-menu --------------------------------
-
+  // Swallows the single `click` that follows a status-cycling
+  // `mousedown` so Obsidian's native checkbox handler can't toggle the
+  // status we just wrote.
   private onClick(evt: MouseEvent): void {
+    if (!this.suppressClick) return
+    this.suppressClick = false
+    evt.preventDefault()
+    evt.stopPropagation()
+  }
+
+  // ---------- pointer / context-menu ------------------------------
+
+  private onMouseDown(evt: MouseEvent): void {
+    // Fresh per pointer interaction — re-armed below only when we
+    // actually handle a cycle, so a `mousedown` with no following
+    // `click` (e.g. a drag) can't leave the suppressor latched and
+    // swallow some later, unrelated click. Every `click` is preceded
+    // by its own `mousedown`, so this stays in step.
+    this.suppressClick = false
+    // Primary button only — right-click is handled by `onContextMenu`,
+    // middle/aux clicks shouldn't cycle.
+    if (evt.button !== 0) return
     if (!this.ctx.isEnabled()) return
     const target = this.taskCheckboxTarget(evt.target)
     if (!target) return
     const mutation = this.mutationTargetFor(target)
     if (!mutation) return
     const model = this.ctx.resolveModel()
+    // Cancel the editor's own pointer default (caret placement / widget
+    // selection) and stop the event before CM sees it. Arm the click
+    // suppressor so the trailing click can't trigger a native toggle.
     evt.preventDefault()
     evt.stopPropagation()
+    this.suppressClick = true
     this.applyStatus(mutation, model.nextStatus(mutation.status), model)
   }
 
@@ -113,7 +157,7 @@ class LivePreviewPlugin implements PluginValue {
     menu.showAtMouseEvent(evt)
   }
 
-  // Click events fire on either the hidden native input or our icon
+  // Pointer events land on either the hidden native input or our icon
   // span (which sits as the input's next sibling). Both resolve back
   // to the native input — that's the only element CodeMirror can map
   // to a source position with `posAtDOM`.
@@ -162,33 +206,63 @@ class LivePreviewPlugin implements PluginValue {
     }
   }
 
-  // Writes the new status through a CodeMirror transaction so the
-  // edit is immediate and stays inside the editor's own state
-  // machine (no vault.process round-trip, no risk of the line-number
-  // guard tripping because of an intervening external edit). The
-  // sidebar / reading-view paths still use `setTaskStatus` via
-  // vault.process — both surfaces converge on the same on-disk text.
+  // Writes the new status. When the task lives in the note that's open
+  // in the active editor (the live-preview case), the edit MUST go
+  // through Obsidian's `Editor` API: the open document's editor buffer
+  // is authoritative, so a `vault.process` disk write is immediately
+  // reverted by the editor re-syncing the file, and a raw CodeMirror
+  // `view.dispatch` is filtered out by Obsidian's widget reconciler.
+  // `editor.setLine` is the sanctioned path and commits cleanly. For
+  // anything else (no live editor, a different file, or a line that has
+  // since drifted) we fall back to the disk writer that the reading-
+  // view and sidebar surfaces use — it guards the line and surfaces a
+  // Notice on mismatch.
   private applyStatus(
     target: TaskMutationTarget,
     nextStatus: TaskStatusId,
     model: TaskModel
   ): void {
-    const line = this.view.state.doc.line(target.sourceLine + 1)
-    const parsed = model.parseLine(line.text)
-    if (!parsed || parsed.status !== target.status) {
-      // Fall back to the disk-level path which surfaces a Notice on
-      // mismatch — safer than blind-writing the wrong line.
-      // noinspection JSIgnoredPromiseFromCall
-      setTaskStatus(this.ctx.app, target, nextStatus, model)
-      return
+    const editor = this.editorForThisView()
+    if (editor) {
+      const lineText = editor.getLine(target.sourceLine)
+      const parsed = model.parseLine(lineText)
+      if (parsed && parsed.status === target.status) {
+        const updated = lineText.replace(
+          /\[(.)\]/,
+          model.serializeStatus(nextStatus)
+        )
+        editor.setLine(target.sourceLine, updated)
+        // `setLine` often updates the line in place without a childList
+        // mutation, so the MutationObserver won't fire — repaint the
+        // icon for the new status proactively.
+        this.scheduleScan()
+        return
+      }
     }
-    const replacement = model.serializeStatus(nextStatus)
-    const updated = line.text.replace(/\[(.)\]/, replacement)
-    this.view.dispatch(
-      this.view.state.update({
-        changes: { from: line.from, to: line.to, insert: updated },
-      })
-    )
+    // noinspection JSIgnoredPromiseFromCall
+    setTaskStatus(this.ctx.app, target, nextStatus, model)
+  }
+
+  // Finds the Obsidian `Editor` whose underlying CodeMirror `EditorView`
+  // is exactly the one this ViewPlugin (and thus the click) belongs to.
+  // `getActiveViewOfType` is unreliable here: the same note can be open
+  // in more than one editor instance, and the *active* one may not be
+  // the one that was clicked — editing it changes a buffer the user
+  // can't see while their visible copy (and the file) stay untouched.
+  private editorForThisView(): Editor | null {
+    let found: Editor | null = null
+    this.ctx.app.workspace.iterateAllLeaves((leaf) => {
+      const view = leaf.view
+      if (
+        view instanceof MarkdownView &&
+        // @ts-ignore — `editor.cm` is the CM6 EditorView backing the
+        // Obsidian Editor (undocumented but stable).
+        view.editor?.cm === this.view
+      ) {
+        found = view.editor
+      }
+    })
+    return found
   }
 
   // ---------- icon rendering --------------------------------------
@@ -260,18 +334,11 @@ class LivePreviewPlugin implements PluginValue {
     const model = this.ctx.resolveModel()
     const parsed = model.parseLine(line.text)
 
-    // CodeMirror reuses input DOM nodes across edits — `posAtDOM` can
-    // momentarily map an input to a position whose status no longer
-    // matches what the icon was painted for, leaving the user staring
-    // at a green check next to a `[>]` line. The cheapest defence is
-    // to drop the existing icon on every scan and rebuild it from the
-    // freshly parsed line. The `requestAnimationFrame` debounce
-    // already coalesces bursts of mutations, so the rebuild cost is
-    // bounded.
     const existing = input.nextElementSibling
-    if (existing instanceof HTMLElement && existing.hasAttribute(ICON_ATTR)) {
-      existing.remove()
-    }
+    const existingIcon =
+      existing instanceof HTMLElement && existing.hasAttribute(ICON_ATTR)
+        ? existing
+        : null
 
     // Flow-level rendering: when the active flow's rendering is
     // `'theme'`, the native checkbox stays visible so the active
@@ -280,6 +347,7 @@ class LivePreviewPlugin implements PluginValue {
       // Restore the native checkbox if we'd previously swapped it
       // (status was just edited from a plugin-rendered char to a
       // theme-rendered one).
+      if (existingIcon) existingIcon.remove()
       if (input.hasAttribute(SWAPPED_ATTR)) {
         input.removeAttribute(SWAPPED_ATTR)
         input.style.display = ''
@@ -288,10 +356,31 @@ class LivePreviewPlugin implements PluginValue {
       return
     }
 
+    // Idempotency guard: if an icon already reflects this exact status +
+    // model, leave the DOM untouched. Rebuilding it unconditionally was
+    // a mutation on every scan, and each mutation woke the
+    // MutationObserver, which scheduled another scan — a self-feeding
+    // loop that pegged a core and tore the icon out from under the
+    // pointer between mousedown and mouseup (so the browser never
+    // synthesised a click). Only rebuild when the parsed status or the
+    // active model actually changed.
+    if (
+      existingIcon &&
+      existingIcon.getAttribute(ICON_STATUS_ATTR) === parsed.status &&
+      existingIcon.getAttribute(ICON_MODEL_ATTR) === model.id &&
+      input.hasAttribute(SWAPPED_ATTR)
+    ) {
+      return
+    }
+
+    if (existingIcon) existingIcon.remove()
     input.setAttribute(SWAPPED_ATTR, '')
     input.style.display = 'none'
     input.setAttribute('aria-hidden', 'true')
-    input.after(this.buildIcon(parsed.status, model))
+    const icon = this.buildIcon(parsed.status, model)
+    icon.setAttribute(ICON_STATUS_ATTR, parsed.status)
+    icon.setAttribute(ICON_MODEL_ATTR, model.id)
+    input.after(icon)
   }
 
   private buildIcon(
