@@ -448,34 +448,7 @@ class SettingsFormBuilder {
     ).setDesc('Used for compact in-line links to yearly notes.')
   }
 
-  private renderPreviewNotice(message: string): void {
-    const notice = this.containerEl.createDiv({
-      cls: 'jf-tasks-preview-notice',
-    })
-    notice.createDiv({
-      cls: 'jf-tasks-preview-notice-title',
-      text: 'Preview feature',
-    })
-    const body = notice.createDiv({ cls: 'jf-tasks-preview-notice-body' })
-    body.appendText(message)
-  }
-
-  private renderTasksPreviewNotice(): void {
-    this.renderPreviewNotice(
-      'Task management is a new capability still in active development ' +
-        'and shipped as a preview.'
-    )
-  }
-
-  private renderSignifiersPreviewNotice(): void {
-    this.renderPreviewNotice(
-      'Signifiers are a new capability still in active development ' +
-        'and shipped as a preview.'
-    )
-  }
-
   renderTasksTab(settings: JournalFolderSettings): void {
-    this.renderTasksPreviewNotice()
     // Guard against stale drill-down references — if the flow / status
     // the user was viewing was removed in another window, bounce them
     // up the chain.
@@ -556,7 +529,6 @@ class SettingsFormBuilder {
   // than living under Tasks. Task *categories* stay under Tasks because
   // they only shape task lists.
   renderSignifiersTab(settings: JournalFolderSettings): void {
-    this.renderSignifiersPreviewNotice()
     renderSignifiersSection({
       app: this.config.app,
       containerEl: this.containerEl,
@@ -655,7 +627,6 @@ class SettingsFormBuilder {
   }
 
   renderFolderTasksTab(settings: JournalFolderSettings): void {
-    this.renderTasksPreviewNotice()
     new Setting(this.containerEl)
       .setName('Tasks')
       .setHeading()

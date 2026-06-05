@@ -13,8 +13,8 @@ You can run as many independent journals as you like in the same vault. A folder
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](#sidebar-tab)
 - **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](#auto-fill-new-journal-notes)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](#quarterly-notes-opt-in)
-- **Tasks (preview)** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks-preview)
-- **Signifiers (preview)** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers-preview)
+- **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
+- **Signifiers** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers)
 
 ## Why folder-based?
 
@@ -87,8 +87,8 @@ User guide (everything below is in this page):
 - [Sidebar tab](#sidebar-tab)
 - [Auto-fill new journal notes](#auto-fill-new-journal-notes)
 - [Quarterly notes (opt-in)](#quarterly-notes-opt-in)
-- [Tasks (preview)](#tasks-preview)
-- [Signifiers (preview)](#signifiers-preview)
+- [Tasks](#tasks)
+- [Signifiers](#signifiers)
 - [Using with a theme that styles tasks](#using-with-a-theme-that-styles-tasks)
 - [Using with the Obsidian Tasks plugin](#using-with-the-obsidian-tasks-plugin)
 - [Advanced configuration](#advanced-configuration)
@@ -245,7 +245,7 @@ The calendar is the same single-month grid logic the in-note calendar uses, scop
 
 ### Task panel
 
-When the tasks feature is enabled (see [Tasks](#tasks-preview)), the sidebar gains a panel below the calendar listing tasks in the current scope. The panel header carries a **Scope ▾** link that opens a small panel for choosing the *anchor* (Today / Current note), *range* (Day / Week / Month / Quarter / Year / All), folder scope, and the completed-tasks filter; a read-only summary line under the header shows the current selection at a glance. See [Sidebar task panel](#sidebar-task-panel) for the details.
+When the tasks feature is enabled (see [Tasks](#tasks)), the sidebar gains a panel below the calendar listing tasks in the current scope. The panel header carries a **Scope ▾** link that opens a small panel for choosing the *anchor* (Today / Current note), *range* (Day / Week / Month / Quarter / Year / All), folder scope, and the completed-tasks filter; a read-only summary line under the header shows the current selection at a glance. See [Sidebar task panel](#sidebar-task-panel) for the details.
 
 ![Sidebar tasks panel](docs/screenshots/sidebar-tasks-panel.png)
 
@@ -428,10 +428,10 @@ The defaults are `YYYY [Quarter] Q` (e.g. `2026 Quarter 2`) for the H1, `[Q]Q` f
 
 ---
 
-## Tasks (preview)
+## Tasks
 
-> [!WARNING]
-> **Task management is a preview feature.** It is shipped as a working preview while we iterate on the model — behaviour, settings keys, and persisted data shapes may change between releases, and your configured task flows may need to be re-created across an upgrade. Fresh installs default to interacting only with the plugin's own task lists ([see *Scope of task interactions*](#scope-of-task-interactions)) so existing vaults aren't silently changed.
+> [!NOTE]
+> Fresh installs default to interacting only with the plugin's own task lists ([see *Scope of task interactions*](#scope-of-task-interactions)) so existing vaults aren't silently changed.
 
 The tasks feature surfaces Markdown tasks (`- [ ] …` / `- [x] …` and friends) from your journal notes in three places:
 
@@ -577,12 +577,7 @@ The community-conventional checkbox alphabet (`[ ]` `[/]` `[x]` `[>]` `[-]` `[d]
 
 ---
 
-## Signifiers (preview)
-
-> [!WARNING]
-> **Signifiers are a preview feature.** They're shipped as a working preview
-> while the model settles — behaviour and settings keys may change between
-> releases.
+## Signifiers
 
 In a paper bullet journal, *signifiers* are little marks in the margin — a star
 for something important, an exclamation for an idea — that let you scan a page
@@ -829,7 +824,7 @@ A handful of fields are intentionally **not** honoured at the folder or embedded
 - `tasksSidebarEnabled`, `tasksSidebarReference`, `tasksSidebarFolders`, `tasksShowCompleted`, `tasksMaxItems` — sidebar / process-wide task UI.
 - `taskFlows`, `defaultTaskFlow` — flow definitions live globally; folders pick which flow they use, not what's in it.
 - `taskInteractionScope` — interception runs at process-wide layers (markdown post-processor, editor extension).
-- `signifiers`, `signifierPlacement`, `signifierHideTagInReadingView`, `signifierHideTagInLivePreview`, `signifierShowTagsOnActiveLine`, `signifierReserveGutter` — one signifier set per vault; see [Signifiers](#signifiers-preview).
+- `signifiers`, `signifierPlacement`, `signifierHideTagInReadingView`, `signifierHideTagInLivePreview`, `signifierShowTagsOnActiveLine`, `signifierReserveGutter` — one signifier set per vault; see [Signifiers](#signifiers).
 - `taskCategories`, `taskCategoryShowUnderNote` — category definitions are vault-wide.
 - the migration *reference* fields (`taskMigrationAddToReference`, `taskMigrationAddFromReference`, `taskMigrationReferenceStyle`, `taskMigrationToMarker`, `taskMigrationFromMarker`, `taskMigrationReferenceOpacity`). The **exception** is `taskMigrationPlacement` / `taskMigrationHeading`, which *are* folder-honoured — they're a per-note layout concern, not a process-wide preference.
 
@@ -926,7 +921,7 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `task-migration-reference-style`     | `text` / `emoji` / `lucide` (default) — how reference markers render. **Global only.** |
 | `task-migration-to-marker` / `task-migration-from-marker` | The forward / back marker for the active style (Lucide markers are `lucide:<name>` tokens). **Global only.** |
 | `task-migration-reference-opacity`   | How faded references render, 0–100 (default 30). **Global only.** |
-| `signifier-placement`                | `margin-column` (default, all icons far-left) or `margin` (per-entry). **Global only.** See [Signifiers](#signifiers-preview). |
+| `signifier-placement`                | `margin-column` (default, all icons far-left) or `margin` (per-entry). **Global only.** See [Signifiers](#signifiers). |
 | `signifier-hide-tag-in-reading-view` / `signifier-hide-tag-in-live-preview` | Replace the matched tag with just the icon in reading view / live preview (both default true). **Global only.** |
 | `signifier-show-tags-on-active-line` | When hiding tags in live preview, reveal *all* of the cursor line's tags (default false reveals only the touched tag). **Global only.** |
 | `signifier-reserve-gutter`           | Reserve left-margin space so gutter icons never clip (default true). **Global only.** |
@@ -1029,7 +1024,7 @@ max-items: 30                       # defaults to global tasksMaxItems
 
 ### See also
 
-- [Tasks](#tasks-preview) and [Signifiers](#signifiers-preview) — the preview features whose settings are summarised above; both are managed through their own settings tabs rather than by hand-editing.
+- [Tasks](#tasks) and [Signifiers](#signifiers) — the features whose settings are summarised above; both are managed through their own settings tabs rather than by hand-editing.
 - [Per-folder layer in the architecture docs](https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/settings-resolution.md) — developer-focused notes on the resolver and key-case conversion.
 - [Plugin source — `JournalFolderSettings`](https://github.com/chfourie/obsidian-journal-folder/blob/master/src/data-access/journal-folder-settings.type.ts) — authoritative type definition with per-field JSDoc rationale.
 

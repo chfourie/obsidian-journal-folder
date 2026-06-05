@@ -7,6 +7,14 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.4.2]
+
+### Changed
+- **Tasks and Signifiers are no longer marked as preview.** Both features
+  graduate out of preview: the "Preview feature" notices on the Tasks and
+  Signifiers settings tabs are gone, and the "(preview)" labels and warning
+  callouts have been removed from the documentation.
+
 ## [2.4.1]
 
 ### Changed
