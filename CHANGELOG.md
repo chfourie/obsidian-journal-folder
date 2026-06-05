@@ -7,6 +7,59 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.4.0]
+
+### Added
+- **Signifiers (preview).** Bind an icon to a tag, bullet-journal style,
+  and it shows up in the left margin wherever that tag appears — so you
+  can scan a note and find what matters at a glance. Signifiers apply to
+  any rendered markdown, not just tasks.
+  - Three ship by default: **Priority** (`#important`, ⭐), **Inspiration**
+    (`#inspiration`, 💡), and **Explore** (`#explore`, 👁).
+  - Render in both reading view and live preview. **Placement in notes**
+    is either *Single column — all icons far-left* (the default) or
+    *Per entry*; the horizontal position is measured from your actual
+    layout, so the markers hold up across themes, CSS snippets, and
+    readable-line-width settings.
+  - The matched tag is hidden by default (separate toggles for reading
+    view and live preview, with an *active line* reveal option), and a
+    *Reserve left margin* toggle keeps icons from clipping in narrow panes.
+  - Manage them in a dedicated **Signifiers** settings tab, and tag the
+    current line from the **Modify signifiers on the current line…**
+    command / editor menu.
+- **Task migration (preview).** Roll an unfinished task from one note to
+  another within the same folder.
+  - The origin is stamped with the flow's *migrated* status, a copy is
+    written into the destination at a configurable position (*after the
+    last task*, *top*, *end*, or *under a heading*), and cross-reference
+    links are added in both directions.
+  - References are styleable (*text* / *emoji* / *Lucide*, default Lucide),
+    each direction can be turned off independently, and they render faded
+    (full opacity on hover) to a configurable opacity.
+  - Trigger from a per-task editor menu, the *Migrate tasks from / to this
+    note…* file-menu pickers, or keyboard commands.
+- **Task categories.** Group tasks by tag at the top of every task list
+  (sidebar panels and `journal-tasks` blocks), configured under the Tasks
+  settings tab.
+- **Keyboard commands** for cycling/creating a task on the current line
+  and for migrating tasks.
+
+### Changed
+- The **Tasks** and **Signifiers** settings tabs now carry a *Preview
+  feature* notice, since both are shipped as previews while their models
+  settle.
+
+### Fixed
+- Live-preview task checkbox clicks now update the status correctly.
+- The newer features are mobile-friendly: migration references stay
+  legible on touch (no hover to reveal them), the task flow/status
+  settings editor reflows to a single column on a phone, and the
+  task/scope/menu tap targets are larger. Desktop is unchanged.
+
+### Accessibility
+- Live-preview task icons are now decorative rather than announced as
+  interactive controls.
+
 ## [2.3.0]
 
 ### Added
