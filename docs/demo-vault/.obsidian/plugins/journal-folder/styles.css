@@ -2204,3 +2204,95 @@ li.task-list-item[data-task="-"] {
 .journal-folder-tasks-row .jf-signifier {
 	flex: 0 0 auto;
 }
+
+/* ===========================================================================
+ * Mobile-only adjustments for the newer features (signifiers, tasks, task
+ * migration, the flow/status settings editors). The desktop layouts assume a
+ * pointer (hover-to-reveal) and a wide pane; these overrides restore touch
+ * legibility and stop fixed two-column layouts from collapsing on a phone.
+ *
+ * Scoped to `.is-mobile` (Obsidian's body class on every mobile build) so the
+ * desktop app is never touched. Layout *collapses* are additionally gated on a
+ * narrow viewport so a tablet in landscape keeps the roomier desktop layout;
+ * touch-affordance tweaks apply to all mobile builds (no hover anywhere).
+ * Reading-view signifier gutters already adapt via measured positioning and
+ * the gutter reserve, so they need nothing here.
+ * ======================================================================== */
+
+/* A migration cross-reference de-emphasises itself to a low opacity and only
+ * returns to full on :hover. Touch has no hover, so a faint reference (30% by
+ * default) stays unreadable forever. Floor the opacity to a legible level
+ * while still honouring a higher configured value. */
+.is-mobile .jf-migration-ref {
+	opacity: max(var(--jf-migration-ref-opacity, 0.3), 0.6);
+}
+
+/* Slightly roomier tap targets for the portaled list panels (task scope +
+ * sidebar More…) — the rows are otherwise sized for a mouse. */
+.is-mobile .journal-folder-tasks-scope-option,
+.is-mobile .jf-sidebar-menu-item {
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+}
+
+/* The "Scope ▾" / "More…" triggers and the task status-cycle icon are tiny
+ * text/glyph hit areas. Grow the touchable area without shifting the
+ * surrounding layout (padding offset by a matching negative margin). */
+.is-mobile .journal-folder-tasks-scope-trigger,
+.is-mobile .journal-folder-sidebar .jf-sidebar-more-link,
+.is-mobile .journal-folder-sidebar .jf-sidebar-mode-link {
+	padding: 0.35rem 0.2rem;
+	margin: -0.35rem -0.2rem;
+}
+
+.is-mobile .journal-folder-tasks-status-icon {
+	padding: 0.3rem;
+	margin: -0.3rem;
+}
+
+/* On a phone-width viewport the status detail editor's fixed 180px nav column
+ * leaves the panel too narrow to read (descriptions wrap a word per line, the
+ * colour-picker tabs clip). Stack the nav above the panel as a wrapping row of
+ * chips and give the panel the full width. */
+@media (max-width: 600px) {
+	.is-mobile .jf-status-edit-split {
+		grid-template-columns: 1fr;
+	}
+
+	.is-mobile .jf-status-edit-nav {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0.2em;
+		border-right: 0;
+		border-bottom: 1px solid var(--background-modifier-border);
+		padding: 0.4em;
+	}
+
+	.is-mobile .jf-status-edit-nav-item {
+		border-left: 0;
+		border-bottom: 2px solid transparent;
+		border-radius: 0.3em;
+		padding: 0.45em 0.8em;
+	}
+
+	.is-mobile .jf-status-edit-nav-item.is-active {
+		border-left-color: transparent;
+		border-bottom-color: var(--interactive-accent);
+	}
+
+	/* Let the colour-mode tabs wrap instead of clipping the last one. */
+	.is-mobile .jf-color-picker-tabs {
+		flex-wrap: wrap;
+	}
+
+	/* Tighten the icon / colour-token tiles so several still fit per row in
+	 * the now full-width (but still narrow) panel. */
+	.is-mobile .jf-icon-grid {
+		grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+		min-height: 0;
+	}
+
+	.is-mobile .jf-color-token-grid {
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	}
+}
