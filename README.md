@@ -6,8 +6,6 @@ You can run as many independent journals as you like in the same vault. A folder
 
 ![Bird's-eye view: a daily journal note rendered by the plugin, with the journal-folder sidebar tab open on the right](docs/screenshots/hero-overview.png)
 
-> **Reading this on the Obsidian plugin screen?** All the user documentation lives in this one page — use the [Table of contents](#table-of-contents) or just scroll. (Obsidian's plugin view can't follow the jump-links, but everything is here in order.) On GitHub the links jump as usual.
-
 ## What you get
 
 - **A navigable header** in every journal note — backward / forward chips, a *Today* link, a *More…* popover for higher-order period jumps, and an optional inline calendar. [Read more →](#the-journal-header)
