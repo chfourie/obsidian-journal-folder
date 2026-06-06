@@ -21,10 +21,12 @@ import type { TaskModel } from './task-models'
 import { setTaskStatus, type TaskMutationTarget } from './task-transition'
 
 // Builds the model's full set of statuses as menu items on the given
-// `Menu`. The current status gets a leading check icon. Shared between
-// the reading-view post-processor (which builds its own standalone
-// menu) and the editor-menu integration (which adds items onto
-// Obsidian's existing editor context menu).
+// `Menu`. The current status gets a leading check icon. Used by the
+// `editor-menu` integration, which adds items onto Obsidian's existing
+// editor context menu — a genuinely native surface where extending the
+// host menu is the right thing. The status *icon* surfaces (reading
+// view, live preview, the task panels) instead open the in-house
+// `openStatusPicker` panel, not a native `Menu`.
 export function appendStatusMenuItems(
   menu: Menu,
   target: TaskMutationTarget,
@@ -41,17 +43,4 @@ export function appendStatusMenuItems(
       })
     })
   }
-}
-
-// Convenience for callers that want a standalone status menu opened
-// at the given mouse event (reading-view path).
-export function showStatusMenuAt(
-  evt: MouseEvent,
-  target: TaskMutationTarget,
-  model: TaskModel,
-  app: App
-): void {
-  const menu = new Menu()
-  appendStatusMenuItems(menu, target, model, app)
-  menu.showAtMouseEvent(evt)
 }

@@ -46,6 +46,16 @@ export interface Signifier {
 // signifiers, categories are **global only**. Categories are an ordered
 // list — the editor lets the user reorder them and that order drives the
 // section order in the task lists.
+// A range cap a category can pin its tasks to. Mirrors the task-list
+// range units except `all` — "no cap" is simply leaving `maxRange`
+// unset, so `all` would be redundant.
+export type TaskCategoryRange =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'year'
+
 export interface TaskCategory {
   id: string
   label: string
@@ -54,4 +64,12 @@ export interface TaskCategory {
   tags: string[]
   // Optional icon for the category section header (same `IconSpec` shape).
   icon?: IconSpec
+  // Optional **range cap**. When set, tasks in this category reach no
+  // further than this range from the list's anchor: in a list whose
+  // range is larger (or `all`), this range is used instead; a smaller
+  // list range still wins. When a task belongs to several capped
+  // categories, the *smallest* cap applies. Unset = no cap (the task
+  // follows the list's range as usual). The task always renders normally
+  // in its own note regardless of this setting.
+  maxRange?: TaskCategoryRange
 }

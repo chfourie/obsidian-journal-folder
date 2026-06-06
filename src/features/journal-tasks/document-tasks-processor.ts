@@ -27,7 +27,7 @@ import {
   type TaskMutationTarget,
 } from './task-transition'
 import { findDocumentTaskLines } from './document-task-line-map'
-import { showStatusMenuAt } from './document-task-menu'
+import { openStatusPickerForTarget } from './status-picker-panel'
 import { renderStatusIconById } from './render-status-icon'
 
 export interface DocumentTasksContext {
@@ -67,6 +67,11 @@ export function processDocumentTasks(
     section.lineEnd,
     model
   )
+  // `getSectionInfo().text` is the whole file, so an absolute line index
+  // is the raw task line — captured here for the picker's migrate action
+  // (the migration writer re-checks the line on write, so a later edit
+  // can't corrupt it).
+  const docLines = section.text.split('\n')
 
   items.forEach((li, idx) => {
     const entry = taskLines[idx]
@@ -76,6 +81,7 @@ export function processDocumentTasks(
       sourceLine: entry.line,
       status: entry.status,
     }
+    const rawText = docLines[entry.line] ?? ''
     // Mirror the parsed status onto the parent li so themes that
     // style the row by attribute keep firing — even when our model
     // recognises a status Obsidian's default renderer doesn't (e.g.
@@ -85,9 +91,9 @@ export function processDocumentTasks(
     // Flow-level rendering choice (theme = leave the native checkbox
     // alone, plugin = swap in our custom shell + icon).
     if (model.rendering === 'theme') {
-      attachHandlersToNativeCheckbox(li, target, model, context.app)
+      attachHandlersToNativeCheckbox(li, target, model, context.app, rawText)
     } else {
-      swapCheckbox(li, target, model, context.app)
+      swapCheckbox(li, target, model, context.app, rawText)
     }
   })
 }
@@ -100,7 +106,8 @@ function attachHandlersToNativeCheckbox(
   li: HTMLElement,
   target: TaskMutationTarget,
   model: TaskModel,
-  app: App
+  app: App,
+  rawText: string
 ): void {
   const input = li.querySelector<HTMLInputElement>(
     'input.task-list-item-checkbox'
@@ -115,13 +122,17 @@ function attachHandlersToNativeCheckbox(
   input.onclick = (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
+    if (model.opensPickerOnClick(target.status)) {
+      openStatusPickerForTarget(input, target, model, app, rawText)
+      return
+    }
     // noinspection JSIgnoredPromiseFromCall
     cycleTaskStatus(app, target, model)
   }
   input.oncontextmenu = (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
-    showStatusMenuAt(evt, target, model, app)
+    openStatusPickerForTarget(input, target, model, app, rawText)
   }
 }
 
@@ -135,7 +146,8 @@ function swapCheckbox(
   li: HTMLElement,
   target: TaskMutationTarget,
   model: TaskModel,
-  app: App
+  app: App,
+  rawText: string
 ): void {
   const input = li.querySelector<HTMLInputElement>(
     'input.task-list-item-checkbox'
@@ -162,17 +174,25 @@ function swapCheckbox(
   iconEl.addEventListener('click', (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
+    if (model.opensPickerOnClick(target.status)) {
+      openStatusPickerForTarget(iconEl, target, model, app, rawText)
+      return
+    }
     // noinspection JSIgnoredPromiseFromCall
     cycleTaskStatus(app, target, model)
   })
   iconEl.addEventListener('contextmenu', (evt) => {
     evt.preventDefault()
     evt.stopPropagation()
-    showStatusMenuAt(evt, target, model, app)
+    openStatusPickerForTarget(iconEl, target, model, app, rawText)
   })
   iconEl.addEventListener('keydown', (evt) => {
     if (evt.key === 'Enter' || evt.key === ' ') {
       evt.preventDefault()
+      if (model.opensPickerOnClick(target.status)) {
+        openStatusPickerForTarget(iconEl, target, model, app, rawText)
+        return
+      }
       // noinspection JSIgnoredPromiseFromCall
       cycleTaskStatus(app, target, model)
     }

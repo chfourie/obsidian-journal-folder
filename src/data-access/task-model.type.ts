@@ -147,6 +147,12 @@ export interface TaskModel {
   // per-status `next` field; falls back to the first status when the
   // target id is missing from the active flow.
   nextStatus(current: TaskStatusId): TaskStatusId
+  // True when this status is configured to point at *itself* as its
+  // own `next`. Cycling such a status would be a no-op, so instead of
+  // advancing, every checkbox surface opens the status picker panel
+  // and lets the user choose the new status directly. Surfaced here so
+  // each click handler can branch without re-deriving the rule.
+  opensPickerOnClick(status: TaskStatusId): boolean
 }
 
 // ---------------- helpers ----------------------------------------

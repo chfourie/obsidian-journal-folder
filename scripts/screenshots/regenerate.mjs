@@ -66,7 +66,7 @@ const sidebarRect = (extra) =>
 const SIDEBAR_OPEN =
   `app.setting.close();` +
   `document.querySelectorAll('.modal-container .modal-close-button').forEach(b=>b.click());` +
-  `document.querySelectorAll('.menu').forEach(m=>m.remove());` +
+  `document.querySelectorAll('.menu,.jf-status-picker-panel').forEach(m=>m.remove());` +
   // Recreate the sidebar leaf from scratch each time. The custom More…/Scope
   // panels are Svelte components whose open-state would otherwise survive
   // between scenarios (DOM-removing the panel desyncs that state, so a later
@@ -176,6 +176,47 @@ const SCENARIOS = [
     ],
   },
 
+  // ---- Status picker (new) ----------------------------------------------
+  // Right-click (contextmenu) a task's status icon to open the in-house status
+  // picker (portaled to <body> as .jf-status-picker-panel). Captured over a
+  // SIDEBAR task row: the Svelte rows are stable (a reading-view document task
+  // re-renders, which intermittently dismissed the picker before the crop). The
+  // task is active + in a journal note whose flow defines a migrated status, so
+  // the panel also shows the "Migrate task…" row.
+  {
+    name: 'task-status-picker',
+    args: [
+      '--note', 'Personal/2026-06-04',
+      '--setup',
+      `${SIDEBAR_OPEN}; await sleep(300);` +
+        `const _i=[...document.querySelectorAll('.journal-folder-tasks-row .jf-task-status')].find(e=>!e.classList.contains('is-done'));` +
+        `const _r=_i.getBoundingClientRect();` +
+        `_i.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:_r.left+4,clientY:_r.top+4}));` +
+        `await sleep(300)`,
+      '--rect', `bodyRect('.jf-status-picker-panel')`,
+      '--pad', '10',
+    ],
+  },
+
+  // ---- Task category range cap (new) ------------------------------------
+  // Open the category edit modal for the day-capped "Local" category to show
+  // the Maximum range dropdown. Requires the demo to have a "Local" category
+  // (seeded in data.json).
+  {
+    name: 'task-category-edit',
+    pre:
+      `app.setting.close();app.setting.open();app.setting.openTabById('journal-folder');await sleep(500);` +
+      `click(byText('Tasks'));await sleep(400);` +
+      `const _row=[...document.querySelectorAll('.setting-item')].find(r=>{const n=r.querySelector('.setting-item-name');return n&&n.textContent.trim()==='Local';});` +
+      `click(_row.querySelector('[aria-label="Edit"]'));await sleep(400);`,
+    args: [
+      '--no-open',
+      '--rect',
+      `(()=>{const m=[...document.querySelectorAll('.modal')].find(e=>e.textContent.includes('Maximum range'));const b=m.getBoundingClientRect();return {x:b.left,y:b.top,w:b.width,h:b.height};})()`,
+      '--pad', '0',
+    ],
+  },
+
   // ---- Migration picker modal (new) -------------------------------------
   {
     name: 'migration-picker',
@@ -206,6 +247,9 @@ function main() {
       const helpers =
         `const sleep=ms=>new Promise(r=>setTimeout(r,ms));` +
         `const click=e=>e&&e.dispatchEvent(new MouseEvent('click',{bubbles:true}));` +
+        // The status picker portals to <body> and survives focus changes, so a
+        // prior `task-status-picker` shot would otherwise bleed into this crop.
+        `document.querySelectorAll('.jf-status-picker-panel').forEach(e=>e.remove());` +
         `const byText=(t,root=document)=>[...root.querySelectorAll('.modal *,.menu *,.workspace-leaf *')].find(e=>e.children.length===0&&e.textContent.trim()===t);`
       evalJs(`(async()=>{${helpers} ${s.pre}; return 'ok'})()`)
       sleep(900)

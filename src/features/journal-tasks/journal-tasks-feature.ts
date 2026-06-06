@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import {
   MarkdownRenderChild,
   MarkdownView,
+  moment,
   type Plugin,
   TFile,
 } from 'obsidian'
@@ -41,12 +42,16 @@ import { parseJournalTasksBlock } from './parse-block-config'
 import { buildReferenceRange } from './reference-range'
 import { effectiveUnits, findTaskCandidates } from './task-scope'
 import { sortTasks } from './task-sorting'
+import { rangeForNote } from './reference-range'
+import { makeRangeCapFilter } from './task-range-cap'
 import { processDocumentTasks } from './document-tasks-processor'
 import { documentTaskLivePreviewExtension } from './document-task-live-preview'
 import { appendStatusMenuItems } from './document-task-menu'
+import { setStatusPickerMigrationProvider } from './status-picker-panel'
 import {
   appendEditorMigrationItem,
   appendNoteMigrationItems,
+  buildSingleTaskMigration,
   migrateInteractive,
   migrateTaskOnLine,
   migrateTasksFromNote,
@@ -194,6 +199,16 @@ export class JournalTasksFeature extends PluginFeature {
       processDocumentTasks(el, ctx, documentTaskCtx)
     })
 
+    // Lets the status picker offer a "Migrate task…" row. Registered as
+    // a module-level provider (rather than threaded through every picker
+    // surface) because all four surfaces converge on one imperative
+    // `openStatusPicker`, and migration capability is process-wide —
+    // resolved per file at call time so folder `task-flow` /
+    // `task-migration-*` overrides are honoured.
+    setStatusPickerMigrationProvider((target) =>
+      buildSingleTaskMigration(this.migrationContext(), target)
+    )
+
     // Reading-view rendering of migration references: render `lucide:`
     // markers as icons and fade the whole reference to the configured
     // opacity (full on hover). Independent of `taskInteractionScope`.
@@ -268,6 +283,13 @@ export class JournalTasksFeature extends PluginFeature {
         }
       }
     )
+  }
+
+  unload(): void {
+    super.unload()
+    // Drop the module-level provider so a disabled/reloaded plugin
+    // leaves no dangling closure over this feature instance.
+    setStatusPickerMigrationProvider(null)
   }
 
   useSettings(settings: JournalFolderSettings): void {
@@ -465,14 +487,29 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
 
     const model = resolveTaskModel(settings)
     const cache = this.getCache()
+    // Enforce category range caps relative to the host note's own period
+    // (its tier is the in-note block's range; a non-journal host falls
+    // back to today/day, matching `buildReferenceRange` above).
+    const capBase = activeNote
+      ? activeNote.getMoment()
+      : // @ts-ignore — obsidian re-exports moment.
+        moment()
+    const capFilter = makeRangeCapFilter({
+      base: capBase,
+      listUnit: activeNote ? activeNote.getTimeUnit() : 'day',
+      categories: settings.taskCategories,
+    })
     const allTasks: JournalTask[] = []
     for (const candidate of candidates) {
+      const noteRange = rangeForNote(candidate.note)
       const tasks = await cache.getTasks(
         candidate.file,
         model,
         candidate.note
       )
-      for (const task of tasks) allTasks.push(task)
+      for (const task of tasks) {
+        if (capFilter(task, noteRange)) allTasks.push(task)
+      }
     }
 
     const sorted = sortTasks(allTasks)

@@ -93,5 +93,12 @@ export function buildTaskModel(
       // status so the cycle still terminates somewhere sensible.
       return byId.has(entry.next) ? entry.next : fallbackId
     },
+    opensPickerOnClick(current) {
+      // A status whose `next` is its own id is a "pick on click"
+      // status: cycling it would land back on itself, so the click
+      // surfaces open the status picker instead of writing a no-op.
+      const entry = byId.get(current)
+      return !!entry && entry.next === entry.id
+    },
   }
 }

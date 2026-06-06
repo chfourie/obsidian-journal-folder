@@ -310,10 +310,20 @@ function renderBasics(
 
   new Setting(panel)
     .setName('Next status')
-    .setDesc('The status this one transitions to on left-click.')
+    .setDesc(
+      'The status this one transitions to on left-click. Point it at ' +
+        'itself to show a status picker on click instead of cycling.'
+    )
     .addDropdown((dd) => {
       for (const s of deps.siblings) {
-        dd.addOption(s.id, s.label || s.id)
+        // Selecting the status's own id makes left-click open the
+        // picker panel rather than advance — spell that out in the
+        // option label so the behaviour isn't a hidden side effect.
+        const label =
+          s.id === status.id
+            ? `${s.label || s.id} (show picker — don't cycle)`
+            : s.label || s.id
+        dd.addOption(s.id, label)
       }
       dd.setValue(status.next).onChange((v) => {
         // noinspection JSIgnoredPromiseFromCall

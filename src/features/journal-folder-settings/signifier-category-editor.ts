@@ -23,6 +23,7 @@ import {
   type Signifier,
   type SignifierPlacement,
   type TaskCategory,
+  type TaskCategoryRange,
 } from '../../data-access'
 import { renderSignifierIcon } from '../journal-signifiers'
 import { renderColorPicker } from './color-picker'
@@ -288,12 +289,15 @@ export function renderCategoriesSection(config: CategorySectionConfig): void {
 
   const listEl = containerEl.createDiv({ cls: 'jf-signifier-list' })
   settings.taskCategories.forEach((category, index) => {
+    const tagsDesc = category.tags.length
+      ? category.tags.map((t) => `#${t}`).join(' ')
+      : '(no tags — won’t match anything)'
     const setting = new Setting(listEl)
       .setName(category.label || category.id)
       .setDesc(
-        category.tags.length
-          ? category.tags.map((t) => `#${t}`).join(' ')
-          : '(no tags — won’t match anything)'
+        category.maxRange
+          ? `${tagsDesc} · Max range: ${category.maxRange}`
+          : tagsDesc
       )
     if (category.icon) {
       const icon = document.createElement('span')
@@ -573,6 +577,29 @@ class CategoryEditModal extends Modal {
             this.working.tags = parseTags(value)
           })
       )
+
+    new Setting(contentEl)
+      .setName('Maximum range')
+      .setDesc(
+        'Cap how far this category’s tasks reach in lists, measured from ' +
+          'the list’s anchor. A list showing a larger range (or All) uses ' +
+          'this range instead; a smaller list range still wins. When a ' +
+          'task is in several capped categories, the smallest cap applies. ' +
+          'None = no cap.'
+      )
+      .addDropdown((dd) => {
+        dd.addOption('', 'None')
+        dd.addOption('day', 'Day')
+        dd.addOption('week', 'Week')
+        dd.addOption('month', 'Month')
+        dd.addOption('quarter', 'Quarter')
+        dd.addOption('year', 'Year')
+        dd.setValue(this.working.maxRange ?? '')
+        dd.onChange((value) => {
+          this.working.maxRange =
+            value === '' ? undefined : (value as TaskCategoryRange)
+        })
+      })
 
     const iconHost = contentEl.createDiv()
     renderIconEditor(

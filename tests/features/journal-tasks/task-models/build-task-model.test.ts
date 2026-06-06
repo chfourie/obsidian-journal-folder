@@ -57,6 +57,45 @@ describe('buildTaskModel', () => {
     expect(a.id).not.toBe(differentChar.id)
   })
 
+  describe('opensPickerOnClick', () => {
+    it('is true for a status whose `next` points at itself', () => {
+      const model = buildTaskModel([
+        status({ id: 'open', char: ' ', next: 'in-progress' }),
+        status({ id: 'in-progress', char: '/', next: 'in-progress' }),
+        status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+      ])
+      expect(model.opensPickerOnClick('in-progress')).toBe(true)
+    })
+
+    it('is false for a status that cycles to a different status', () => {
+      const model = buildTaskModel([
+        status({ id: 'open', char: ' ', next: 'done' }),
+        status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+      ])
+      expect(model.opensPickerOnClick('open')).toBe(false)
+      expect(model.opensPickerOnClick('done')).toBe(false)
+    })
+
+    it('is false for an unknown status id', () => {
+      const model = buildTaskModel([
+        status({ id: 'open', char: ' ', next: 'done' }),
+        status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+      ])
+      expect(model.opensPickerOnClick('ghost')).toBe(false)
+    })
+
+    it('distinguishes a real self-link from the missing-id cycle fallback', () => {
+      // A dangling `next` also makes `nextStatus` return the same status
+      // as the first entry, but that is the fallback path — not a
+      // configured self-link — and must NOT open the picker.
+      const model = buildTaskModel([
+        status({ id: 'open', char: ' ', next: 'ghost' }),
+        status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+      ])
+      expect(model.opensPickerOnClick('open')).toBe(false)
+    })
+  })
+
   it('first matching char wins on duplicates', () => {
     const model = buildTaskModel([
       status({ id: 'open', char: 'x', isDone: false, next: 'open' }),

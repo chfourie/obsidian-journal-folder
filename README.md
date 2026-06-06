@@ -14,7 +14,7 @@ You can run as many independent journals as you like in the same vault. A folder
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](#sidebar-tab)
 - **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](#auto-fill-new-journal-notes)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](#quarterly-notes-opt-in)
-- **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
+- **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, tag-driven **task categories** (optionally range-capped so day-local chores stay out of wider rollups), and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
 - **Signifiers** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers)
 
 ## Why folder-based?
@@ -462,7 +462,7 @@ A **task flow** is a named ordered set of statuses. Each status has:
 
 - A **label** (e.g. *Open*, *In progress*, *Done*).
 - A **character** used inside `[ ]` on disk (e.g. ` `, `/`, `x`).
-- A **next** target — what the left-click cycle moves to.
+- A **next** target — what the left-click cycle moves to. Point it at the status *itself* to open the [status picker](#the-status-picker) on click instead of cycling.
 - A **rendering** choice — either let the active Obsidian theme draw the checkbox, or have the plugin paint a custom shell + icon + colour.
 - An `isDone` flag that drives the *Hide completed* filter.
 
@@ -500,7 +500,17 @@ The panel header shows the task count on the left and a **Scope ▾** link on th
 
 Changes apply immediately and the panel stays open so you can adjust several at once. The **Tasks-only sidebar** has the same panel with its own independent selection.
 
-Each row shows the status icon (clickable to cycle, right-click for a full status menu), the task text with internal links live, and a muted chip linking back to the source note (`daily · 2026-06-03`, `weekly · W23`, …). Rows are single-line with full text in the `title` attribute. The list is sorted with daily tasks first, then weekly, monthly, quarterly, yearly — and capped by `tasksMaxItems` (default 200) with a *Showing 200 of 247 — increase limit in settings* footer when truncated.
+Each row shows the status icon, the task text with internal links live, and a muted chip linking back to the source note (`daily · 2026-06-03`, `weekly · W23`, …). Rows are single-line with full text in the `title` attribute. The list is sorted with daily tasks first, then weekly, monthly, quarterly, yearly — and capped by `tasksMaxItems` (default 200) with a *Showing 200 of 247 — increase limit in settings* footer when truncated.
+
+#### The status picker
+
+**Left-click** the status icon to cycle to the next status. **Right-click** (or long-press on mobile) opens a **status picker** — a panel listing every status in the flow, with the current one highlighted, plus a **Migrate task…** action when the task is an active task in a journal note whose flow defines a migrated status:
+
+![The status picker, opened from a task's status icon](docs/screenshots/task-status-picker.png)
+
+The picker is the plugin's own panel (it replaces Obsidian's native right-click menu) and appears the same way everywhere a task does — the sidebar panels, `journal-tasks` blocks, and (when [`task-interaction-scope`](#scope-of-task-interactions) is `everywhere`) document checkboxes in reading view and live preview.
+
+You can also turn a status into a **"pick on click"** status: in the flow editor set its **Next status** to *itself* and a normal left-click opens the picker instead of cycling. This is handy for a status that has several equally-likely next steps rather than one obvious cycle.
 
 ### In-note `journal-tasks` block
 
@@ -522,6 +532,27 @@ Optional keys (case-insensitive, separators tolerant):
 | `max-items` | global `tasksMaxItems` | Truncation cap for this block. |
 
 Inside a journal note, the **reference range** is the host's range — so a `journal-tasks` block in a weekly note lists tasks from that week's daily notes (plus the weekly itself). Inside a non-journal note, the reference range falls back to today.
+
+### Task categories
+
+A **task category** binds one or more tags to a named group. Tasks carrying a category's tag are gathered into a **category section** at the top of every task list (sidebar panels and `journal-tasks` blocks), above the per-note groups. A task that matches several categories appears under each; the matched tag is stripped from the displayed text. An **Important** category (bound to `#important`, the same tag as the Priority signifier) ships by default.
+
+The global **Also show categorized tasks under their note** toggle decides whether a categorized task *also* still appears in its note group below the sections, or only under its category. Uncategorized tasks always appear under their note.
+
+#### Limiting a category's range
+
+A category can be pinned to a **Maximum range** — `Day`, `Week`, `Month`, `Quarter`, or `Year` (or *None*, the default). Tasks in that category then reach no further than that range from the list's anchor:
+
+![Editing a category's maximum range](docs/screenshots/task-category-edit.png)
+
+- In a list showing a **larger** range (or **All**), the cap is used for those tasks instead — so they don't flood the wider view.
+- A **smaller** list range still wins.
+- When a task is in several capped categories, the **smallest** cap applies.
+- The cap only affects the aggregated lists; the task still renders as a normal checkbox in its own note.
+
+For example, a **Local** category bound to `#local` and capped to **Day** keeps those tasks visible only in a list scoped to (or anchored on) their own day — they drop out of the Week / Month / Year / All views, so day-specific chores don't clutter your wider rollups.
+
+Categories are **global** (one set per vault) and are managed in *Settings → Community plugins → Journal Folder → Tasks*.
 
 ### Migrating tasks between notes
 
@@ -551,7 +582,7 @@ own task lists strip the reference markers from the displayed text.
 
 Three entry points, all scoped to a single folder:
 
-- **Per-task** — right-click a task (editor menu) → *Migrate this task…*.
+- **Per-task** — right-click a task line in the editor → *Migrate task…*, or use the **Migrate task…** row in the [status picker](#the-status-picker) on any active task.
 - **From this note / To this note** — the file menu (⋯) offers *Migrate
   tasks from this note…* and *…to this note*, which open a grouped multi-select
   picker. Nothing is selected by default — tick the tasks you want and confirm.
@@ -947,7 +978,7 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `signifier-show-tags-on-active-line` | When hiding tags in live preview, reveal *all* of the cursor line's tags (default false reveals only the touched tag). **Global only.** |
 | `signifier-reserve-gutter`           | Reserve left-margin space so gutter icons never clip (default true). **Global only.** |
 | `signifiers`                         | Array of tag→icon bindings. Managed in the **Signifiers** settings tab, not by hand. **Global only.** |
-| `task-categories`                    | Array of tag→category groupings shown atop task lists. Managed in the **Tasks** settings tab. **Global only.** |
+| `task-categories`                    | Array of tag→category groupings shown atop task lists. Each entry may carry a `maxRange` (`day`/`week`/`month`/`quarter`/`year`) that caps how far its tasks reach in lists — see [Task categories](#task-categories). Managed in the **Tasks** settings tab. **Global only.** |
 | `task-category-show-under-note`      | Whether a categorised task *also* appears in its note group (default false). **Global only.** |
 
 ### Task-flow data shape
@@ -981,7 +1012,7 @@ interface IconSpec {
 
 interface TaskStatus {
   id: string             // stable identifier (e.g. 'open', 'in-progress')
-  label: string          // shown in the status menu
+  label: string          // shown in the status picker
   char: string           // on-disk character inside [ ]
   isDone: boolean        // drives Hide-completed filter
   next: string           // id of the next status in the left-click cycle

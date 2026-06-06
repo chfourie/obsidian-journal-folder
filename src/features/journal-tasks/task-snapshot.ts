@@ -28,7 +28,8 @@ import {
   type TasksSidebarRange,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
-import { buildReferenceRange } from './reference-range'
+import { moment } from 'obsidian'
+import { buildReferenceRange, rangeForNote } from './reference-range'
 import {
   effectiveUnits,
   findTaskCandidates,
@@ -36,6 +37,7 @@ import {
 } from './task-scope'
 import { sortTasks } from './task-sorting'
 import { resolveTaskModel } from './task-models'
+import { makeRangeCapFilter } from './task-range-cap'
 import type { TaskCache } from './task-cache'
 
 export interface TaskPanelSnapshot {
@@ -107,14 +109,31 @@ export async function computeTaskSnapshot(
   })
 
   const model = resolveTaskModel(settings)
+  // Category range caps are measured from the same anchor the reference
+  // range uses (today, or the active note when anchored on it), so a
+  // capped task reaches no further than its cap around that anchor — even
+  // under the `all` range.
+  const capBase =
+    scope.anchor === 'note' && activeNote
+      ? activeNote.getMoment()
+      : // @ts-ignore — obsidian re-exports moment.
+        moment()
+  const capFilter = makeRangeCapFilter({
+    base: capBase,
+    listUnit: scope.range,
+    categories: settings.taskCategories,
+  })
   const collected: JournalTask[] = []
   for (const candidate of candidates) {
+    const noteRange = rangeForNote(candidate.note)
     const tasks = await taskCache.getTasks(
       candidate.file,
       model,
       candidate.note
     )
-    for (const t of tasks) collected.push(t)
+    for (const t of tasks) {
+      if (capFilter(t, noteRange)) collected.push(t)
+    }
   }
   const sorted = sortTasks(collected)
   const totalBeforeCap = sorted.length

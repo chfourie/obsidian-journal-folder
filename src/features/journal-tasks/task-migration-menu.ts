@@ -247,6 +247,29 @@ export function appendNoteMigrationItems(
   })
 }
 
+// Status-picker entry point: resolves a single task (by file + line +
+// its current raw text) into a runnable migrate action, or null when
+// migration doesn't apply here (the note isn't a migration-capable
+// journal note, or the line isn't an active task). The status picker
+// uses the null/non-null result to decide whether to show its "Migrate
+// task…" row, and runs the returned thunk on click — the same
+// single-task flow the editor-menu item and hotkey use.
+export function buildSingleTaskMigration(
+  ctx: MigrationMenuContext,
+  target: { sourceFile: TFile; sourceLine: number; rawText: string }
+): (() => void) | null {
+  const resolved = resolveNote(ctx, target.sourceFile)
+  if (!resolved) return null
+  const task = migratableTaskOnLine(
+    resolved.model,
+    target.sourceFile,
+    target.sourceLine,
+    target.rawText
+  )
+  if (!task) return null
+  return () => pickTargetThenMigrate(ctx, resolved, target.sourceFile, [task])
+}
+
 // Editor-menu (right-click a task line): migrate that single task.
 export function appendEditorMigrationItem(
   menu: Menu,

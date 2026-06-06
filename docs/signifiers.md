@@ -119,8 +119,8 @@ A **task category** groups tasks by tag at the top of every task list (the
 in-note `journal-tasks` block and both sidebar panels).
 
 - Type: `TaskCategory` (`signifier.type.ts`) — `id`, `label`, `tags`, optional
-  `icon`. Stored as an **ordered** array; the settings order is the section
-  order.
+  `icon`, optional `maxRange` (a **range cap**). Stored as an **ordered**
+  array; the settings order is the section order.
 - Default: an **Important** category bound to `#important` — the same tag as
   the Priority signifier.
 - A task matching several categories appears under **every** matching category
@@ -129,6 +129,30 @@ in-note `journal-tasks` block and both sidebar panels).
 - The single global toggle `taskCategoryShowUnderNote` decides whether a
   categorized task **also** appears in its note group below the categories.
   Uncategorized tasks always appear under their note.
+
+### Range cap (`maxRange`)
+
+A category may pin its tasks to a **maximum range** (`day` / `week` / `month` /
+`quarter` / `year`; unset = no cap). The cap bounds how far the task reaches in
+a list, measured from the **same anchor** the list uses (today, or the active
+note when anchored on it):
+
+- In a list whose range is **larger** than the cap (or `all`), the cap's range
+  is used for that task instead; a **smaller** list range still wins.
+- When a task is in several capped categories, the **smallest** cap applies.
+- The cap only filters the aggregated lists (sidebar panels + the in-note
+  `journal-tasks` block). The task still renders as a normal checkbox in its own
+  note.
+
+Implemented in `task-range-cap.ts` (pure/tested): `makeRangeCapFilter({ base,
+listUnit, categories })` returns a `(task, noteRange) → boolean` predicate. The
+cap is applied per candidate during task collection in `computeTaskSnapshot`
+(sidebar) and the in-note block's `render` — both already hold the list anchor
+`base` and range unit. A cap that isn't strictly smaller than the list range is
+a no-op (the task is left to normal candidate filtering); when it bites,
+inclusion is re-tested with `rangesIntersect(noteRange, periodAround(base,
+cap))`. There is **no** built-in/default capped category — users add their own
+(e.g. a `#local` category capped to `day`).
 
 `groupTasksByCategory(tasks, categories, showUnderNote)` returns
 `{ categorySections, noteTasks }`; `TaskList.svelte` renders the category

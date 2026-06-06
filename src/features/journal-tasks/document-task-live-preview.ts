@@ -16,12 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, type Editor, MarkdownView, Menu } from 'obsidian'
+import { type App, type Editor, MarkdownView } from 'obsidian'
 import { type Extension } from '@codemirror/state'
 import { EditorView, type PluginValue, ViewPlugin } from '@codemirror/view'
 import type { TaskStatusId } from '../../data-access'
 import type { TaskModel } from './task-models'
 import { setTaskStatus, type TaskMutationTarget } from './task-transition'
+import { openStatusPicker } from './status-picker-panel'
 import { renderStatusIconById } from './render-status-icon'
 
 export interface LivePreviewTaskContext {
@@ -122,7 +123,9 @@ class LivePreviewPlugin implements PluginValue {
     // middle/aux clicks shouldn't cycle.
     if (evt.button !== 0) return
     if (!this.ctx.isEnabled()) return
-    const mutation = this.mutationFor(evt.target)
+    const input = this.taskCheckboxTarget(evt.target)
+    if (!input) return
+    const mutation = this.mutationTargetFor(input)
     if (!mutation) return
     // Cancel the editor's own pointer default (caret placement / widget
     // selection) and stop the event before CM sees it. Arm the click
@@ -130,40 +133,60 @@ class LivePreviewPlugin implements PluginValue {
     evt.preventDefault()
     evt.stopPropagation()
     this.suppressClick = true
-    this.cycle(mutation)
-  }
-
-  // Resolves the task at an event target (icon or native checkbox) to a
-  // mutation target, or null when the target isn't a task we own.
-  private mutationFor(
-    eventTarget: EventTarget | null
-  ): TaskMutationTarget | null {
-    const checkbox = this.taskCheckboxTarget(eventTarget)
-    return checkbox ? this.mutationTargetFor(checkbox) : null
-  }
-
-  // Advances the task one step along the active flow.
-  private cycle(mutation: TaskMutationTarget): void {
     const model = this.ctx.resolveModel()
+    // A self-cycling status opens the picker; everything else advances.
+    if (model.opensPickerOnClick(mutation.status)) {
+      this.openPicker(input, mutation, model)
+      return
+    }
     this.applyStatus(mutation, model.nextStatus(mutation.status), model)
   }
 
   private onContextMenu(evt: MouseEvent): void {
     if (!this.ctx.isEnabled()) return
-    const mutation = this.mutationFor(evt.target)
+    const input = this.taskCheckboxTarget(evt.target)
+    if (!input) return
+    const mutation = this.mutationTargetFor(input)
     if (!mutation) return
-    const model = this.ctx.resolveModel()
     evt.preventDefault()
     evt.stopPropagation()
-    const menu = new Menu()
-    for (const status of model.statuses) {
-      menu.addItem((item) => {
-        item.setTitle(status.label)
-        if (status.id === mutation.status) item.setIcon('check')
-        item.onClick(() => this.applyStatus(mutation, status.id, model))
-      })
-    }
-    menu.showAtMouseEvent(evt)
+    this.openPicker(input, mutation, this.ctx.resolveModel())
+  }
+
+  // Opens the in-house status picker anchored under the visible icon.
+  // Status selection routes through `applyStatus` — the live editor
+  // write path, not `vault.process`, which the open buffer would revert.
+  // The migrate action reads the task's current line text so the picker
+  // can offer "Migrate task…" for active tasks in journal notes.
+  private openPicker(
+    input: HTMLInputElement,
+    mutation: TaskMutationTarget,
+    model: TaskModel
+  ): void {
+    const rawText = this.view.state.doc.lineAt(
+      this.view.posAtDOM(input)
+    ).text
+    openStatusPicker({
+      anchor: this.anchorFor(input),
+      model,
+      currentStatus: mutation.status,
+      onSelect: (id) => this.applyStatus(mutation, id, model),
+      migrateTarget: {
+        sourceFile: mutation.sourceFile,
+        sourceLine: mutation.sourceLine,
+        rawText,
+      },
+    })
+  }
+
+  // The native checkbox is `display:none` under plugin rendering, so it
+  // has no on-screen rect to anchor a panel to — prefer our visible
+  // icon (its next sibling) and fall back to the input only in theme
+  // rendering, where the input itself is what's shown.
+  private anchorFor(input: HTMLInputElement): HTMLElement {
+    const next = input.nextElementSibling
+    if (next instanceof HTMLElement && next.hasAttribute(ICON_ATTR)) return next
+    return input
   }
 
   // Pointer events land on either the hidden native input or our icon

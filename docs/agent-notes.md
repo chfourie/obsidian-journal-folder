@@ -108,14 +108,35 @@ fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
 - **⚠ Confirm the vault first — recurring mistake.** The repo ROOT
   (`/Users/ChFourie/Projects/Personal/obsidian-journal-folder`) sometimes gets
   opened as a vault named **`obsidian-journal-folder`** — it is NOT the demo
-  vault, has no signifiers/config, and isn't a deploy target (stale build). Always
-  run `eval code="app.vault.getName()"` and confirm it's the intended vault before
-  trusting results, or pass `vault="demo-vault"` explicitly. Don't conclude "no
-  signifiers configured" from landing on the wrong vault.
+  vault, has no signifiers/config, and isn't a deploy target (stale build). The
+  bare `obsidian <command>` targets whatever vault is **focused**, which is often
+  that repo-root vault. **ALWAYS pass `vault="demo-vault"` explicitly** (the demo
+  vault's registered CLI name is its folder basename, `demo-vault`) AND verify
+  with `vault="demo-vault" eval code="app.vault.getName()"` → `demo-vault` before
+  trusting any result. The demo vault's CLI dev toggle **is enabled** — if `eval`
+  reports "not found", you're almost certainly hitting the wrong vault, not a
+  disabled toggle, so re-target before assuming the toggle is off.
+- **Listing registered vaults:** `~/Library/Application Support/obsidian/obsidian.json`
+  maps vault id → `{path, ts, open}`. Use it to find the demo vault's path
+  (`…/docs/demo-vault`, name `demo-vault`) and which vaults are currently open.
+- **Don't use `app:reload`.** It reloads the whole app, momentarily makes `eval`
+  unavailable, and churns the repo-root vault's `.obsidian/workspace.json` (and
+  per the CLI notes leaves the code-block processor unregistered). The demo
+  vault's committed `.hotreload` already reloads the plugin after `npm run push`;
+  to force it use `plugin:reload id=journal-folder`. Reload the plugin's settings
+  after editing its (gitignored) `data.json` with
+  `eval code="app.plugins.plugins['journal-folder'].onExternalSettingsChange()"`.
+- **Verifying a vault-data change cleans up after itself.** Opening notes / editing
+  files via the app can leave incidental churn in tracked demo-vault notes (e.g. a
+  task status rewritten) and `.obsidian/workspace.json`. After a live verification,
+  `git status` the repo and `git checkout --` any file you didn't deliberately
+  change; back up any note you temporarily edit (`cp … /tmp/claude/…`) and restore
+  it. `data.json` is gitignored, but still revert experimental settings you added.
 - The dev commands (`eval` / `dev:dom` / `dev:screenshot`) are **gated per-vault**
   by that General toggle. `Error: Command "eval" not found. It may require a
-  plugin to be enabled.` means the toggle is off in *that* vault — ask the
-  maintainer to enable it (you can't toggle it via `eval`, since `eval` is what's
+  plugin to be enabled.` means the toggle is off in *that* vault **or** (more
+  often) you're targeting the wrong vault — confirm the target before concluding
+  the toggle is off (you can't toggle it via `eval`, since `eval` is what's
   unavailable).
 
 **Most useful commands:**
@@ -288,6 +309,49 @@ Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where
 - Settings tab is a 3-level drill-down (overview → flow detail → inline status
   detail) with breadcrumb; position persists on the form builder across
   structural re-renders. See `docs/tasks-design.md` (kept in sync).
+
+### Status picker panel (in-house, replaces the native status Menu)
+
+The status icon's right-click/long-press menu — and a *new* left-click case
+where a status is configured as its own `next` (`model.opensPickerOnClick(id)`,
+a "pick on click" status) — opens `openStatusPicker` (`status-picker-panel.ts`),
+a `<body>`-portaled styled list, **not** Obsidian's native `Menu`. Deliberate
+choices the code alone doesn't motivate:
+
+- **One imperative vanilla-TS opener for all four surfaces.** The four checkbox
+  surfaces split between Svelte (`TaskItem.svelte` → sidebar + in-note block) and
+  plain DOM/CodeMirror (`document-tasks-processor.ts`, `document-task-live-preview.ts`).
+  A Svelte panel can't be mounted from the DOM surfaces without ceremony, so the
+  picker is a single imperative function (mirrors `document-task-menu.ts`'s role)
+  that every surface calls — no duplication, identical look.
+- **Each surface passes its own writer via `onSelect`.** Disk surfaces use
+  `openStatusPickerForTarget` (→ `setTaskStatus`); live preview passes a closure
+  to its editor-write `applyStatus`, because a `vault.process` disk write to the
+  *open* note is reverted by the editor re-syncing (the same reason cycling uses
+  the Editor API there).
+- **Dismiss on `mousedown`, not `click`.** The live-preview picker opens on
+  `mousedown`; a `click` outside-listener would be tripped by the very trailing
+  click that follows and self-close instantly. Listening for `mousedown`/`contextmenu`
+  in capture phase avoids that and still catches presses on a CodeMirror editor
+  that stops its own events.
+- **Anchor to the *visible* icon, never the `display:none` input.** Under plugin
+  rendering the native checkbox is hidden (zeroed rect), so the live-preview path
+  anchors to the icon span (`input.nextElementSibling`) and only falls back to the
+  input in theme rendering, where the input is what's shown.
+- The native `Menu` is kept **only** in the `editor-menu` integration
+  (`appendStatusMenuItems`) — extending Obsidian's own editor context menu is the
+  one place a native menu is correct.
+- **The "Migrate task…" row uses a module-level provider, not prop-threading.**
+  The feature registers `setStatusPickerMigrationProvider(target → buildSingleTaskMigration(migrationContext(), target))` once in `load()` (cleared in
+  `unload()`). The alternative — passing a `MigrationMenuContext` through TaskList →
+  TaskItem Svelte props *and* through both document contexts just to reach this one
+  panel — was rejected as far more plumbing for a process-wide capability. The
+  provider returns `null` (row hidden) for done tasks / non-journal notes / flows
+  without a migrated status, so each surface can pass the target unconditionally.
+  Surfaces supply the task's current `rawText` (Svelte: `task.rawText`; reading
+  view: the absolute line out of `getSectionInfo().text`, which is the whole file;
+  live preview: `doc.lineAt(posAtDOM(input)).text`) — migration's own line-match
+  guard re-checks on write, so a later edit can't corrupt the copy.
 
 ### Signifier placement & the measured gutter
 

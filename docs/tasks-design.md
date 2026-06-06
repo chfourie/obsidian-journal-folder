@@ -90,7 +90,7 @@ Four templates ship in code at `src/data-access/task-templates.ts`:
 | **Bullet Journal** | `[ ]` `[/]` `[x]` `[>]` `[-]` `[d]` | Original BuJo plus the user-requested **Delegated** entry. |
 | **GTD** | `[ ]` `[/]` `[?]` `[x]` | Inbox → next action → waiting → done. |
 
-Primary left-click cycles stay short (typically open → in-progress → done → open); secondary statuses route back to `open` and are reached via the right-click / long-press status menu.
+Primary left-click cycles stay short (typically open → in-progress → done → open); secondary statuses route back to `open` and are reached via the right-click / long-press status picker. A status can also be made a "pick on click" entry by setting its `next` to its own id — left-clicking it then opens the picker instead of cycling (surfaced as `model.opensPickerOnClick(id)`, and called out in the status editor's *Next status* dropdown).
 
 ## Conceptual model (model-agnostic)
 
@@ -206,8 +206,8 @@ TASKS (5 · 3 ✓ hidden)          Today · Show completed · ⋯
 ### Row
 
 - Leading status affordance: rendered by `StatusIcon.svelte` based on the status's `rendering` field — either Obsidian's native `<input type="checkbox" data-task="...">` (theme styling) or a custom shell + Lucide / emoji / image / sanitised SVG glyph.
-- **Left click** the status icon → `model.nextStatus(current)`, written via `vault.process`.
-- **Right click / long-press** the status icon → Obsidian `Menu` of all statuses for the active model (check mark on current).
+- **Left click** the status icon → `model.nextStatus(current)`, written via `vault.process`. **Exception:** a status whose `next` points at *itself* (`model.opensPickerOnClick(id)`) opens the status picker panel instead of writing a no-op cycle.
+- **Right click / long-press** the status icon → the in-house `openStatusPicker` panel (a `<body>`-portaled list of every status with its rendered icon, current one highlighted) — **not** an Obsidian native `Menu`. The same panel backs both the right-click and the self-cycle left-click. When the task is migratable (active task in a journal note whose flow defines a migrated status) the panel also grows a **"Migrate task…"** row beneath the statuses — the same single-task migration flow as the editor-menu item.
 - Task text with internal links live (delegated click handler, same approach as portaled header content).
 - Muted chip: `unit · short title` (e.g. `daily · 2026-06-03`, `weekly · W23`). Chip is a link to the source note.
 - Rows whose status satisfies `model.isDone(status)`: strikethrough + `--text-muted`.
@@ -229,8 +229,9 @@ Same `TaskList.svelte` component as the sidebar. No portaling needed. View-local
 ## Interactions
 
 - **Click task text** → open source note at line.
-- **Click status icon** → cycle to next status via `vault.process(file, content => …)`. Locate target line by `(line index, expected status prefix match)`. Mismatch → `Notice` and re-scan rather than blind-write.
-- **Right-click / long-press status icon** → status menu (model-defined).
+- **Click status icon** → cycle to next status via `vault.process(file, content => …)`. Locate target line by `(line index, expected status prefix match)`. Mismatch → `Notice` and re-scan rather than blind-write. A self-cycling status (`next === id`) instead opens the status picker (see below).
+- **Right-click / long-press status icon** → the custom `openStatusPicker` panel (`status-picker-panel.ts`), shared by every checkbox surface (sidebar panel, in-note block, reading view, live preview). Selection routes through the surface's own writer — `setTaskStatus` (disk) everywhere except live preview, which writes through the open editor. Obsidian's native `Menu` is retained **only** for the `editor-menu` integration (right-clicking the editor text body), where extending the host menu is correct.
+- **Migrate from the picker** → the panel shows a **"Migrate task…"** row when the task is migratable. Capability comes from a module-level provider the feature registers (`setStatusPickerMigrationProvider` → `buildSingleTaskMigration`), resolved per file so folder `task-flow` / `task-migration-*` overrides apply; the row is omitted (provider returns `null`) for done tasks, non-journal notes, or flows without a migrated status. Each surface passes the task's current `rawText` so the migration writer can re-emit the body (its own line-match guard re-checks on write).
 - **Click unit chip** → open source note.
 - **Hover row** → `title` shows full text + source path.
 
@@ -244,6 +245,10 @@ src/features/journal-tasks/
   reference-range.ts            # pure
   task-sorting.ts               # pure
   task-transition.ts            # vault.process status writer (model-aware)
+  status-picker-panel.ts        # in-house <body>-portaled status picker (replaces
+                                #   the native status Menu on every icon surface);
+                                #   also hosts a "Migrate task…" row via a
+                                #   registered migration provider
   task-models/
     build-task-model.ts         # buildTaskModel(statuses) — the only constructor
     resolve-model.ts            # settings → buildTaskModel(taskFlows[taskFlow ?? defaultTaskFlow])
@@ -329,7 +334,7 @@ SVG icons go through `sanitizeSvg` (data-access) before injection. The sanitiser
 - **Status-character alphabet** built-ins draw from `[ ] [/] [x] [>] [-] [d] [?]` — community standard. User flows may use any char per status.
 - **Built-in templates are read-only**; user-managed entities are named **task flows**. Folders pick which flow they use; edits propagate to every folder pointing at the same flow.
 - **Per-status rendering** (`plugin` ↔ `theme`) lets a single flow mix theme-styled and custom-painted checkboxes — useful when a theme supports some chars but not others.
-- **Status transitions** via left-click cycle + right-click menu, delegated to active `TaskModel`.
+- **Status transitions** via left-click cycle + a custom right-click/long-press status picker panel (`openStatusPicker`, in-house — not a native `Menu`), delegated to the active `TaskModel`. A status configured as its own `next` opens that same picker on left-click instead of cycling.
 - **Migrated / cancelled** treated identically to completed for filtering (`isDone` returns true).
 - **Task migration is a first-class command** (see *Task migration* below) — it stamps the origin with the flow's configured migrated status, adds a `→ [[dest]]` forward link, and writes a fresh copy into the chosen note. (Earlier the plugin only recognised a manually-typed `[>]`.)
 - **Circle/square checkboxes** controlled via a global setting; uses Lucide icon variants, no bespoke CSS.
@@ -364,6 +369,13 @@ global `taskCategoryShowUnderNote` toggle controls whether categorized tasks
 also still appear in their note group. Tasks also render any matching
 **signifier** icons inline (tag hidden). Both are described in
 [signifiers.md](signifiers.md); the grouping is `groupTasksByCategory`.
+
+A category can also carry a **range cap** (`TaskCategory.maxRange`): tasks in
+that category reach no further than the cap (day/week/month/quarter/year) from
+the list's anchor, so they don't flood broader views (Week/Month/Year/All).
+A larger list range is clamped to the cap; a smaller list range still wins; the
+smallest cap among a task's categories applies. Enforced by `task-range-cap.ts`
+(`makeRangeCapFilter`) during task collection in both list surfaces.
 
 ## Out of scope (v1)
 

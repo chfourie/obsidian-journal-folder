@@ -16,11 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
-  import { type App, Menu } from 'obsidian'
+  import { type App } from 'obsidian'
   import type { IconSpec, JournalTask, Signifier } from '../../data-access'
   import type { TaskModel } from './task-models'
   import StatusIcon from './StatusIcon.svelte'
-  import { cycleTaskStatus, setTaskStatus } from './task-transition'
+  import { cycleTaskStatus } from './task-transition'
+  import { openStatusPickerForTarget } from './status-picker-panel'
   import { renderSignifierIcon } from '../journal-signifiers'
 
   type Props = {
@@ -71,23 +72,30 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   function onIconClick(evt: MouseEvent) {
     evt.stopPropagation()
+    // A self-cycling status opens the picker instead of writing a
+    // no-op; everything else advances along the flow.
+    if (model.opensPickerOnClick(task.status)) {
+      openStatusPickerForTarget(
+        evt.currentTarget as HTMLElement,
+        task,
+        model,
+        app,
+        task.rawText
+      )
+      return
+    }
     // noinspection JSIgnoredPromiseFromCall
     cycleTaskStatus(app, task, model)
   }
 
   function onIconContextMenu(evt: MouseEvent) {
-    const menu = new Menu()
-    for (const status of model.statuses) {
-      menu.addItem((item) => {
-        item.setTitle(status.label)
-        if (status.id === task.status) item.setIcon('check')
-        item.onClick(() => {
-          // noinspection JSIgnoredPromiseFromCall
-          setTaskStatus(app, task, status.id, model)
-        })
-      })
-    }
-    menu.showAtMouseEvent(evt)
+    openStatusPickerForTarget(
+      evt.currentTarget as HTMLElement,
+      task,
+      model,
+      app,
+      task.rawText
+    )
   }
 
   const titleAttr = $derived(
