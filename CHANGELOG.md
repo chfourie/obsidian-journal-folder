@@ -7,6 +7,40 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.0.0]
+
+Major-version milestone. The last month added a lot — bullet-journal
+**signifiers**, the single **plugin menu**, user-defined **task flows** with
+theme-aware checkbox rendering, **task migration**, **task categories**, and now
+the **status picker** and per-category **range caps** below. The version bump
+marks that body of work; the changes specific to this release are:
+
+### Added
+- **Status picker.** Right-click (or long-press) a task's status icon to open the
+  plugin's own picker panel — every status in the flow with the current one
+  highlighted, plus a **Migrate task…** action for active tasks in
+  migration-capable notes. It replaces Obsidian's native right-click menu and
+  appears the same way across the sidebar panels, `journal-tasks` blocks, and
+  (with `task-interaction-scope: everywhere`) document checkboxes in reading view
+  and live preview. A status whose **Next status** points at *itself* becomes a
+  "pick on click" status — left-clicking opens the picker instead of cycling.
+- **Task category range caps.** A task category can be pinned to a **Maximum
+  range** (Day / Week / Month / Quarter / Year). Its tasks then reach no further
+  than that range from the list's anchor — a larger list range (or *All*) clamps
+  to the cap, a smaller range still wins, and the smallest cap wins when a task is
+  in several capped categories. Handy for keeping day-local chores out of wider
+  rollups.
+
+### Changed
+- **Note-anchored task lists honour the note's own range as a floor.** When a list
+  is measured from a note — the sidebar's *Current note* anchor and every in-note
+  `journal-tasks` block — neither the range nor a category cap can be finer than
+  the note's own tier. Viewing a monthly note shows the whole month, not just its
+  first day, since a note spans a date range rather than a single anchor instant.
+- **The task status right-click affordance is now the plugin's own panel**, not
+  Obsidian's native menu (the native menu remains only where the plugin extends
+  Obsidian's editor context menu).
+
 ## [2.5.2]
 
 ### Changed
