@@ -25,20 +25,11 @@ import type {
 import {
   type ReferenceRange,
   type ReferenceRangeUnit,
+  RANGE_UNIT_RANK as UNIT_SIZE,
+  largerRangeUnit,
   periodAround,
   rangesIntersect,
 } from './reference-range'
-
-// Calendar size order, smallest → largest. Drives both "which cap is
-// smallest" and "does the cap bite" (is it smaller than the list range).
-const UNIT_SIZE: Record<ReferenceRangeUnit, number> = {
-  day: 0,
-  week: 1,
-  month: 2,
-  quarter: 3,
-  year: 4,
-  all: 5,
-}
 
 // Builds `categoryId → maxRange` for the capped categories only.
 export function rangeCapsByCategory(
@@ -74,25 +65,38 @@ export function smallestTaskCap(
 // list's normal range handling (it already passed candidate filtering).
 // Capped reference ranges are memoised per unit. Pure aside from reading
 // the supplied moment.
+// `floorUnit` (optional) is the active note's own tier, supplied when the
+// list is anchored on a note (the sidebar's *Current note* anchor, and every
+// in-note block). Each cap is then floored up to it — when measuring from a
+// note, nothing reaches a finer grain than the note's own period — so a cap
+// finer than the note tier stops biting. Omit it for the *Today* anchor,
+// where caps measure from today at their configured grain.
 export function makeRangeCapFilter(opts: {
   base: moment.Moment
   listUnit: ReferenceRangeUnit
   categories: readonly TaskCategory[]
+  floorUnit?: ReferenceRangeUnit | null
 }): (task: Pick<JournalTask, 'categoryIds'>, noteRange: ReferenceRange) => boolean {
   const capsById = rangeCapsByCategory(opts.categories)
   const listSize = UNIT_SIZE[opts.listUnit]
-  const refByUnit = new Map<TaskCategoryRange, ReferenceRange>()
+  const refByUnit = new Map<ReferenceRangeUnit, ReferenceRange>()
 
   return (task, noteRange) => {
-    const cap = smallestTaskCap(task, capsById)
-    if (!cap) return true
+    const rawCap = smallestTaskCap(task, capsById)
+    if (!rawCap) return true
+    // Floor the cap to the note's tier when note-anchored.
+    const cap: ReferenceRangeUnit = opts.floorUnit
+      ? largerRangeUnit(rawCap, opts.floorUnit)
+      : rawCap
     // Cap only constrains when it's strictly smaller than the list range
     // (or the list is the unbounded `all`). Otherwise the list range is
     // already at least as tight, so leave the task to normal filtering.
     if (UNIT_SIZE[cap] >= listSize) return true
     let ref = refByUnit.get(cap)
     if (!ref) {
-      ref = periodAround(opts.base, cap)
+      // `cap` is always a day–year unit here (caps + floor never carry
+      // `all`), so it's a valid moment start-of unit.
+      ref = periodAround(opts.base, cap as TaskCategoryRange)
       refByUnit.set(cap, ref)
     }
     return rangesIntersect(noteRange, ref)

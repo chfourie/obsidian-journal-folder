@@ -487,9 +487,12 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
 
     const model = resolveTaskModel(settings)
     const cache = this.getCache()
-    // Enforce category range caps relative to the host note's own period
-    // (its tier is the in-note block's range; a non-journal host falls
-    // back to today/day, matching `buildReferenceRange` above).
+    // Enforce category range caps relative to the host note's own period.
+    // The in-note block is always measured from its host note, so the host's
+    // tier is both the list range and the cap floor — a cap finer than the
+    // host tier therefore doesn't bite here (same note-anchored rule the
+    // sidebar applies for its *Current note* anchor). A non-journal host
+    // falls back to today/day with no floor.
     const capBase = activeNote
       ? activeNote.getMoment()
       : // @ts-ignore — obsidian re-exports moment.
@@ -498,6 +501,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       base: capBase,
       listUnit: activeNote ? activeNote.getTimeUnit() : 'day',
       categories: settings.taskCategories,
+      floorUnit: activeNote ? activeNote.getTimeUnit() : null,
     })
     const allTasks: JournalTask[] = []
     for (const candidate of candidates) {

@@ -140,6 +140,15 @@ note when anchored on it):
 - In a list whose range is **larger** than the cap (or `all`), the cap's range
   is used for that task instead; a **smaller** list range still wins.
 - When a task is in several capped categories, the **smallest** cap applies.
+- **Note-anchored floor:** when the list is measured from a note — the sidebar's
+  *Current note* anchor, and every in-note `journal-tasks` block — the cap is
+  floored up to the note's own tier (`largerRangeUnit(cap, noteTier)`), mirroring
+  the floor `buildReferenceRange` applies to the reference range. A note bigger
+  than a day spans a date range, not a single anchor instant, so a cap finer than
+  the note tier stops biting (a Day cap behaves like a Month cap on a monthly
+  note). The floor is **not** applied to the *Today* anchor, where caps measure
+  from today at their configured grain. Passed as `makeRangeCapFilter`'s
+  `floorUnit`.
 - The cap only filters the aggregated lists (sidebar panels + the in-note
   `journal-tasks` block). The task still renders as a normal checkbox in its own
   note.

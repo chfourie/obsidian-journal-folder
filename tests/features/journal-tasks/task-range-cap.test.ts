@@ -105,4 +105,45 @@ describe('makeRangeCapFilter', () => {
       filter({ categoryIds: ['weekish', 'local'] }, day('2026-06-15'))
     ).toBe(true)
   })
+
+  describe('note floor (floorUnit)', () => {
+    const cats = [cat('local', 'day')]
+
+    it('floors a finer cap up to the note tier, so it stops biting', () => {
+      // Note-anchored on a month: the day-cap is floored to month, and the
+      // effective list range is also month → no bite, task passes regardless.
+      const filter = makeRangeCapFilter({
+        base,
+        listUnit: 'month',
+        categories: cats,
+        floorUnit: 'month',
+      })
+      expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(true)
+    })
+
+    it('still bites at the floored grain when the list range is larger', () => {
+      // Monthly note, list range year: day-cap floored to month → window is the
+      // note's month, so June passes but March does not.
+      const filter = makeRangeCapFilter({
+        base,
+        listUnit: 'year',
+        categories: cats,
+        floorUnit: 'month',
+      })
+      expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(true)
+      expect(filter({ categoryIds: ['local'] }, day('2026-03-25'))).toBe(false)
+    })
+
+    it('does not floor when floorUnit is null (Today anchor)', () => {
+      const filter = makeRangeCapFilter({
+        base,
+        listUnit: 'month',
+        categories: cats,
+        floorUnit: null,
+      })
+      // Day-cap is unaffected → window is the single anchor day.
+      expect(filter({ categoryIds: ['local'] }, day('2026-06-15'))).toBe(true)
+      expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(false)
+    })
+  })
 })

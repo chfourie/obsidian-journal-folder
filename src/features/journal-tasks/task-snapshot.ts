@@ -29,7 +29,7 @@ import {
   journalNoteFactoryWithSettings,
 } from '../../data-access'
 import { moment } from 'obsidian'
-import { buildReferenceRange, rangeForNote } from './reference-range'
+import { buildReferenceRange, largerRangeUnit, rangeForNote } from './reference-range'
 import {
   effectiveUnits,
   findTaskCandidates,
@@ -113,15 +113,29 @@ export async function computeTaskSnapshot(
   // range uses (today, or the active note when anchored on it), so a
   // capped task reaches no further than its cap around that anchor — even
   // under the `all` range.
+  //
+  // When anchored on a note, the note's own tier is the floor for BOTH the
+  // effective list range and each cap (the note's whole period is the
+  // smallest sensible window when measuring from it) — matching the floor
+  // `buildReferenceRange` applies to the reference range above.
+  const noteFloorUnit =
+    scope.anchor === 'note' && activeNote ? activeNote.getTimeUnit() : null
   const capBase =
     scope.anchor === 'note' && activeNote
       ? activeNote.getMoment()
       : // @ts-ignore — obsidian re-exports moment.
         moment()
+  const effectiveListUnit =
+    scope.range === 'all'
+      ? 'all'
+      : noteFloorUnit
+        ? largerRangeUnit(scope.range, noteFloorUnit)
+        : scope.range
   const capFilter = makeRangeCapFilter({
     base: capBase,
-    listUnit: scope.range,
+    listUnit: effectiveListUnit,
     categories: settings.taskCategories,
+    floorUnit: noteFloorUnit,
   })
   const collected: JournalTask[] = []
   for (const candidate of candidates) {

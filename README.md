@@ -494,7 +494,7 @@ When *Show task panel in sidebar* is on, the sidebar tab grows a tasks section b
 The panel header shows the task count on the left and a **Scope ▾** link on the right. Below it a read-only summary line shows the current selection at a glance — `Anchor · Range · Folders · Filter`, e.g. `Today · Week · All folders · Active`. Click **Scope ▾** to open the scope panel, which has four sections:
 
 - **Anchor** — *Today* (measure from the current date) or *Current note* (measure from the journal note you're reading; falls back to today on a non-journal leaf).
-- **Range** — *Day / Week / Month / Quarter / Year* lists tasks whose notes fall in the calendar period of that size around the anchor; *All* drops date filtering entirely (every task in the chosen folders). *Quarter* appears only when quarterly notes are enabled.
+- **Range** — *Day / Week / Month / Quarter / Year* lists tasks whose notes fall in the calendar period of that size around the anchor; *All* drops date filtering entirely (every task in the chosen folders). *Quarter* appears only when quarterly notes are enabled. When the anchor is **Current note**, the range can't go *finer* than the note's own tier — a monthly note spans a date range, not a single day, so viewing it with range *Day* shows the whole month rather than just the note's first day.
 - **In folders** — *Current note's folder*, *All journal folders*, or a single specific folder. This is independent of the anchor, so you can, say, show *this week* across *all folders*, or *all* tasks in *just the current note's folder*.
 - **Filter** — *Show completed tasks* toggles whether statuses whose `isDone` is true appear; the header surfaces the hidden count when they're hidden.
 
@@ -549,8 +549,9 @@ A category can be pinned to a **Maximum range** — `Day`, `Week`, `Month`, `Qua
 - A **smaller** list range still wins.
 - When a task is in several capped categories, the **smallest** cap applies.
 - The cap only affects the aggregated lists; the task still renders as a normal checkbox in its own note.
+- When the list is anchored on the **current note** — the *Current note* sidebar anchor, and every in-note `journal-tasks` block — the cap can't go *finer* than the host note's own tier. A Day cap therefore behaves like a Month cap while you're viewing a monthly note, so those tasks span the whole month instead of collapsing to the note's first day. (The cap still bites in *Today*-anchored views and on daily notes, its primary use.)
 
-For example, a **Local** category bound to `#local` and capped to **Day** keeps those tasks visible only in a list scoped to (or anchored on) their own day — they drop out of the Week / Month / Year / All views, so day-specific chores don't clutter your wider rollups.
+For example, a **Local** category bound to `#local` and capped to **Day** keeps those tasks visible only in a list scoped to (or anchored on) their own day — they drop out of the Week / Month / Year / All views when anchored on **Today**, so day-specific chores don't clutter your wider rollups.
 
 Categories are **global** (one set per vault) and are managed in *Settings → Community plugins → Journal Folder → Tasks*.
 

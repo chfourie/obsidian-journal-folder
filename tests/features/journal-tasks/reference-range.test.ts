@@ -8,6 +8,7 @@ import {
   allTimeRange,
   buildReferenceRange,
   currentPeriodRange,
+  largerRangeUnit,
   periodAround,
   rangeForNote,
   rangesIntersect,
@@ -62,6 +63,66 @@ describe('buildReferenceRange', () => {
     })
     expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
     expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('sidebar + anchor note + range day with a MONTHLY note → its whole month (floored up)', () => {
+    const note = makeNote('2026-06')
+    const range = buildReferenceRange({
+      host: 'sidebar',
+      anchor: 'note',
+      range: 'day',
+      activeNote: note,
+    })
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('sidebar + anchor note + range week with a MONTHLY note → its whole month (week < month)', () => {
+    const note = makeNote('2026-06')
+    const range = buildReferenceRange({
+      host: 'sidebar',
+      anchor: 'note',
+      range: 'week',
+      activeNote: note,
+    })
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('sidebar + anchor note + range day with a WEEKLY note → its whole week (floored up)', () => {
+    const note = makeNote('2026-W23')
+    const range = buildReferenceRange({
+      host: 'sidebar',
+      anchor: 'note',
+      range: 'day',
+      activeNote: note,
+    })
+    expect(range.end.diff(range.start, 'days')).toBe(6)
+  })
+
+  it('sidebar + anchor note + range year with a monthly note → the containing year (range > note tier)', () => {
+    const note = makeNote('2026-06')
+    const range = buildReferenceRange({
+      host: 'sidebar',
+      anchor: 'note',
+      range: 'year',
+      activeNote: note,
+    })
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-01-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-12-31')
+  })
+
+  it('sidebar + anchor TODAY is NOT floored by an active monthly note', () => {
+    const note = makeNote('2026-06')
+    const range = buildReferenceRange({
+      host: 'sidebar',
+      anchor: 'today',
+      range: 'day',
+      activeNote: note,
+    })
+    const today = moment().startOf('day')
+    expect(range.start.isSame(today, 'day')).toBe(true)
+    expect(range.end.isSame(today, 'day')).toBe(true)
   })
 
   it('sidebar + anchor note with no active note → falls back to today', () => {
@@ -146,6 +207,15 @@ describe('periodAround / currentPeriodRange', () => {
     const range = allTimeRange()
     expect(range.start.year()).toBeLessThan(1000)
     expect(range.end.year()).toBeGreaterThan(9000)
+  })
+})
+
+describe('largerRangeUnit', () => {
+  it('returns the coarser unit', () => {
+    expect(largerRangeUnit('day', 'month')).toBe('month')
+    expect(largerRangeUnit('year', 'week')).toBe('year')
+    expect(largerRangeUnit('quarter', 'quarter')).toBe('quarter')
+    expect(largerRangeUnit('week', 'all')).toBe('all')
   })
 })
 

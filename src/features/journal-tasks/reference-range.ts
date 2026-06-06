@@ -36,6 +36,26 @@ export interface ReferenceRange {
   end: moment.Moment
 }
 
+// Calendar size order of the range units, smallest → largest. Single source
+// of truth for "which unit is bigger" comparisons (range clamping + category
+// cap flooring).
+export const RANGE_UNIT_RANK: Record<ReferenceRangeUnit, number> = {
+  day: 0,
+  week: 1,
+  month: 2,
+  quarter: 3,
+  year: 4,
+  all: 5,
+}
+
+// The larger (coarser) of two range units.
+export function largerRangeUnit(
+  a: ReferenceRangeUnit,
+  b: ReferenceRangeUnit
+): ReferenceRangeUnit {
+  return RANGE_UNIT_RANK[a] >= RANGE_UNIT_RANK[b] ? a : b
+}
+
 export interface ReferenceRangeInput {
   host: ReferenceHost
   // Sidebar only — the in-note block (`host: 'note'`) ignores these and
@@ -59,12 +79,28 @@ export function buildReferenceRange(input: ReferenceRangeInput): ReferenceRange 
     return input.activeNote ? rangeForNote(input.activeNote) : todayRange()
   }
   if (input.range === 'all') return allTimeRange()
-  const base =
-    input.anchor === 'note' && input.activeNote
-      ? input.activeNote.getMoment()
-      : // @ts-ignore — obsidian re-exports moment.
-        moment()
-  return periodAround(base, input.range ?? 'day')
+  // Anchored on the active note, the window's floor is the note's OWN tier.
+  // A note bigger than a day spans a date *range*, not a single anchor date,
+  // so a configured range smaller than the note would collapse to a nonsense
+  // sub-window (a monthly note "anchored" at the 1st showing only the 1st's
+  // daily notes). Clamp the unit up to the note's tier — the note's own
+  // period is the smallest sensible window when measuring from it.
+  if (input.anchor === 'note' && input.activeNote) {
+    const noteUnit = input.activeNote.getTimeUnit()
+    const unit = largerRangeUnit(input.range ?? 'day', noteUnit)
+    return unit === noteUnit
+      ? rangeForNote(input.activeNote)
+      : // `unit` is never `all` here (range !== 'all', noteUnit is day–year).
+        periodAround(
+          input.activeNote.getMoment(),
+          unit as moment.unitOfTime.StartOf
+        )
+  }
+  return periodAround(
+    // @ts-ignore — obsidian re-exports moment.
+    moment(),
+    input.range ?? 'day'
+  )
 }
 
 // `[start, end]` of the calendar period of `unit` size that contains
