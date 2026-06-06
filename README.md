@@ -112,7 +112,7 @@ Every journal note gets a header by including a `journal-header` code block at t
 That's it. The plugin replaces the code block with a rendered header keyed off the note's filename. The leading `%% EDITING %%` comment is optional but recommended — without it, opening a note in edit mode lands the cursor on the code block, which causes the rendered header to flicker into source until you click away. With the comment, the cursor lands on the comment line first; reading view drops the comment entirely and renders the header at the very top.
 
 > [!TIP]
-> Use the [Templater](https://silentvoid13.github.io/Templater/) plugin (or the core *Templates* plugin) to inject this block automatically into new notes — or turn on the plugin's own [*Auto-fill new journal notes*](#auto-fill-new-journal-notes) feature.
+> Turn on the plugin's own [*Auto-fill new journal notes*](#auto-fill-new-journal-notes) feature to inject this block automatically into new notes — no extra plugins, and it's journal-aware (per-folder and per-tier templates). If you'd rather drive templating from elsewhere, the [Templater](https://silentvoid13.github.io/Templater/) plugin or the core *Templates* plugin can do the same job.
 
 ### What the header shows
 
