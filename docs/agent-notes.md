@@ -21,6 +21,14 @@ release flow, and design decisions behind shipped features.
   new tests. Trivial edits (typos, comments, config bumps) don't. Reuse the
   `tests/mocks/obsidian.ts` mock and `tests/helpers/fixtures.ts` fixtures. Run
   `npm test` before reporting work done.
+  - **Live Obsidian/CLI verification supplements automated tests — it never
+    replaces them.** The CLI (see below) is the only way to exercise CodeMirror /
+    live-preview / DOM / theme behaviour that jsdom can't, so use it to *confirm*
+    the wiring end-to-end. But every new feature and behaviour change still gets
+    unit tests for its logic in the same change — factor the pure decision logic
+    out (as `task-range-cap.ts`, `reference-range.ts`, `build-task-model.ts` do)
+    so it's testable even when the surrounding surface is DOM-bound. Don't report
+    work done on the strength of a CLI screenshot alone.
 - **Prefer robust / theme-stable solutions over pixel-perfect cosmetics, and
   surface the tradeoffs before implementing.** The maintainer explicitly dislikes
   "works on my setup, breaks on yours" fragility. Reach for solutions that
