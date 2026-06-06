@@ -7,6 +7,16 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.4.3]
+
+### Added
+- **Edit signifiers by clicking the margin in editing view.** The signifier
+  gutter is now interactive in live preview: click a line's signifier icons to
+  open the same checklist as the *Modify signifiers on the current line…*
+  command. On a line with no signifier yet, a faint **+** fades into the margin
+  as you hover the line — click it to add one. The cursor turns to a pointer
+  over the gutter so it's clear the area is interactive.
+
 ## [2.4.2]
 
 ### Changed

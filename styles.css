@@ -2142,6 +2142,34 @@ li.task-list-item[data-task="-"] {
 	visibility: visible;
 }
 
+/* Editing view only: the gutter is interactive — clicking it opens the
+ * signifier picker for that line. Reading-view gutters stay display-only
+ * (no `jf-signifier-live`), so this never makes them clickable. */
+.jf-signifier-gutter.jf-signifier-live {
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+/* The add affordance painted in the gutter of a line that has NO signifier
+ * yet. The marker box stays transparent and only its plus icon fades in:
+ * faint while the line is hovered (discoverable as the cursor crosses the
+ * margin), full while the affordance itself is hovered. The box keeps a
+ * layout width even at `opacity: 0` so it remains a hover / click target. */
+.jf-signifier-add {
+	opacity: 0;
+	color: var(--text-faint);
+	transition: opacity 120ms ease;
+}
+
+.cm-line:hover .jf-signifier-add-gutter .jf-signifier-add {
+	opacity: 0.4;
+}
+
+.jf-signifier-add-gutter:hover .jf-signifier-add {
+	opacity: 1;
+	color: var(--text-muted);
+}
+
 /* Category section reuses the task-group frame; nudge the header icon to
  * sit between the caret and the title. */
 .journal-folder-tasks-category .journal-folder-tasks-group-heading .jf-signifier {

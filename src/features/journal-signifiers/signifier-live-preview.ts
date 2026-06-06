@@ -26,6 +26,7 @@ import {
   ViewPlugin,
   WidgetType,
 } from '@codemirror/view'
+import { type App, setIcon } from 'obsidian'
 import {
   type JournalFolderSettings,
   type Signifier,
@@ -35,6 +36,8 @@ import {
   matchSignifiers,
 } from '../../data-access'
 import { renderSignifierIcon } from './render-signifier-icon'
+import { computeSignifierLineEdit } from './signifier-line-edit'
+import { SignifierPickerModal } from './signifier-picker-modal'
 import {
   COLUMN_INSET_PX,
   EDGE_MARGIN_PX,
@@ -45,6 +48,59 @@ import {
 
 export interface SignifierLivePreviewContext {
   getSettings: () => JournalFolderSettings
+  // App handle so a click on a gutter marker can open the signifier picker.
+  app: App
+}
+
+// A line can receive a signifier (and therefore an inline add affordance) as
+// long as it has some non-whitespace content — appending `#tag` to a blank
+// line is meaningless, and a blank-line affordance would pepper every empty
+// line in the editor with a hover target. Pure / unit-tested.
+export function lineCanReceiveSignifier(text: string): boolean {
+  return text.trim().length > 0
+}
+
+// A click anywhere on an editing-view signifier gutter (the icon stack on a
+// line that already has signifiers, or the faint hover affordance on a line
+// that doesn't) opens the picker pre-checked for that line and writes the
+// recomputed line back through the editor's own transaction. Returns true when
+// it consumed the event so CodeMirror skips its default selection handling.
+function openPickerFromGutterEvent(
+  event: MouseEvent,
+  view: EditorView,
+  ctx: SignifierLivePreviewContext
+): boolean {
+  const target = event.target as HTMLElement | null
+  const gutter = target?.closest<HTMLElement>(
+    '.jf-signifier-gutter.jf-signifier-live'
+  )
+  if (!gutter) return false
+  const signifiers = ctx.getSettings().signifiers
+  if (signifiers.length === 0) return false
+  let pos: number
+  try {
+    pos = view.posAtDOM(gutter)
+  } catch {
+    return false
+  }
+  // Resolve by line NUMBER, not offset: the doc can change while the modal is
+  // open, so re-look-up the line at apply time before rewriting it.
+  const lineNumber = view.state.doc.lineAt(pos).number
+  event.preventDefault()
+  new SignifierPickerModal(
+    ctx.app,
+    signifiers,
+    view.state.doc.line(lineNumber).text,
+    (ids) => {
+      const line = view.state.doc.line(lineNumber)
+      const updated = computeSignifierLineEdit(line.text, signifiers, ids)
+      if (updated === line.text) return
+      view.dispatch({
+        changes: { from: line.from, to: line.to, insert: updated },
+      })
+    }
+  ).open()
+  return true
 }
 
 // Live-preview (editing-view) signifier rendering. A CodeMirror
@@ -59,7 +115,7 @@ export interface SignifierLivePreviewContext {
 export function signifierLivePreviewExtension(
   ctx: SignifierLivePreviewContext
 ): Extension {
-  return ViewPlugin.fromClass(
+  const viewPlugin = ViewPlugin.fromClass(
     class implements PluginValue {
       decorations: DecorationSet
       private lastPlacement: SignifierPlacement
@@ -155,7 +211,9 @@ export function signifierLivePreviewExtension(
                   maxGutterReserve(maxWidth)
                 )
               } else if (
-                v.dom.querySelector('.cm-line.jf-signifier-host .jf-signifier-gutter')
+                v.dom.querySelector(
+                  '.cm-line.jf-signifier-host .jf-signifier-gutter:not(.jf-signifier-add-gutter)'
+                )
               ) {
                 // Markers ARE present but the measurement transiently failed
                 // (e.g. `coordsAtPos` returned null mid-layout). Keep the lane
@@ -192,7 +250,34 @@ export function signifierLivePreviewExtension(
           while (pos <= to) {
             const line = view.state.doc.lineAt(pos)
             const matched = matchSignifiers(extractTags(line.text), signifiers)
-            if (matched.length > 0) {
+            if (matched.length === 0) {
+              // No signifier yet: hang a faint, clickable add affordance in
+              // the same gutter so the user can attach one without typing a
+              // tag. Hidden until the line / affordance is hovered (CSS); it
+              // shares the gutter measurement so it lands in the right column.
+              if (lineCanReceiveSignifier(line.text)) {
+                const widgetPos = line.from + contentStartOffset(line.text)
+                collected.push(
+                  Decoration.line({ class: 'jf-signifier-host' }).range(
+                    line.from
+                  )
+                )
+                const depth =
+                  placement === 'margin-column'
+                    ? indentDepth(line.text, view.state.tabSize)
+                    : null
+                const cls =
+                  placement === 'margin-column'
+                    ? 'jf-signifier-gutter jf-signifier-column'
+                    : 'jf-signifier-gutter'
+                collected.push(
+                  Decoration.widget({
+                    widget: new SignifierAddWidget(cls, depth),
+                    side: -1,
+                  }).range(widgetPos)
+                )
+              }
+            } else {
               // Both placements are left-margin gutters: the line becomes the
               // positioning context (`jf-signifier-host`) and the icon marker
               // is placed after the line's `- [ ]` / bullet prefix so it sits
@@ -253,6 +338,12 @@ export function signifierLivePreviewExtension(
     },
     { decorations: (v) => v.decorations }
   )
+  // `mousedown` (not `click`) so we consume the event before CodeMirror moves
+  // the cursor / starts a selection in the margin the gutter lives in.
+  const clickHandler = EditorView.domEventHandlers({
+    mousedown: (event, view) => openPickerFromGutterEvent(event, view, ctx),
+  })
+  return [viewPlugin, clickHandler]
 }
 
 // A half-open `[from, to)` document range (CodeMirror offsets).
@@ -316,6 +407,10 @@ function measureGutterLefts(
     line: { from: number; text: string }
     hostLeft: number
     width: number
+    // The faint add affordance on a line with no signifier yet. It still gets
+    // positioned (so it lands in the gutter column), but it must not influence
+    // the reserved lane — an invisible hover target should never push content.
+    isAdd: boolean
   }[] = []
   const lineEls = view.dom.querySelectorAll<HTMLElement>(
     '.cm-line.jf-signifier-host'
@@ -335,6 +430,7 @@ function measureGutterLefts(
       line,
       hostLeft: lineEl.getBoundingClientRect().left,
       width: marker.getBoundingClientRect().width,
+      isAdd: marker.classList.contains('jf-signifier-add-gutter'),
     })
   }
 
@@ -343,11 +439,21 @@ function measureGutterLefts(
   // box by its own width). The leftmost feeds the reserve-deficit calc; the
   // widest marker bounds it (the lane can never need more than the icon stack
   // plus the gaps — a clamp against a runaway mis-measurement).
-  const maxWidth = rows.reduce((m, r) => Math.max(m, r.width), 0)
+  const maxWidth = rows.reduce(
+    (m, r) => (r.isAdd ? m : Math.max(m, r.width)),
+    0
+  )
   const lefts: { marker: HTMLElement; left: number }[] = []
   let minIconLeft = Infinity
-  const push = (marker: HTMLElement, left: number, hostLeft: number, w: number) => {
+  const push = (
+    marker: HTMLElement,
+    left: number,
+    hostLeft: number,
+    w: number,
+    isAdd: boolean
+  ) => {
     lefts.push({ marker, left })
+    if (isAdd) return
     const iconLeft = hostLeft + left - w
     if (iconLeft < minIconLeft) minIconLeft = iconLeft
   }
@@ -366,7 +472,8 @@ function measureGutterLefts(
     }
     if (columnX === null) return { lefts: [], minIconLeft, maxWidth }
     const target = columnX - COLUMN_INSET_PX
-    for (const r of rows) push(r.marker, target - r.hostLeft, r.hostLeft, r.width)
+    for (const r of rows)
+      push(r.marker, target - r.hostLeft, r.hostLeft, r.width, r.isAdd)
     return { lefts, minIconLeft, maxWidth }
   }
 
@@ -379,7 +486,13 @@ function measureGutterLefts(
       r.line.from + leadingWhitespaceLength(r.line.text)
     )
     if (!markStart) continue
-    push(r.marker, markStart.left - ROW_GAP_PX - r.hostLeft, r.hostLeft, r.width)
+    push(
+      r.marker,
+      markStart.left - ROW_GAP_PX - r.hostLeft,
+      r.hostLeft,
+      r.width,
+      r.isAdd
+    )
   }
   return { lefts, minIconLeft, maxWidth }
 }
@@ -479,6 +592,43 @@ class SignifierWidget extends WidgetType {
       renderSignifierIcon(icon, signifier.icon)
       marker.appendChild(icon)
     }
+    return marker
+  }
+
+  ignoreEvent(): boolean {
+    return false
+  }
+}
+
+// The hover affordance painted in the gutter of a line that has NO signifier
+// yet: a faint plus icon that fades in on hover and, when clicked, opens the
+// picker for that line (see `openPickerFromGutterEvent`). It reuses the
+// gutter measurement / column positioning so it sits exactly where a real
+// icon would, but carries `jf-signifier-add-gutter` so the reserve pass can
+// ignore it (an invisible affordance must never widen the reserved lane).
+class SignifierAddWidget extends WidgetType {
+  constructor(
+    private readonly className: string,
+    private readonly depth: number | null = null
+  ) {
+    super()
+  }
+
+  eq(other: SignifierAddWidget): boolean {
+    return other.className === this.className && other.depth === this.depth
+  }
+
+  toDOM(): HTMLElement {
+    const marker = document.createElement('span')
+    marker.className = `${this.className} jf-signifier-add-gutter jf-signifier-live`
+    marker.setAttribute('aria-label', 'Edit signifiers on this line')
+    if (this.depth !== null) {
+      marker.style.setProperty('--jf-sig-depth', String(this.depth))
+    }
+    const add = document.createElement('span')
+    add.className = 'jf-signifier jf-signifier-add'
+    setIcon(add, 'plus')
+    marker.appendChild(add)
     return marker
   }
 

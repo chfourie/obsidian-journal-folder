@@ -659,6 +659,12 @@ signifiers, pre-ticked with the ones already on the line. Tick or untick and
 apply — the plugin adds or removes the matching tags for you and leaves the rest
 of the line untouched.
 
+In **editing view** the margin gutter is also clickable: click a line's
+signifier icons to open that same checklist. On a line that doesn't have a
+signifier yet, a faint **+** fades in the margin as you hover the line — click it
+to add one. The cursor turns to a pointer over the gutter so you can tell it's
+interactive.
+
 ---
 
 ## Using with a theme that styles tasks

@@ -138,6 +138,7 @@ export class JournalSignifiersFeature extends PluginFeature {
     this.plugin.registerEditorExtension(
       signifierLivePreviewExtension({
         getSettings: () => this.globalSettings,
+        app: this.plugin.app,
       })
     )
 
