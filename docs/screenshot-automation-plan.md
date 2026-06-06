@@ -1,10 +1,13 @@
 # Plan: fully-automated README screenshot regeneration
 
-> **Status:** plan / not yet implemented. Written to capture the hard-won
-> knowledge from building the E2E suite (`tests/e2e/`) so it isn't lost. The goal
-> is to make `docs/screenshots/*.png` regenerate from **one command** with **zero
-> manual vault prep**, by reusing the same CLI-driving infrastructure the E2E
-> suite proved out.
+> **Status: IMPLEMENTED.** Shipped as `npm run screenshots`
+> (`scripts/screenshots/{run,scenes}.mjs` + `lib/{capture,demo-vault}.mjs`); see
+> [`scripts/screenshots/README.md`](../scripts/screenshots/README.md) and the
+> **Screenshots** section of [`docs/agent-notes.md`](agent-notes.md) for the
+> as-built harness. This document is retained as the design rationale. The goal —
+> regenerate `docs/screenshots/*.png` from **one command** with **zero manual
+> vault prep**, reusing the CLI-driving infrastructure the E2E suite proved out —
+> was met for all 29 scenes.
 
 ## Context — why this
 

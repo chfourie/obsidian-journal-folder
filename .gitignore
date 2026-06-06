@@ -46,3 +46,8 @@ tests/e2e/jf-e2e-vault/.obsidian/appearance.json
 # Repo root accidentally opened as an Obsidian vault — config has no
 # purpose here (not the demo vault, not a deploy target). Keep local, untrack.
 /.obsidian/
+
+# Screenshot harness: saved full-window frames + sidecar rects. Kept between
+# runs so `npm run screenshots -- --recrop` can re-cut crops without re-driving
+# Obsidian; not committed (large, machine-local).
+scripts/screenshots/.captures/

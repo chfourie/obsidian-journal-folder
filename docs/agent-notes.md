@@ -244,20 +244,47 @@ suite. Run `npm run test:e2e:build`; full docs in
   `pickVisibleMonthCount`, and collapses the in-note calendar from 3 months to 1,
   misrepresenting the feature. Treat zoom as fixed at 0. For larger captures hide
   the sidebars or widen the window instead.
-- The harness lives in `scripts/screenshots/` — `regenerate.mjs` is the scenario
-  manifest (note / view-mode / UI-state / crop per PNG) and shells out to
-  `capture.mjs` (open → set mode → `--setup` eval → measure rect → `dev:screenshot`
-  → crop with `sips`). Run `node scripts/screenshots/regenerate.mjs
-  [namefilter|--list]`; demo vault must be open as `vault=demo-vault` in **light
-  mode** with the current build pushed. See `scripts/screenshots/README.md`.
-- Harness gotchas: native Obsidian `Menu` (`.menu`) **can't be captured** (it
-  dismisses on the focus change `dev:screenshot` causes — custom portaled panels
-  survive); the header More chip is the inner `span[role=button]`; there are **two
-  header copies** in the DOM (reading view + a hidden live-preview one at 0,0) so
-  scope measurements to the active reading view; calendar visibility is a
-  session-sticky store (toggle via the More popover, then re-open the note);
-  normalise the right-split sidebar to ~290px; screenshots are Retina (multiply
-  CSS-px rects by `devicePixelRatio` 2).
+- **One idempotent command, zero manual prep.** `npm run screenshots` regenerates
+  all 29 PNGs (filter: `npm run screenshots -- header`; list: `-- --list`; reuse
+  the built bundle: `-- --no-deploy`; re-cut crops only: `-- --recrop`). The
+  harness lives in `scripts/screenshots/`: `run.mjs` (preflight + per-scene loop +
+  restore), `scenes.mjs` (the declarative manifest — one self-setting entry per
+  PNG), and `lib/{capture,demo-vault}.mjs`. It **reuses the E2E CLI/DOM plumbing**
+  (`tests/e2e/lib/{cli,page}.mjs`, pointed at the demo vault via
+  `JF_E2E_VAULT=demo-vault`) and the E2E **preflight** (verify
+  `getName()==='demo-vault'` → build/deploy → reload → detach leaves → visibility
+  gate → force light mode → readiness probe). Run **sandbox-off**; demo vault open
+  + visible. See `scripts/screenshots/README.md`.
+- **Each scene is self-setting.** A scene may carry a `settings` fixture
+  (shallow-merged over the demo `data.json`, which is **backed up and restored**
+  around the run — it's gitignored + user-configured), `tempFiles` (a throwaway
+  title-less journal folder for `header-no-folder-title`), `mobile: true`
+  (`dev:mobile on` for `calendar-mobile`), and a `setup(ctx)` that drives the UI
+  through the shipped `data-jf-*` hooks. The base scheme is forced to light and
+  restored; temp files / mobile are torn down. After a run the demo vault is
+  pristine (`data.json`, tracked notes, `workspace.json` all unchanged).
+- **Capture is two phases: drive then crop.** The drive measures the rect, saves
+  the **full-window frame** + a **sidecar rect** under
+  `scripts/screenshots/.captures/` (gitignored), then `sips`-crops. `--recrop`
+  re-cuts from the saved frames with no Obsidian — so a wrong crop / changed `pad`
+  is fixed instantly, and a blank crop is diagnosed by opening the saved frame to
+  see the real app state. (This caught both positioning bugs below at a glance.)
+- Harness gotchas:
+  - **Two header copies** in the active leaf (reading view + a hidden live-preview
+    one at 0,0). A bare `.mod-active [data-jf-more-button]` hits the **hidden** one
+    → its popover renders blank at the top-left. Scope interactive reading-view
+    queries to `.markdown-reading-view`.
+  - **Portaled panels position via `requestAnimationFrame`**, which is throttled
+    while Obsidian isn't the foreground app during CLI driving → a freshly opened
+    sidebar menu stays at its default top-left (the `menu-panel-position.ts`
+    no-anchor "centered sheet"). Fire a window `resize` after opening to run the
+    reposition synchronously.
+  - Native Obsidian `Menu` (`.menu`) **can't be captured** (dismisses on the
+    `dev:screenshot` focus change — the plugin's custom portaled panels survive);
+    calendar visibility is a session-sticky store (toggle via the More popover);
+    normalise the right-split sidebar to ~290px and recreate the leaf to reset
+    sticky Svelte panel state; screenshots are Retina (multiply CSS-px rects by
+    `devicePixelRatio` 2).
 
 ---
 

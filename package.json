@@ -12,7 +12,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:e2e": "node tests/e2e/run.mjs",
-		"test:e2e:build": "npm run build && node tests/e2e/run.mjs"
+		"test:e2e:build": "npm run build && node tests/e2e/run.mjs",
+		"screenshots": "JF_E2E_VAULT=demo-vault node scripts/screenshots/run.mjs"
 	},
 	"keywords": [],
 	"author": "Charl Fourie",
