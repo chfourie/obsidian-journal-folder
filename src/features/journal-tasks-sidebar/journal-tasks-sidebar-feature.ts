@@ -63,15 +63,6 @@ export class JournalTasksSidebarFeature extends PluginFeature {
           }
         )
     )
-
-    this.plugin.addRibbonIcon(
-      'list-checks',
-      'Open Journal Tasks sidebar',
-      () => {
-        // noinspection JSIgnoredPromiseFromCall
-        this.activate()
-      }
-    )
   }
 
   unload(): void {
@@ -85,7 +76,8 @@ export class JournalTasksSidebarFeature extends PluginFeature {
     this.#views.forEach((v) => v.onSettingsChanged(settings))
   }
 
-  private async activate(): Promise<void> {
+  // Public so the master ribbon menu can open this sidebar.
+  async activate(): Promise<void> {
     const ws = this.plugin.app.workspace
     const existing = ws.getLeavesOfType(VIEW_TYPE_JOURNAL_TASKS_SIDEBAR)
     if (existing.length > 0) {

@@ -25,6 +25,7 @@ import { JournalFolderSidebarFeature } from '../features/journal-folder-sidebar'
 import { JournalTasksFeature } from '../features/journal-tasks'
 import { JournalTasksSidebarFeature } from '../features/journal-tasks-sidebar'
 import { JournalSignifiersFeature } from '../features/journal-signifiers'
+import { JournalRibbonMenuFeature } from '../features/journal-ribbon-menu'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -37,25 +38,33 @@ export default class JournalFolderPlugin extends Plugin {
       this.#features.useSettings
     )
     const tasksFeature = new JournalTasksFeature(this)
+    const folderSidebarFeature = new JournalFolderSidebarFeature(
+      this,
+      settingsFeature.saveSettings,
+      tasksFeature.cache
+    )
+    const tasksSidebarFeature = new JournalTasksSidebarFeature(
+      this,
+      settingsFeature.saveSettings,
+      tasksFeature.cache
+    )
     this.#features
       .addFeature(settingsFeature)
       .addFeature(new JournalHeaderFeature(this))
       .addFeature(tasksFeature)
       .addFeature(new JournalSignifiersFeature(this))
       .addFeature(new JournalAutoTemplateFeature(this))
+      .addFeature(folderSidebarFeature)
+      .addFeature(tasksSidebarFeature)
+      // The master ribbon menu aggregates the other features' surfaces, so it
+      // is constructed last with callbacks into the already-built features.
       .addFeature(
-        new JournalFolderSidebarFeature(
-          this,
-          settingsFeature.saveSettings,
-          tasksFeature.cache
-        )
-      )
-      .addFeature(
-        new JournalTasksSidebarFeature(
-          this,
-          settingsFeature.saveSettings,
-          tasksFeature.cache
-        )
+        new JournalRibbonMenuFeature(this, {
+          openFolderSidebar: () => folderSidebarFeature.activate(),
+          openTasksSidebar: () => tasksSidebarFeature.activate(),
+          initNewJournalFolder: () =>
+            folderSidebarFeature.openInitFolderPicker(),
+        })
       )
   }
 

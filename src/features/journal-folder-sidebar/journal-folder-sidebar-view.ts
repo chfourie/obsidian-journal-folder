@@ -259,7 +259,8 @@ export class JournalFolderSidebarView extends ItemView {
     ).open()
   }
 
-  private openInitFolderPicker(): void {
+  // Public so the master ribbon menu can drive the same flow via the feature.
+  openInitFolderPicker(): void {
     const candidates = findInitialisableFolders(this.plugin.app)
     new InitJournalFolderModal(this.plugin.app, candidates, async (folder) => {
       try {

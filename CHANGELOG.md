@@ -7,6 +7,25 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.5.0]
+
+### Added
+- **A plugin menu.** A single ribbon icon — *Journal Folder menu* — now opens a
+  quick-action menu: a light/dark switch, *Open Journal Folder sidebar*, *Open
+  Journal Tasks sidebar*, and *Initialise a new journal folder*. An **Open
+  Journal Folder menu** command opens the same menu, which is the way to reach it
+  on mobile (Obsidian has no ribbon there — pin the command to the toolbar). On a
+  phone the menu opens as a centred sheet with roomier rows.
+- **Quick light/dark switch.** The menu's first row flips Obsidian's own *Base
+  color scheme* (the *Settings → Appearance* setting); its label and icon always
+  offer the opposite of the current mode. A vault set to *Adapt to system* is
+  switched to an explicit light or dark scheme.
+
+### Changed
+- **The two sidebar ribbon icons are now one.** The separate *Open Journal Folder
+  sidebar* and *Open Journal Tasks sidebar* ribbon icons have been replaced by the
+  single plugin menu above; both sidebars open from that menu (or their commands).
+
 ## [2.4.3]
 
 ### Added

@@ -10,6 +10,7 @@ You can run as many independent journals as you like in the same vault. A folder
 
 - **A navigable header** in every journal note — backward / forward chips, a *Today* link, a *More…* popover for higher-order period jumps, and an optional inline calendar. [Read more →](#the-journal-header)
 - **A calendar picker** that mirrors your whole journal — existing / missing / today / current-note states, fold-out month grid, configurable defaults per platform. [Read more →](#the-calendar-picker)
+- **A plugin menu** — one ribbon icon (and the *Open Journal Folder menu* command) opens a quick-action menu: open either sidebar, switch between light and dark mode, or initialise a new journal folder. [Read more →](#the-plugin-menu)
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](#sidebar-tab)
 - **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](#auto-fill-new-journal-notes)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](#quarterly-notes-opt-in)
@@ -55,7 +56,7 @@ Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugin
 ## Getting started
 
 1. Pick a folder in your vault for your journal (e.g. `Personal`, `Project — Atlas`, …). The vault root isn't supported — make it a real folder.
-2. Open the sidebar (calendar ribbon icon on the left), click the **More...** link, and choose **Initialise a new journal folder**. Pick your folder.
+2. Click the **Journal Folder** ribbon icon (left edge of the workspace) and choose **Initialise a new journal folder** from the menu. Pick your folder.
 3. The plugin creates a `journal-folder.md` in that folder. Click any cell on the calendar to create your first daily/weekly/monthly note — it gets the `journal-header` block automatically if you've turned on *Auto-fill new journal notes*.
 4. Open the new note. You should see the rendered header at the top.
 
@@ -84,6 +85,7 @@ User guide (everything below is in this page):
 
 - [The journal header](#the-journal-header)
 - [The calendar picker](#the-calendar-picker)
+- [The plugin menu](#the-plugin-menu)
 - [Sidebar tab](#sidebar-tab)
 - [Auto-fill new journal notes](#auto-fill-new-journal-notes)
 - [Quarterly notes (opt-in)](#quarterly-notes-opt-in)
@@ -223,9 +225,22 @@ You can have the calendar open by default for new sessions — see `default-cale
 
 ---
 
+## The plugin menu
+
+Everything the plugin does from outside a note hangs off a single **ribbon icon** on the left edge of the workspace (the notebook glyph, labelled *Journal Folder menu*). Clicking it opens a small action menu:
+
+![The plugin menu, open from the ribbon icon](docs/screenshots/plugin-menu.png)
+
+- **Switch to light / dark mode** — flips Obsidian's own *Base color scheme* (the same setting as *Settings → Appearance*). The label and icon track the current mode, so the row always offers the opposite. A vault set to *Adapt to system* is switched to an explicit light or dark scheme and left there.
+- **Open Journal Folder sidebar** — reveals the [sidebar tab](#sidebar-tab) (folder picker, calendar, task panel).
+- **Open Journal Tasks sidebar** — reveals the slim [tasks-only sidebar](#sidebar-task-panel).
+- **Initialise a new journal folder** — the same fuzzy folder picker described under [More… menu](#more-menu); it creates the `journal-folder.md` and switches the sidebar to the new folder.
+
+**On mobile**, Obsidian doesn't show the desktop ribbon, so the menu is also registered as the **Open Journal Folder menu** command — run it from the command palette, or pin it to the mobile toolbar (*Settings → Toolbar*). On a phone the menu opens as a centred sheet with roomier rows.
+
 ## Sidebar tab
 
-A dedicated sidebar view collects journal-folder actions in one place. Open it with the calendar ribbon icon (left edge of the workspace) — the view docks in the right sidebar by default.
+A dedicated sidebar view collects journal-folder actions in one place. Open it from the [plugin menu](#the-plugin-menu) (**Open Journal Folder sidebar**) — the view docks in the right sidebar by default.
 
 ![Sidebar in dynamic mode](docs/screenshots/sidebar-dynamic.png)
 
@@ -436,7 +451,7 @@ The defaults are `YYYY [Quarter] Q` (e.g. `2026 Quarter 2`) for the H1, `[Q]Q` f
 The tasks feature surfaces Markdown tasks (`- [ ] …` / `- [x] …` and friends) from your journal notes in three places:
 
 1. A panel below the calendar in the **sidebar tab**.
-2. A slim **Tasks-only sidebar** (its own view, opened from the *list-checks* ribbon icon).
+2. A slim **Tasks-only sidebar** (its own view, opened from the [plugin menu](#the-plugin-menu) → **Open Journal Tasks sidebar**).
 3. An in-note **`journal-tasks` code block**, analogous to `journal-header`.
 
 A task shows up wherever its source note's date range intersects the **reference window** you're viewing. In the sidebar you choose that window with two controls — an *anchor* (today, or the note you're currently in) and a *range* (day / week / month / quarter / year, or *All* for no date filter); see [Sidebar task panel](#sidebar-task-panel). There's no completion-date stamping — a task's position comes purely from the note it lives in.

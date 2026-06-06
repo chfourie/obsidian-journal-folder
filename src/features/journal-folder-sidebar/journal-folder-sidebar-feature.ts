@@ -55,15 +55,6 @@ export class JournalFolderSidebarFeature extends PluginFeature {
           }
         )
     )
-
-    this.plugin.addRibbonIcon(
-      'calendar-days',
-      'Open Journal Folder sidebar',
-      () => {
-        // noinspection JSIgnoredPromiseFromCall
-        this.activate()
-      }
-    )
   }
 
   unload(): void {
@@ -79,7 +70,8 @@ export class JournalFolderSidebarFeature extends PluginFeature {
     this.#views.forEach((v) => v.onSettingsChanged(settings))
   }
 
-  private async activate(): Promise<void> {
+  // Public so the master ribbon menu can open this sidebar.
+  async activate(): Promise<void> {
     const ws = this.plugin.app.workspace
     const existing = ws.getLeavesOfType(VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR)
     if (existing.length > 0) {
@@ -93,5 +85,13 @@ export class JournalFolderSidebarFeature extends PluginFeature {
       active: true,
     })
     ws.revealLeaf(leaf)
+  }
+
+  // Reveal the sidebar, then run its existing "Initialise a new journal folder"
+  // flow (folder picker → create → select). Routed through the open view so the
+  // new folder is auto-selected, exactly as the sidebar's own More… menu does.
+  async openInitFolderPicker(): Promise<void> {
+    await this.activate()
+    this.#views.values().next().value?.openInitFolderPicker()
   }
 }

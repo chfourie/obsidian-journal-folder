@@ -2222,11 +2222,20 @@ li.task-list-item[data-task="-"] {
 }
 
 /* Slightly roomier tap targets for the portaled list panels (task scope +
- * sidebar More…) — the rows are otherwise sized for a mouse. */
+ * sidebar More… + the master ribbon menu, which reuses .jf-sidebar-menu-item)
+ * — the rows are otherwise sized for a mouse. */
 .is-mobile .journal-folder-tasks-scope-option,
 .is-mobile .jf-sidebar-menu-item {
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
+}
+
+/* The master menu has no ribbon to anchor to on mobile, so it opens centred
+ * (see computeMenuPanelPosition). A centred sheet reads better a little wider
+ * than the desktop dropdown. */
+.is-mobile .jf-ribbon-menu-panel {
+	min-width: min(300px, 92vw);
+	max-width: 92vw;
 }
 
 /* The "Scope ▾" / "More…" triggers and the task status-cycle icon are tiny

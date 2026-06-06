@@ -17,11 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 export {
-  JournalFolderSidebarFeature,
-  VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR,
-} from './journal-folder-sidebar-feature'
-export type { SidebarMenuItem } from './journal-folder-sidebar-view'
-export {
-  resolveSelectedFolder,
-  resolveDynamicSelection,
-} from './sidebar-selection'
+  JournalRibbonMenuFeature,
+  type RibbonMenuActions,
+} from './journal-ribbon-menu-feature'

@@ -306,3 +306,40 @@ nearest overflow-clipping ancestor — 0 when the existing margin already fits),
 WeakMap-cached base padding and live-inline-padding read-back to prevent
 oscillation. Implementation and all the recompute triggers are documented in depth
 in `CLAUDE.md` (signifiers section), `docs/signifiers.md`, and `gutter-positioner.ts`.
+
+### Master ribbon menu (`JournalRibbonMenuFeature`)
+
+A single plugin "home" ribbon icon (`notebook-text`, label *Journal Folder menu*)
+that opens a styled action menu. It **replaced** the two per-sidebar ribbon icons
+(`calendar-days` / `list-checks`) — those open actions are now menu items, along
+with *Initialise a new journal folder* and a light/dark switch. The feature is a
+thin aggregator: constructed **last** in the plugin (after both sidebar features)
+and handed callbacks (`folderSidebarFeature.activate()`,
+`tasksSidebarFeature.activate()`, `folderSidebarFeature.openInitFolderPicker()`),
+so it never reaches across features directly. Those three methods were made
+`public` for this; `openInitFolderPicker()` reveals the sidebar then drives the
+existing view flow so the new folder auto-selects.
+
+- **Mobile**: Obsidian has **no ribbon strip on mobile**, so a ribbon-only entry
+  is desktop-only. The feature also registers an `open-journal-menu` **command**
+  (palette + pinnable to the mobile toolbar) — this is the mobile entry point.
+  Always add a command for any ribbon-primary affordance.
+- **Panel** reuses the sidebar's `.jf-sidebar-menu-*` styling (own
+  `RibbonMenuPanel.svelte`, driven imperatively via a `registerApi` callback —
+  the feature mounts it into a detached host; it portals to `<body>`). Positioning
+  is the shared pure `menu-panel-position.ts` (`computeMenuPanelPosition`, unit
+  tested), which `SidebarMenuPanel` was refactored onto too: `placement:'below'`
+  for the sidebar menus, `'right'` flyout for the ribbon, and a **centred-sheet
+  fallback when there is no anchor** (the command/mobile path). Mobile tap targets
+  come for free from the existing `.is-mobile .jf-sidebar-menu-item` rule; the
+  centred sheet gets a wider `.is-mobile .jf-ribbon-menu-panel` width.
+
+**Light/dark switch = Obsidian's standard Base color scheme**, not a parallel
+theme system. Verified-live internal App API (absent from the public d.ts):
+`app.getTheme()` returns the **effective** scheme and *resolves* `'system'` to the
+explicit `'obsidian'` (dark) / `'moonstone'` (light); `app.changeTheme(value)`
+persists via `setConfig('theme', …)` **and** repaints the body immediately (handles
+the CSS transition). Toggle = `changeTheme(getTheme()==='obsidian' ? 'moonstone' :
+'obsidian')`. A *Adapt to system* user is flipped to an explicit scheme and left
+there (deliberate — we don't try to return to `'system'`). Logic isolated in
+`theme-toggle.ts` (unit tested) so the undocumented API has a one-file blast radius.

@@ -159,6 +159,23 @@ const SCENARIOS = [
     args: ['--note', 'Personal/2026-05-04', '--setup', `${SIDEBAR_OPEN}; await sleep(400); click(document.querySelector('.jf-sidebar-folder-button'))`, '--rect', sidebarRect('.jf-sidebar-menu-panel'), '--pad', '0'],
   },
 
+  // ---- Plugin (master) ribbon menu --------------------------------------
+  // The single ribbon icon opens the same `<body>`-portaled `.jf-sidebar-menu-
+  // panel` styling under a `.jf-ribbon-menu-panel` class. Click the ribbon
+  // action (found by its aria-label) and crop the portaled panel. Clicking the
+  // ribbon also dismisses any sidebar panel left open by a prior scenario (its
+  // window click-out handler fires), so no extra cleanup is needed.
+  {
+    name: 'plugin-menu',
+    args: [
+      '--note', 'Personal/2026-05-04',
+      '--setup',
+      `app.setting.close(); document.querySelectorAll('.modal-container .modal-close-button').forEach(b=>b.click()); await sleep(300); click(document.querySelector('[aria-label="Journal Folder menu"]')); await sleep(400)`,
+      '--rect', `bodyRect('.jf-ribbon-menu-panel')`,
+      '--pad', '4',
+    ],
+  },
+
   // ---- Migration picker modal (new) -------------------------------------
   {
     name: 'migration-picker',

@@ -17,46 +17,31 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <script lang="ts">
   import { setIcon } from 'obsidian'
-  import type { Snippet } from 'svelte'
-  import type { SidebarMenuItem } from './journal-folder-sidebar-view'
-  import { computeMenuPanelPosition } from './menu-panel-position'
+  import type { SidebarMenuItem } from '../journal-folder-sidebar'
+  import { computeMenuPanelPosition } from '../journal-folder-sidebar/menu-panel-position'
 
+  // The feature drives the panel imperatively: on the ribbon click it passes
+  // the ribbon element to anchor against; from the command (mobile, where the
+  // ribbon strip doesn't exist) it passes nothing and the panel centres.
   type Props = {
-    // Resolved lazily when the panel opens so item visibility / titles
-    // reflect the current settings + selection.
     getItems: () => SidebarMenuItem[]
-    // Default trigger is a plain text link showing `label`. Pass a
-    // `trigger` snippet instead to render custom trigger content (e.g. the
-    // folder picker's label + caret); `triggerClass` styles the wrapper.
-    label?: string
-    trigger?: Snippet
-    triggerClass?: string
-    triggerId?: string
-    disabled?: boolean
-    // Horizontal edge of the trigger the panel aligns to. The More... link
-    // hangs its right edge under the trigger; the wide folder button reads
-    // better aligned to its left edge and matching its width.
-    align?: 'left' | 'right'
-    matchTriggerWidth?: boolean
+    registerApi: (api: {
+      toggle: (anchor?: HTMLElement | null) => void
+      close: () => void
+    }) => void
   }
 
-  const {
-    getItems,
-    label,
-    trigger,
-    triggerClass = 'jf-sidebar-link jf-sidebar-more-link',
-    triggerId,
-    disabled = false,
-    align = 'right',
-    matchTriggerWidth = false,
-  }: Props = $props()
+  const { getItems, registerApi }: Props = $props()
 
   let open = $state(false)
   let items = $state<SidebarMenuItem[]>([])
-  let triggerEl: HTMLElement | undefined = $state()
+  // Not reactive — only read inside positioning, which we re-run explicitly.
+  let anchorEl: HTMLElement | null = null
   let panelEl: HTMLElement | undefined = $state()
   let panelStyle = $state('')
 
+  // Reuse the sidebar menu's `<body>` portal + Lucide-icon painter so the panel
+  // escapes any clipping container and shares the `.jf-sidebar-menu-*` styling.
   function portal(node: HTMLElement) {
     document.body.appendChild(node)
     return {
@@ -66,43 +51,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     }
   }
 
-  // Obsidian's `setIcon` paints a Lucide glyph into the node.
   function icon(node: HTMLElement, name: string) {
     setIcon(node, name)
   }
 
   function updatePanelPosition() {
-    if (!triggerEl) return
-    const rect = triggerEl.getBoundingClientRect()
-    const gap = 6
-    // `min-width` is baked into `panelStyle` (not set imperatively): the
-    // reactive `style={panelStyle}` binding rewrites the whole inline
-    // style whenever it changes, which would otherwise wipe an
-    // imperatively-set width on the first open.
-    const minWidthCss = matchTriggerWidth ? ` min-width: ${rect.width}px;` : ''
-    if (panelEl) panelEl.style.minWidth = matchTriggerWidth
-      ? `${rect.width}px`
-      : ''
-    const width = panelEl?.offsetWidth ?? 220
+    const width = panelEl?.offsetWidth ?? 240
     const height = panelEl?.offsetHeight ?? 0
+    const rect = anchorEl?.getBoundingClientRect()
     const { top, left } = computeMenuPanelPosition({
-      anchor: {
-        top: rect.top,
-        left: rect.left,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-      },
+      anchor: rect
+        ? {
+            top: rect.top,
+            left: rect.left,
+            right: rect.right,
+            bottom: rect.bottom,
+            width: rect.width,
+          }
+        : null,
       panel: { width, height },
       viewport: { width: window.innerWidth, height: window.innerHeight },
-      placement: 'below',
-      align,
-      gap,
+      placement: 'right',
     })
-    panelStyle = `top: ${top}px; left: ${left}px;${minWidthCss}`
+    panelStyle = `top: ${top}px; left: ${left}px;`
   }
 
-  function openPanel() {
+  function openPanel(anchor: HTMLElement | null) {
+    anchorEl = anchor ?? null
     items = getItems()
     open = true
     requestAnimationFrame(updatePanelPosition)
@@ -110,12 +85,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   function closePanel() {
     open = false
+    anchorEl = null
   }
 
-  function toggle() {
-    if (disabled) return
+  function toggle(anchor?: HTMLElement | null) {
     if (open) closePanel()
-    else openPanel()
+    else openPanel(anchor ?? null)
   }
 
   function runItem(onClick: () => void) {
@@ -135,7 +110,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function handleDocumentClick(event: MouseEvent) {
     if (!open) return
     const target = event.target as Node | null
-    if (target && triggerEl && triggerEl.contains(target)) return
+    // The ribbon click that opened us bubbles to window in the same gesture;
+    // ignore clicks within the anchor so we don't immediately re-close.
+    if (target && anchorEl && anchorEl.contains(target)) return
     if (target && panelEl && panelEl.contains(target)) return
     closePanel()
   }
@@ -147,6 +124,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function handleViewportChange() {
     if (open) updatePanelPosition()
   }
+
+  // Hand the imperative controls to the feature once, on mount. An $effect
+  // (rather than a bare top-level call) avoids capturing the prop non-reactively
+  // and runs well before any user click.
+  $effect(() => {
+    registerApi({ toggle, close: closePanel })
+  })
 
   $effect(() => {
     if (!open) return
@@ -162,32 +146,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   onresize={handleViewportChange}
 />
 
-<span
-  bind:this={triggerEl}
-  id={triggerId}
-  role="button"
-  tabindex={disabled ? -1 : 0}
-  class={triggerClass}
-  class:open
-  class:is-disabled={disabled}
-  aria-haspopup="menu"
-  aria-expanded={open}
-  aria-disabled={disabled}
-  onclick={toggle}
-  onkeydown={activate(toggle)}
->
-  {#if trigger}
-    {@render trigger()}
-  {:else}
-    {label}
-  {/if}
-</span>
-
 {#if open}
   <div
     use:portal
     bind:this={panelEl}
-    class="jf-sidebar-menu-panel"
+    class="jf-sidebar-menu-panel jf-ribbon-menu-panel"
     style={panelStyle}
     role="menu"
     tabindex="-1"
