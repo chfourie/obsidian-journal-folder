@@ -1,6 +1,6 @@
 {
 	"name": "journal-folder",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"description": "Utilities for folder-based journaling",
 	"main": "main.js",
 	"scripts": {
