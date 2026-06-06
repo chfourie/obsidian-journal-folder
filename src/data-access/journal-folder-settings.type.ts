@@ -49,22 +49,37 @@ export type JournalFolderSettings = {
   // can be overridden globally via `autoTemplateContent` and per-folder by
   // putting markdown in the body of `journal-folder.md`.
   autoTemplateEnabled: boolean
-  // Markdown used to seed new journal notes when auto-template is enabled
-  // and no per-folder body override is present in `journal-folder.md`. When
-  // empty, a built-in default (a single `journal-header` code block) is used.
-  // Acts as the cross-tier fallback — the per-tier fields below take
-  // precedence when the new note matches that tier.
+  // Vault path of the folder holding the **template notes** that seed new
+  // journal entries. Inside it the plugin looks up standardized filenames by
+  // tier — `daily.md` / `weekly.md` / `monthly.md` / `quarterly.md` /
+  // `yearly.md`, with `default.md` as the cross-tier fallback. A template
+  // note's body (front matter included) is copied verbatim into the new
+  // note. Defaults to `Templates/journal-folder` — plugin-namespaced so it
+  // won't clash with a user's own `Templates/` folder or another template
+  // plugin. **Global only.**
+  templateFolder: string
+  // Name of a subfolder, *relative to each journal folder*, that overrides
+  // the global template notes for that folder only (same standardized
+  // filenames). Drop a `monthly.md` in `<journalFolder>/Templates/` and it
+  // beats the global `monthly.md`. Default `Templates`. **Global only** —
+  // the name is process-wide; the override itself is expressed by the files
+  // present in each folder, so it needs no per-folder setting.
+  templateOverrideFolderName: string
+  // Bookkeeping flag: set once the one-time migration of legacy inline
+  // template text (the `*AutoTemplateContent` fields below) into template
+  // notes under `templateFolder` has run, so it never repeats. **Global
+  // only.**
+  templatesMigratedToFiles: boolean
+  // @deprecated Legacy inline template text. No longer read once migrated
+  // into template notes (see `templateFolder`); left in the type so the
+  // one-time migration can still consume it and so existing `data.json`
+  // values are preserved as a backup.
   autoTemplateContent: string
-  // When true, the auto-fill feature ignores `autoTemplateContent` and uses
-  // the per-tier fields below instead — one template per note type. When
-  // false (the default), the per-tier fields are ignored and every tier
-  // shares `autoTemplateContent`. The two modes are mutually exclusive in
-  // the UI (a single toggle in the settings tab swaps which fields show).
+  // @deprecated Legacy per-tier toggle. See `templateFolder` — per-tier
+  // templates are now separate notes (`daily.md`, …). Kept for migration.
   autoTemplatePerTier: boolean
-  // Per-tier templates used only when `autoTemplatePerTier` is true. An
-  // empty string for a tier falls through to the built-in default. The
-  // folder-level override (the body of `journal-folder.md`) still wins
-  // over all of these.
+  // @deprecated Legacy per-tier inline template text. Migrated into
+  // `daily.md` / `weekly.md` / … under `templateFolder`. Kept for migration.
   dailyNoteAutoTemplateContent: string
   weeklyNoteAutoTemplateContent: string
   monthlyNoteAutoTemplateContent: string
@@ -362,6 +377,9 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultCalendarVisibleMobile: false,
   quartersEnabled: false,
   autoTemplateEnabled: false,
+  templateFolder: 'Templates/journal-folder',
+  templateOverrideFolderName: 'Templates',
+  templatesMigratedToFiles: false,
   autoTemplateContent: '',
   autoTemplatePerTier: false,
   dailyNoteAutoTemplateContent: '',

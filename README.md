@@ -12,7 +12,7 @@ You can run as many independent journals as you like in the same vault. A folder
 - **A calendar picker** that mirrors your whole journal — existing / missing / today / current-note states, fold-out month grid, configurable defaults per platform. [Read more →](#the-calendar-picker)
 - **A plugin menu** — one ribbon icon (and the *Open Journal Folder menu* command) opens a quick-action menu: open either sidebar, switch between light and dark mode, or initialise a new journal folder. [Read more →](#the-plugin-menu)
 - **A sidebar tab** with folder picker, calendar, and one-click access to every journal-folder action — *Switch to default*, *Set as default*, *Edit folder configuration*, *Initialise a new journal folder*. [Read more →](#sidebar-tab)
-- **Auto-fill new journal notes** with a per-folder or per-tier template, so you don't need Templater just to inject the `journal-header` block. [Read more →](#auto-fill-new-journal-notes)
+- **Auto-fill new journal notes** from note-based templates (one per tier, with per-folder overrides), so you don't need Templater just to inject the `journal-header` block. [Read more →](#auto-fill-new-journal-notes)
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](#quarterly-notes-opt-in)
 - **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, tag-driven **task categories** (optionally range-capped so day-local chores stay out of wider rollups), and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
 - **Signifiers** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers)
@@ -112,7 +112,7 @@ Every journal note gets a header by including a `journal-header` code block at t
 That's it. The plugin replaces the code block with a rendered header keyed off the note's filename. The leading `%% EDITING %%` comment is optional but recommended — without it, opening a note in edit mode lands the cursor on the code block, which causes the rendered header to flicker into source until you click away. With the comment, the cursor lands on the comment line first; reading view drops the comment entirely and renders the header at the very top.
 
 > [!TIP]
-> Turn on the plugin's own [*Auto-fill new journal notes*](#auto-fill-new-journal-notes) feature to inject this block automatically into new notes — no extra plugins, and it's journal-aware (per-folder and per-tier templates). If you'd rather drive templating from elsewhere, the [Templater](https://silentvoid13.github.io/Templater/) plugin or the core *Templates* plugin can do the same job.
+> Turn on the plugin's own [*Auto-fill new journal notes*](#auto-fill-new-journal-notes) feature to inject this block automatically into new notes — no extra plugins, and it's journal-aware (templates are notes, one per tier, with per-folder overrides). If you'd rather drive templating from elsewhere, the [Templater](https://silentvoid13.github.io/Templater/) plugin or the core *Templates* plugin can do the same job.
 
 ### What the header shows
 
@@ -286,13 +286,13 @@ Items:
 
 ## Auto-fill new journal notes
 
-The plugin can seed new journal notes with a template body, so you don't need Templater (or another helper plugin) just to drop a `journal-header` code block at the top of every new note.
+The plugin can seed new journal notes with a template body, so you don't need Templater (or another helper plugin) just to drop a `journal-header` code block at the top of every new note. Templates are **ordinary notes** you author and preview like any other — not text buried in settings.
 
 ### Enabling
 
-Off by default. Turn it on at any of two layers:
+Off by default. Turn it on at either layer:
 
-- **Globally** in *Settings → Community plugins → Journal Folder → Auto-fill new journal notes*.
+- **Globally** in *Settings → Community plugins → Journal Folder → New-note template → Auto-fill new journal notes*.
 - **Per folder** by adding `auto-template-enabled: true` (or `false` to disable) to that folder's `journal-folder.md` front matter. The easiest way is through the sidebar's **More... → Edit folder configuration** action.
 
 When enabled, a new note is auto-filled only when **all** of these are true:
@@ -301,84 +301,66 @@ When enabled, a new note is auto-filled only when **all** of these are true:
 2. The folder containing the note has a `journal-folder.md` config file.
 3. The note is empty at creation (existing content is never overwritten).
 
-### One template, or one per note type?
+### Templates are notes
 
-A toggle in the plugin settings — *Use a different template per note type* — selects between the two modes. They are **mutually exclusive**: only one is in effect at a time.
+Each template is a note with a **standardized filename**, kept in a template folder. One per tier, plus a cross-tier fallback:
 
-- **Off** (default) — every new journal note (daily, weekly, monthly, quarterly, yearly) is seeded with the same *Default template*. The per-tier fields are hidden and ignored.
-- **On** — pick a separate template for each note type via the *Daily / Weekly / Monthly / Quarterly / Yearly note template* fields. The generic *Default template* is hidden and ignored. A blank tier-specific field falls through to the built-in default rather than to the generic template.
+| Filename | Used for |
+| --- | --- |
+| `daily-template.md` | daily notes (`YYYY-MM-DD`) |
+| `weekly-template.md` | weekly notes (`gggg-[W]ww`) |
+| `monthly-template.md` | monthly notes (`YYYY-MM`) |
+| `quarterly-template.md` | quarterly notes (`YYYY-Q[1-4]`) |
+| `yearly-template.md` | yearly notes (`YYYY`) |
+| `default-template.md` | any tier with no dedicated file above |
 
-The toggle is persisted as `auto-template-per-tier` and can be overridden per-folder in `journal-folder.md`.
+The note's whole body — **front matter included** — is copied verbatim into the new entry, so you can template tags and properties too. Two settings (under *New-note template*) control where the plugin looks:
+
+- **Template folder** — the vault-wide folder holding the template notes. Default `Templates/journal-folder` (namespaced so it won't collide with your own `Templates/` folder or another template plugin). The **Create template files** button there scaffolds any missing standardized notes for you.
+- **Per-folder override subfolder** — a subfolder *name* (default `Templates`) looked up relative to each journal folder. Drop a `monthly-template.md` into `<journalFolder>/Templates/` and it overrides the global one for that folder only — no extra setting needed.
+
+### Editing a template previews it live
+
+Because templates are real notes, opening one that contains a `journal-header` block renders it **as the current period's entry** — header, calendar, and signifiers — so you see exactly what a fresh note will look like. A corner **TEMPLATE** ribbon marks the preview, and all of its navigation links and calendar cells are display-only (they point back at the template itself rather than navigating to real journal notes).
 
 ### Template precedence
 
-The template body is resolved in three layers, **first non-empty wins**:
+For a new note the body is resolved in this order, **first non-empty wins**:
 
-1. **Per-folder body** — the markdown body of `journal-folder.md` (everything below its front matter). Use this when one folder needs a different template than the rest of the vault. Applies to every tier in that folder regardless of the toggle.
-2. **Global setting** — depends on the toggle:
-   - Toggle off: *Default template* (`auto-template-content`).
-   - Toggle on: the matching *…note template* field for the new note's tier (`{daily,weekly,monthly,quarterly,yearly}-note-auto-template-content`).
-3. **Built-in default** — `%% JOURNAL NOTE %%` followed immediately by an empty `journal-header` code block (no blank line between them, so the comment sits flush with the fence).
+1. **Per-folder override** — `<journalFolder>/<override>/<tier>-template.md`, then `<journalFolder>/<override>/default-template.md`.
+2. **Legacy folder body** — the markdown body of `journal-folder.md` (everything below its front matter). Still honoured for backward compatibility.
+3. **Global template folder** — `<templateFolder>/<tier>-template.md`, then `<templateFolder>/default-template.md`.
+4. **Built-in default** — `%% JOURNAL NOTE %%` followed immediately by an empty `journal-header` code block.
 
 The `%% … %%` line is an Obsidian hidden comment — it doesn't render in reading mode and parks the cursor above the code block when toggling into edit mode. Without it, the cursor lands inside the fence and the block stops rendering until you click out.
 
-### Different templates for different note types
+### Example: a monthly template
 
-Flip the *Use a different template per note type* toggle on (or set `auto-template-per-tier: true` per-folder) and the per-tier fields apply. For example, to give a folder a checklist for daily notes and a review prompt for weekly notes — while leaving monthly and yearly notes on the built-in default:
-
-````markdown
----
-auto-template-enabled: true
-auto-template-per-tier: true
-daily-note-auto-template-content: |
-  %% JOURNAL NOTE %%
-  ```journal-header
-  ```
-
-  ## Today's three priorities
-  -
-  -
-  -
-
-  ## Mood
-weekly-note-auto-template-content: |
-  %% JOURNAL NOTE %%
-  ```journal-header
-  ```
-
-  ## Wins this week
-
-  ## What to carry forward
-
-  ## What to drop
----
-````
-
-When a tier-specific field is blank in this mode, the resolver falls through to the built-in default (the generic *Default template* is ignored while per-tier mode is on). The folder body (markdown below the front matter) still wins over every tier-specific field — leave it empty if you want the per-tier templates to be used.
-
-### Per-folder template example
+Create `Templates/journal-folder/monthly-template.md`:
 
 ````markdown
----
-journal-folder-title: Atlas Migration
-auto-template-enabled: true
----
-
 %% JOURNAL NOTE %%
 ```journal-header
 ```
 
-## Highlights
+## Theme for the month
 
-## Notes
+## Goals
+-
+-
+
+## Review
 ````
 
-> [!TIP]
-> If your template needs to contain a fenced code block (like the `journal-header` block above) and you want to wrap the *whole* template in another code block for clarity in `journal-folder.md`, use a tilde fence (`~~~`) for the outer wrapper or a longer run of backticks (4+) — anything longer than the inner fences. The plugin treats the entire body of `journal-folder.md` as the template, so wrapping isn't required; this only matters if you're showing the template to humans elsewhere.
+Every new `YYYY-MM` note now starts from this body. To give one journal folder a different monthly template, drop a `monthly-template.md` into that folder's `Templates/` subfolder instead.
 
-### What the `journal-header` code block does in non-journal notes
+### Migrating from older versions
 
-The `journal-header` block is a no-op when placed in a note whose basename isn't a journal pattern. That means a template body containing the block stays harmless if it's pasted into `journal-folder.md` itself or any other regular note — it just renders nothing. Errors only show up if the block content is malformed config, not if the surrounding filename doesn't fit a journal pattern.
+Earlier releases stored template text in the plugin settings (a *Default template*, an optional *per-tier* mode, and a per-folder `journal-folder.md` body). On first launch after upgrading, that inline text is **migrated automatically** into template notes under your template folder — nothing to do by hand. The old values are left in `data.json` as a backup and the `journal-folder.md` bodies keep working as a legacy source, so existing setups don't break.
+
+### What the `journal-header` code block does elsewhere
+
+Outside a journal note or a recognised template note, the `journal-header` block is a **no-op** — it renders nothing. So a template body containing the block stays harmless if it's pasted into `journal-folder.md` itself or any other regular note. Errors only show up if the block content is malformed config, not if the surrounding filename doesn't fit a journal pattern.
 
 ---
 

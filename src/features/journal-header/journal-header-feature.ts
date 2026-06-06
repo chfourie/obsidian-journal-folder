@@ -18,11 +18,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { mount, unmount } from 'svelte'
 import {
+  buildTemplatePreviewNote,
+  findJournalFolderPaths,
   isJournalFileBasename,
   type JournalFolderSettings,
   JournalNote,
   journalNoteFactoryWithSettings,
   PluginFeature,
+  templateFileTier,
 } from 'src/data-access'
 import { isTruthySetting } from '../journal-auto-template/auto-template-content'
 import { ErrorMessage } from 'src/ui'
@@ -33,7 +36,13 @@ import {
 } from './journal-header-info'
 import { confirmCreateNote } from './confirm-create-modal'
 import { resolveDefaultCalendarVisible } from './resolve-default-calendar-visible'
-import { MarkdownRenderChild, Platform, TFile, type Plugin } from 'obsidian'
+import {
+  MarkdownRenderChild,
+  Platform,
+  TFile,
+  TFolder,
+  type Plugin,
+} from 'obsidian'
 
 export class JournalHeaderFeature extends PluginFeature {
   constructor(plugin: Plugin) {
@@ -54,29 +63,34 @@ export class JournalHeaderFeature extends PluginFeature {
               currentFile,
               source
             )
-            // The `journal-header` block is meaningless outside a journal
-            // note (e.g. when included in a template body that has been
-            // pasted into `journal-folder.md` itself, or copied into a
-            // non-journal note). Render nothing instead of an error so the
-            // template body is portable.
-            if (
-              !isJournalFileBasename(
-                currentFile.basename,
-                isTruthySetting(settings.quartersEnabled)
-              )
-            ) {
-              return
-            }
-            const note: JournalNote =
-              journalNoteFactoryWithSettings(settings)(currentFile)
+            // Resolve the note this header renders for. In a real journal
+            // note it's the file itself. In a standardized *template note*
+            // (e.g. `monthly.md` in the template folder) it's a synthetic
+            // note for the *current* period of that tier, so editing the
+            // template previews exactly what a fresh entry would look like.
+            // Anywhere else the block is meaningless (e.g. pasted into
+            // `journal-folder.md` or a non-journal note) — render nothing so
+            // the template body stays portable.
+            const resolved = this.resolveHeaderNote(currentFile, settings)
+            if (!resolved) return
+            const { note, isTemplate } = resolved
             const info: JournalHeaderInfo = buildJournalHeaderInfo(
               settings,
               note
             )
             const app = this.plugin.app
             const sourcePath = ctx.sourcePath
-            const confirmCreate = (basename: string) =>
-              confirmCreateNote(app, basename)
+            // In a template preview the header is **display only**: every link
+            // is pointed at the template file itself (so clicking navigates to
+            // the note you're already on — a visual no-op) and the create
+            // prompt is suppressed, since the synthetic note's siblings don't
+            // really exist. `navOverrideUrl` is the link text Obsidian (and our
+            // own handlers) resolve against `sourcePath` — the template's own
+            // basename round-trips to itself.
+            const navOverrideUrl = isTemplate ? currentFile.basename : undefined
+            const confirmCreate = isTemplate
+              ? async () => false
+              : (basename: string) => confirmCreateNote(app, basename)
             const navigate = (linktext: string) => {
               app.workspace.openLinkText(linktext, sourcePath, false)
             }
@@ -93,6 +107,8 @@ export class JournalHeaderFeature extends PluginFeature {
                 note,
                 confirmCreate,
                 navigate,
+                navOverrideUrl,
+                isTemplate,
                 defaultCalendarVisible,
                 isMobile,
               },
@@ -106,6 +122,40 @@ export class JournalHeaderFeature extends PluginFeature {
         }
       }
     )
+  }
+
+  // Resolves the note this header renders for. A real journal note renders
+  // for itself (`isTemplate: false`); a standardized template note renders
+  // for a synthetic current-period note of its tier (`isTemplate: true`, which
+  // makes the header display-only). Returns null when the block sits in a note
+  // that's neither — render nothing so the block stays portable.
+  private resolveHeaderNote(
+    file: TFile,
+    settings: JournalFolderSettings
+  ): { note: JournalNote; isTemplate: boolean } | null {
+    const quartersEnabled = isTruthySetting(settings.quartersEnabled)
+    if (isJournalFileBasename(file.basename, quartersEnabled)) {
+      return {
+        note: journalNoteFactoryWithSettings(settings)(file),
+        isTemplate: false,
+      }
+    }
+    const tier = templateFileTier({
+      filePath: file.path,
+      globalTemplateFolder: settings.templateFolder,
+      overrideName: settings.templateOverrideFolderName,
+      journalFolderPaths: findJournalFolderPaths(this.plugin.app),
+    })
+    if (tier === null) return null
+    const folder = file.parent
+    if (!(folder instanceof TFolder)) return null
+    const note = buildTemplatePreviewNote(
+      this.plugin.app,
+      settings,
+      tier,
+      folder
+    )
+    return note ? { note, isTemplate: true } : null
   }
 
   private mountError(

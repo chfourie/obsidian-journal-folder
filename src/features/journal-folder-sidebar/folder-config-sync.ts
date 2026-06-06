@@ -49,13 +49,6 @@ export const PER_FOLDER_FIELDS = [
   'defaultCalendarVisibleMobile',
   'quartersEnabled',
   'autoTemplateEnabled',
-  'autoTemplateContent',
-  'autoTemplatePerTier',
-  'dailyNoteAutoTemplateContent',
-  'weeklyNoteAutoTemplateContent',
-  'monthlyNoteAutoTemplateContent',
-  'quarterlyNoteAutoTemplateContent',
-  'yearlyNoteAutoTemplateContent',
   'taskMigrationPlacement',
   'taskMigrationHeading',
 ] as const satisfies ReadonlyArray<keyof JournalFolderSettings>

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  DEFAULT_AUTO_TEMPLATE,
-  perUnitAutoTemplate,
-  resolveAutoTemplate,
-  stripFrontMatter,
-} from '../../src/features/journal-auto-template/auto-template-content'
+import { stripFrontMatter } from '../../src/features/journal-auto-template/auto-template-content'
 import {
   isJournalFileBasename,
   journalUnitForBasename,
@@ -28,56 +23,6 @@ describe('stripFrontMatter', () => {
   it('handles CRLF line endings', () => {
     const src = '---\r\nfoo: bar\r\n---\r\nbody\r\n'
     expect(stripFrontMatter(src)).toBe('body\r\n')
-  })
-})
-
-describe('resolveAutoTemplate', () => {
-  it('uses the per-folder body when present and non-empty', () => {
-    const folder = '---\nfoo: bar\n---\n# Folder template\n\nhello\n'
-    const result = resolveAutoTemplate(folder, 'PER_UNIT', 'GLOBAL')
-    expect(result).toBe('# Folder template\n\nhello\n')
-  })
-
-  it('falls through to the per-unit template when the folder body is whitespace only', () => {
-    const folder = '---\nfoo: bar\n---\n   \n'
-    expect(resolveAutoTemplate(folder, 'PER_UNIT', 'GLOBAL')).toBe('PER_UNIT')
-  })
-
-  it('falls through to the global setting when the folder body and per-unit template are missing', () => {
-    expect(resolveAutoTemplate(null, '', 'GLOBAL')).toBe('GLOBAL')
-  })
-
-  it('prefers the per-unit template over the generic global template', () => {
-    expect(resolveAutoTemplate(null, 'PER_UNIT', 'GLOBAL')).toBe('PER_UNIT')
-  })
-
-  it('falls through to the built-in default when nothing else provides content', () => {
-    expect(resolveAutoTemplate(null, '', '')).toBe(DEFAULT_AUTO_TEMPLATE)
-    expect(resolveAutoTemplate('---\n---\n', '   ', '   ')).toBe(
-      DEFAULT_AUTO_TEMPLATE
-    )
-  })
-})
-
-describe('perUnitAutoTemplate', () => {
-  const settings = {
-    dailyNoteAutoTemplateContent: 'D',
-    weeklyNoteAutoTemplateContent: 'W',
-    monthlyNoteAutoTemplateContent: 'M',
-    quarterlyNoteAutoTemplateContent: 'Q',
-    yearlyNoteAutoTemplateContent: 'Y',
-  }
-
-  it('returns the field that matches the unit', () => {
-    expect(perUnitAutoTemplate(settings, 'day')).toBe('D')
-    expect(perUnitAutoTemplate(settings, 'week')).toBe('W')
-    expect(perUnitAutoTemplate(settings, 'month')).toBe('M')
-    expect(perUnitAutoTemplate(settings, 'quarter')).toBe('Q')
-    expect(perUnitAutoTemplate(settings, 'year')).toBe('Y')
-  })
-
-  it('returns the empty string for a null unit', () => {
-    expect(perUnitAutoTemplate(settings, null)).toBe('')
   })
 })
 

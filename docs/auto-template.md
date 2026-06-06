@@ -2,6 +2,8 @@
 
 `JournalAutoTemplateFeature` (in `src/features/journal-auto-template/`) listens to `vault.on('create')` and seeds new journal notes with a template body so users don't need Templater (or another helper plugin) just to drop a `journal-header` code block at the top of every new entry. Off by default; enable globally via the *Auto-fill new journal notes* toggle in the plugin settings tab, or per-folder via `auto-template-enabled: true|false` in that folder's `journal-folder.md` front matter.
 
+Templates are stored as **ordinary notes with standardized filenames**, not as text in `data.json`. Each `journal-header`-bearing template note can be authored and previewed like a real journal entry.
+
 ## Trigger conditions
 
 The fill only happens when **all** of these are true:
@@ -12,27 +14,61 @@ The fill only happens when **all** of these are true:
 4. The resolved `auto-template-enabled` setting is truthy.
 5. The file is empty at creation time (`vault.read(file).length === 0`) — existing content is never overwritten.
 
-The vault `create` listener registers *after* `workspace.onLayoutReady` resolves, so the synthetic `create` events Obsidian fires during initial indexing don't stomp existing notes. Without that gate, opening a vault with the plugin would re-template every existing journal note that's currently empty.
+The vault `create` listener registers *after* `workspace.onLayoutReady` resolves, so the synthetic `create` events Obsidian fires during initial indexing don't stomp existing notes.
 
-## Template precedence
+## Where templates live
 
-`resolveAutoTemplate(folderConfigBody, globalTemplate)` in `auto-template-content.ts` returns the first non-empty layer:
+Templates are notes with **standardized filenames** (not user-configured) — one per tier plus a cross-tier fallback:
 
-1. **Per-folder body** — the markdown body of `journal-folder.md`, after `stripFrontMatter` removes any leading `---\n…\n---` block. An empty body (whitespace only) falls through.
-2. **Global setting** — `autoTemplateContent` from the plugin settings. Persists in `data.json`.
-3. **Built-in default** — `DEFAULT_AUTO_TEMPLATE`, which is `'%% JOURNAL NOTE %%\n\`\`\`journal-header\n\`\`\`\n'`.
+```
+daily-template.md  weekly-template.md  monthly-template.md
+quarterly-template.md  yearly-template.md  default-template.md
+```
 
-The leading `%% JOURNAL NOTE %%` Obsidian hidden-comment line is intentional: without it the cursor lands inside the code block fence when toggling into edit mode and the block stops rendering until you click out. The comment doesn't render in reading mode and parks the cursor above the fence.
+Two locations hold them, both driven by global settings:
 
-## Why the `journal-header` block is harmless in non-journal notes
+- **`templateFolder`** — a vault-wide template folder. Default `Templates/journal-folder` (plugin-namespaced so it won't clash with a user's own `Templates/` folder or another template plugin).
+- **`templateOverrideFolderName`** — a subfolder *name* (default `Templates`), looked up *relative to each journal folder*, that overrides the global templates for that folder only. Drop a `monthly-template.md` into `<journalFolder>/Templates/` and it beats the global one. No per-folder setting is needed — the override is expressed by the files present.
 
-If a template body containing `\`\`\`journal-header\n\`\`\`` is pasted into `journal-folder.md` itself or any other regular note, the journal-header code block processor short-circuits and renders nothing — `JournalHeaderFeature.load`'s processor checks `isJournalFileBasename(currentFile.basename, quartersEnabled)` and bails if false. Errors only surface for malformed config, not for surrounding-filename mismatches. This makes template bodies portable between folders and safe to embed in the per-folder config note.
+A template note's body — **front matter included** — is copied verbatim into the new note.
+
+## Resolution precedence
+
+`resolveTemplate` (in `journal-auto-template-feature.ts`) reads candidates in order and seeds the first whose content is non-empty (`firstNonEmptyTemplate` in `src/data-access/template-folder.ts`):
+
+1. `<journalFolder>/<override>/<tier>-template.md` — per-journal override
+2. `<journalFolder>/<override>/default-template.md`
+3. body of `journal-folder.md` (front-matter stripped) — **legacy** per-folder template, still honoured
+4. `<templateFolder>/<tier>-template.md` — global
+5. `<templateFolder>/default-template.md`
+6. built-in `DEFAULT_AUTO_TEMPLATE`
+
+`templateCandidatePaths` builds the override + global path lists; the legacy config-note body is interleaved between them by the feature. Only the body is front-matter-stripped (it shares the file with the folder's config front matter); template *files* are copied verbatim.
+
+`DEFAULT_AUTO_TEMPLATE` is `'%% JOURNAL NOTE %%\n\`\`\`journal-header\n\`\`\`\n'`. The leading `%% JOURNAL NOTE %%` Obsidian hidden-comment line is intentional: without it the cursor lands inside the code-block fence when toggling into edit mode and the block stops rendering until you click out. The comment doesn't render in reading mode and parks the cursor above the fence.
+
+## Previewing a template note as the current period
+
+A standardized template note isn't named with a journal pattern, so the `journal-header` block would normally render nothing in it. `JournalHeaderFeature.resolveHeaderNote` instead detects template notes (via `templateFileTier`, which checks the file sits in `templateFolder` or any journal folder's override subfolder and carries a standardized basename) and builds a **synthetic `JournalNote` for the *current* period of that tier** (`buildTemplatePreviewNote`). Editing `monthly-template.md` therefore previews exactly as this month's entry — header, calendar, and signifiers (signifiers already apply to all rendered markdown). `default-template.md` previews as a daily note.
+
+Navigation links in a template preview are best-effort: for a note in the global `templateFolder` (which has no associated journal folder) they may resolve nowhere and are effectively inert.
+
+## Migration from the legacy inline templates
+
+Earlier versions stored template text in `data.json` (`autoTemplateContent`, `autoTemplatePerTier`, and the five `*NoteAutoTemplateContent` fields). On first load after upgrade `maybeMigrateInlineTemplates` runs once (gated by the `templatesMigratedToFiles` flag):
+
+- `collectMigrationWrites` (pure) maps the legacy fields to template notes — per-tier mode → `daily-template.md` / `weekly-template.md` / … ; otherwise the generic `autoTemplateContent` → `default-template.md`. Empty fields are skipped. Migration keys off *content presence*, not `autoTemplateEnabled`, so a user who authored templates but turned auto-fill off keeps them.
+- `runInlineTemplateMigration` ensures `templateFolder` exists and writes the notes, **never clobbering** an existing file. A `Notice` reports the count.
+- The legacy field values are **left in `data.json`** as a backup (no longer read), and `journal-folder.md` bodies are **not** touched (they remain a working legacy source).
+
+The settings tab grows a **Create template files** button (`scaffoldTemplateFiles`) that seeds any missing standardized notes in `templateFolder` with `DEFAULT_AUTO_TEMPLATE`, so users starting fresh have files to edit.
 
 ## Pure helpers
 
-- `stripFrontMatter(source)` — strips a leading YAML front-matter block, recognising both `\n` and `\r\n` line endings.
-- `resolveAutoTemplate(folderConfigBody, globalTemplate)` — the precedence chain above.
-- `isTruthySetting(value)` — accepts both real booleans (from YAML) and the string `"true"` / `"false"` (from embedded `key: value` configs).
+- `stripFrontMatter(source)` — strips a leading YAML front-matter block (both `\n` and `\r\n`).
+- `isTruthySetting(value)` — accepts real booleans and the strings `"true"` / `"false"`.
 - `DEFAULT_AUTO_TEMPLATE` — the built-in fallback.
+- `src/data-access/template-folder.ts` — `TEMPLATE_FILENAMES`, `DEFAULT_TEMPLATE_FILENAME`, `isTemplateBasename`, `templatePreviewTier`, `templateFileTier`, `templateCandidatePaths`, `firstNonEmptyTemplate`, `currentPeriodBasename`, `buildTemplatePreviewNote`, `overrideFolderPath`.
+- `migrate-inline-templates.ts` — `collectMigrationWrites`, `ensureFolderExists`, `runInlineTemplateMigration`.
 
-All four are exported from `src/features/journal-auto-template/index.ts` and unit-tested in `tests/features/auto-template-content.test.ts`. The end-to-end create-event flow is covered in `tests/features/journal-auto-template-feature.test.ts`.
+Unit tests: `tests/data-access/template-folder.test.ts`, `tests/features/migrate-inline-templates.test.ts`, `tests/features/auto-template-content.test.ts`, and the end-to-end create-event flow in `tests/features/journal-auto-template-feature.test.ts`.

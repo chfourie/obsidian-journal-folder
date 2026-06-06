@@ -48,12 +48,12 @@ describe('computeFrontMatterDiff', () => {
     const global = settings()
     const next = settings({
       defaultCalendarVisibleDesktop: false,
-      autoTemplateContent: 'CUSTOM',
+      journalFolderTitle: 'CUSTOM',
     })
     const diff = computeFrontMatterDiff(next, global)
     expect(Object.keys(diff.set).sort()).toEqual([
-      'auto-template-content',
       'default-calendar-visible-desktop',
+      'journal-folder-title',
     ])
   })
 

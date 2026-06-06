@@ -33,6 +33,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		note: JournalNote
 		confirmCreate: (basename: string) => Promise<boolean>
 		navigate: (linktext: string) => void
+		// When set (template-preview mode), every link points at this URL — the
+		// template file itself — so the header is display-only: clicks navigate
+		// to the note you're already viewing instead of to real journal notes
+		// that may not exist.
+		navOverrideUrl?: string
+		// Template-preview mode — renders the corner "TEMPLATE" ribbon.
+		isTemplate?: boolean
 		defaultCalendarVisible: boolean
 		isMobile: boolean
 	}
@@ -42,9 +49,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		note,
 		confirmCreate,
 		navigate,
+		navOverrideUrl,
+		isTemplate = false,
 		defaultCalendarVisible,
 		isMobile,
 	}: Props = $props()
+
+	// Rewrites a link's URL to the display-only self target when in
+	// template-preview mode; otherwise passes it through unchanged.
+	function linkOf<T extends { url: string }>(link: T): T {
+		return navOverrideUrl ? { ...link, url: navOverrideUrl } : link
+	}
 
 	// Apply the resolved default once per header mount. The helper is a
 	// no-op once the user has manually toggled this session, so navigating
@@ -154,7 +169,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	onresize={handleViewportChange}
 />
 
-<div class="journal-folder-header">
+<div class="journal-folder-header" class:journal-folder-header-template={isTemplate}>
+	{#if isTemplate}
+		<div class="journal-folder-template-ribbon" data-jf-template-ribbon>TEMPLATE</div>
+	{/if}
+
 	{#if info.journalFolderTitle}
 		<div class="journal-folder-header-folder-title">{info.journalFolderTitle}</div>
 	{/if}
@@ -165,7 +184,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<div class="journal-folder-header-links">
 			{#if info.backwardLink}
 				<NoteLink
-					{...info.backwardLink}
+					{...linkOf(info.backwardLink)}
 					linkStyle="chip"
 					testId="nav-backward"
 					{confirmCreate}
@@ -192,7 +211,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 			{#if info.todayLink}
 				<NoteLink
-					{...info.todayLink}
+					{...linkOf(info.todayLink)}
 					linkStyle="chip"
 					testId="nav-today"
 					{confirmCreate}
@@ -203,7 +222,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 			{#if info.forwardLink}
 				<div class="journal-folder-header-arrow">»</div>
 				<NoteLink
-					{...info.forwardLink}
+					{...linkOf(info.forwardLink)}
 					linkStyle="chip"
 					testId="nav-forward"
 					{confirmCreate}
@@ -214,7 +233,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	</div>
 
 	{#if $calendarVisible}
-		<JournalCalendar {note} {confirmCreate} {navigate} {isMobile} />
+		<JournalCalendar
+			{note}
+			{confirmCreate}
+			{navigate}
+			{navOverrideUrl}
+			{isMobile}
+		/>
 	{/if}
 </div>
 
@@ -243,7 +268,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		<div class="journal-folder-header-more-panel-list">
 			{#each links as link}
 				<NoteLink
-					{...link}
+					{...linkOf(link)}
 					{confirmCreate}
 					{navigate}
 					onAfterClick={closeMore}

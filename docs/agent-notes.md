@@ -515,3 +515,41 @@ the CSS transition). Toggle = `changeTheme(getTheme()==='obsidian' ? 'moonstone'
 'obsidian')`. A *Adapt to system* user is flipped to an explicit scheme and left
 there (deliberate — we don't try to return to `'system'`). Logic isolated in
 `theme-toggle.ts` (unit tested) so the undocumented API has a one-file blast radius.
+
+### Note-based templates (replaces inline template text)
+
+Template content used to live as text in `data.json` (`autoTemplateContent` +
+per-tier fields). It now lives in **template notes with standardized filenames**
+(`daily-template.md` / `weekly-template.md` / `monthly-template.md` /
+`quarterly-template.md` / `yearly-template.md`, plus `default-template.md`
+fallback). Design decisions the code alone doesn't motivate:
+
+- **Two locations, both global settings.** `templateFolder` (default
+  `Templates/journal-folder` — plugin-namespaced to avoid clashing with a user's
+  own `Templates/` or another template plugin) and `templateOverrideFolderName`
+  (default `Templates`, resolved *relative to each journal folder*). The
+  per-folder override needs **no setting** — it's expressed purely by the files
+  present in `<journalFolder>/Templates/`.
+- **Filenames are fixed, not user-configurable** (the maintainer's call) — keeps
+  detection and the live-preview mapping simple.
+- **Template files are copied verbatim, front matter included** (DP1) — unlike the
+  old `journal-folder.md`-body source which strips front matter (it shares the file
+  with the folder config). The legacy body is **still honoured** as a resolution
+  source (DP2 — we don't migrate or mutate config notes), slotting *between* the
+  override files and the global files in precedence.
+- **Live preview = synthetic current-period note.** A template note isn't a journal
+  basename, so the `journal-header` block would no-op. `templateFileTier` classifies
+  the file and `buildTemplatePreviewNote` builds a `JournalNote` for *today's* period
+  of that tier (duck-typed `TFile`, mirroring the sidebar anchor). So editing
+  `monthly-template.md` renders as this month's entry — the "good visual clue" the
+  maintainer asked for. Signifiers come free (they apply to all markdown). Nav links
+  are best-effort and **inert** for global-folder previews (DP5 — no
+  `defaultJournalFolder` fallback). `default-template.md` previews as a daily note.
+- **Migration moves *away* from the old model** (DP3) rather than offering a compat
+  toggle. `maybeMigrateInlineTemplates` runs once (flag `templatesMigratedToFiles`),
+  writes the inline fields into files (never clobbering), and **leaves the old field
+  values in `data.json` as a backup** (no longer read). It needs `saveSettings`, so
+  the feature is constructed with it in the plugin shell (like the sidebar features).
+- Pure logic in `src/data-access/template-folder.ts` + `migrate-inline-templates.ts`
+  (both unit-tested); the feature only does the vault IO. Full detail in
+  [docs/auto-template.md](auto-template.md).

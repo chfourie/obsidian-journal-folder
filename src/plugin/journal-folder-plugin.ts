@@ -53,7 +53,9 @@ export default class JournalFolderPlugin extends Plugin {
       .addFeature(new JournalHeaderFeature(this))
       .addFeature(tasksFeature)
       .addFeature(new JournalSignifiersFeature(this))
-      .addFeature(new JournalAutoTemplateFeature(this))
+      .addFeature(
+        new JournalAutoTemplateFeature(this, settingsFeature.saveSettings)
+      )
       .addFeature(folderSidebarFeature)
       .addFeature(tasksSidebarFeature)
       // The master ribbon menu aggregates the other features' surfaces, so it

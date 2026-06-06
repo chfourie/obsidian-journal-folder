@@ -38,9 +38,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		note: JournalNote
 		confirmCreate: (basename: string) => Promise<boolean>
 		navigate: (linktext: string) => void
+		// Display-only override: when set every cell links to this URL (the
+		// template file itself) so a template preview's calendar doesn't
+		// navigate to real journal notes. `cellDate` still reports the real
+		// period so the e2e `data-jf-date` hooks stay meaningful.
+		navOverrideUrl?: string
 		isMobile: boolean
 	}
-	let { note, confirmCreate, navigate, isMobile }: Props = $props()
+	let { note, confirmCreate, navigate, navOverrideUrl, isMobile }: Props =
+		$props()
+
+	// The href a cell should carry — its real link, or the display-only self
+	// target in template-preview mode.
+	function cellHref(cell: CalendarCell): string {
+		return navOverrideUrl ?? cell.url
+	}
 
 	let containerEl: HTMLElement | undefined = $state()
 	let measuredWidth = $state(0)
@@ -306,7 +318,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<div class="journal-folder-calendar-month-title">
 					<a
 						class="internal-link {calendarCellClasses(month.monthCell)}"
-						href={month.monthCell.url}
+						href={cellHref(month.monthCell)}
 						data-jf-cell="month"
 						data-jf-date={cellDate(month.monthCell)}
 						onclick={(e) => handleCellClick(month.monthCell, e)}
@@ -315,7 +327,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					</a>
 					<a
 						class="internal-link {calendarCellClasses(month.yearCell)}"
-						href={month.yearCell.url}
+						href={cellHref(month.yearCell)}
 						data-jf-cell="year"
 						data-jf-date={cellDate(month.yearCell)}
 						onclick={(e) => handleCellClick(month.yearCell, e)}
@@ -325,7 +337,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					{#if month.quarterCell}
 						<a
 							class="internal-link {calendarCellClasses(month.quarterCell)} quarter-suffix"
-							href={month.quarterCell.url}
+							href={cellHref(month.quarterCell)}
 							data-jf-cell="quarter"
 							data-jf-date={cellDate(month.quarterCell)}
 							onclick={(e) => handleCellClick(month.quarterCell!, e)}
@@ -352,7 +364,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 						{#if !week.days.every((d) => d.isOutsideMonth)}
 							<a
 								class="internal-link {calendarCellClasses(week.weekCell)} week"
-								href={week.weekCell.url}
+								href={cellHref(week.weekCell)}
 								data-jf-cell="week"
 								data-jf-date={cellDate(week.weekCell)}
 								onclick={(e) => handleCellClick(week.weekCell, e)}
@@ -365,7 +377,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 								{:else}
 									<a
 										class="internal-link {calendarCellClasses(day)} day"
-										href={day.url}
+										href={cellHref(day)}
 										data-jf-cell="day"
 										data-jf-date={cellDate(day)}
 										onclick={(e) => handleCellClick(day, e)}

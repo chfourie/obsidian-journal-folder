@@ -18,8 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 export { JournalAutoTemplateFeature } from './journal-auto-template-feature'
 export {
-  resolveAutoTemplate,
   stripFrontMatter,
-  perUnitAutoTemplate,
+  isTruthySetting,
   DEFAULT_AUTO_TEMPLATE,
 } from './auto-template-content'
+export {
+  collectMigrationWrites,
+  ensureFolderExists,
+  runInlineTemplateMigration,
+  type TemplateWrite,
+} from './migrate-inline-templates'

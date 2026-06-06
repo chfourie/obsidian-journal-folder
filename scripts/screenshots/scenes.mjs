@@ -84,6 +84,19 @@ const NO_TITLE_FILES = [
   },
 ]
 
+// Throwaway template note (standardized filename) in a global template folder,
+// used to capture the live template preview + TEMPLATE ribbon. Deleted after
+// the shot.
+const TEMPLATE_FOLDER = 'Templates/journal-folder'
+const TEMPLATE_FILES = [
+  {
+    path: `${TEMPLATE_FOLDER}/monthly-template.md`,
+    content:
+      '%% JOURNAL NOTE %%\n```journal-header\n```\n\n' +
+      '## Theme for the month\n\n## Goals\n- \n- \n\n## Review\n',
+  },
+]
+
 // Open a journal note inside the sidebar's reach and reveal the sidebar leaf.
 async function openWithSidebar(ctx, note) {
   await ctx.openNote(note, 'preview')
@@ -118,6 +131,22 @@ export const SCENES = [
     tempFiles: NO_TITLE_FILES,
     setup: (c) => c.ensureCalendar(false),
     rect: HEADER_RECT,
+  },
+
+  // Template note preview: header rendered as the current period, with the
+  // corner TEMPLATE ribbon (calendar visible to show the live preview).
+  {
+    name: 'template-preview',
+    note: `${TEMPLATE_FOLDER}/monthly-template`,
+    tempFiles: TEMPLATE_FILES,
+    settings: {
+      autoTemplateEnabled: true,
+      templateFolder: TEMPLATE_FOLDER,
+      templatesMigratedToFiles: true,
+    },
+    setup: (c) => c.ensureCalendar(true),
+    rect: `rectOf('.journal-folder-header')`,
+    pad: 14,
   },
 
   // ---- More… popovers (portaled to <body>) ------------------------------

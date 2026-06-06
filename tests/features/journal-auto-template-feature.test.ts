@@ -49,13 +49,26 @@ function setupFeature(
   settings: Partial<JournalFolderSettings> = {}
 ): { app: App; plugin: Plugin } {
   const plugin = buildPlugin()
-  const feature = new JournalAutoTemplateFeature(plugin)
+  const feature = new JournalAutoTemplateFeature(plugin, async (next) => {
+    feature.useSettings(next)
+  })
   feature.useSettings({ ...DEFAULT_SETTINGS, ...settings })
   // noinspection JSIgnoredPromiseFromCall
   feature.load()
   // @ts-expect-error — test mock workspace
   plugin.app.workspace.signalLayoutReady()
   return { app: plugin.app, plugin }
+}
+
+// Writes a template note straight into the mock vault (bypassing the create
+// listener, which would ignore it — template files aren't journal basenames).
+async function writeNote(
+  app: App,
+  path: string,
+  content: string
+): Promise<void> {
+  // @ts-expect-error — test mock vault
+  await app.vault.create(path, content)
 }
 
 function seedJournalFolder(
@@ -93,65 +106,93 @@ describe('JournalAutoTemplateFeature', () => {
     expect(await app.vault.read(file)).toBe(DEFAULT_AUTO_TEMPLATE)
   })
 
-  it('uses per-tier templates when autoTemplatePerTier is on, ignoring the generic template', async () => {
+  it('seeds from the matching tier file in the global template folder', async () => {
     ;({ app } = setupFeature({
       autoTemplateEnabled: true,
-      autoTemplatePerTier: true,
-      autoTemplateContent: '# Generic\n',
-      dailyNoteAutoTemplateContent: '# Daily\n',
-      weeklyNoteAutoTemplateContent: '# Weekly\n',
+      templateFolder: 'Templates/journal-folder',
     }))
     seedJournalFolder(app)
+    await writeNote(app, 'Templates/journal-folder/daily-template.md', '# Daily file\n')
+    await writeNote(app, 'Templates/journal-folder/monthly-template.md', '# Monthly\n')
 
     const daily = await createFile(app, 'Journal', '2026-05-07')
-    const weekly = await createFile(app, 'Journal', '2026-W19')
     const monthly = await createFile(app, 'Journal', '2026-05')
     // @ts-expect-error
-    expect(await app.vault.read(daily)).toBe('# Daily\n')
+    expect(await app.vault.read(daily)).toBe('# Daily file\n')
     // @ts-expect-error
-    expect(await app.vault.read(weekly)).toBe('# Weekly\n')
-    // monthly has no per-tier override → falls through to the built-in
-    // default (the generic template is ignored in per-tier mode).
-    // @ts-expect-error
-    expect(await app.vault.read(monthly)).toBe(DEFAULT_AUTO_TEMPLATE)
+    expect(await app.vault.read(monthly)).toBe('# Monthly\n')
   })
 
-  it('ignores per-tier fields when autoTemplatePerTier is off', async () => {
+  it('falls back to default-template.md for a tier with no dedicated file', async () => {
     ;({ app } = setupFeature({
       autoTemplateEnabled: true,
-      autoTemplatePerTier: false,
-      autoTemplateContent: '# Generic\n',
-      dailyNoteAutoTemplateContent: '# Daily\n',
+      templateFolder: 'Templates/journal-folder',
     }))
     seedJournalFolder(app)
+    await writeNote(app, 'Templates/journal-folder/default-template.md', '# Fallback\n')
+
+    const weekly = await createFile(app, 'Journal', '2026-W19')
+    // @ts-expect-error
+    expect(await app.vault.read(weekly)).toBe('# Fallback\n')
+  })
+
+  it('keeps front matter in template files verbatim', async () => {
+    ;({ app } = setupFeature({
+      autoTemplateEnabled: true,
+      templateFolder: 'Templates/journal-folder',
+    }))
+    seedJournalFolder(app)
+    await writeNote(
+      app,
+      'Templates/journal-folder/daily-template.md',
+      '---\ntags: [journal]\n---\n# Daily\n'
+    )
 
     const daily = await createFile(app, 'Journal', '2026-05-07')
     // @ts-expect-error
-    expect(await app.vault.read(daily)).toBe('# Generic\n')
+    expect(await app.vault.read(daily)).toBe('---\ntags: [journal]\n---\n# Daily\n')
   })
 
-  it('uses the global template content when set', async () => {
+  it('lets a per-folder override file beat the global template file', async () => {
     ;({ app } = setupFeature({
       autoTemplateEnabled: true,
-      autoTemplateContent: '# Hello\n',
+      templateFolder: 'Templates/journal-folder',
+      templateOverrideFolderName: 'Templates',
     }))
     seedJournalFolder(app)
+    await writeNote(app, 'Templates/journal-folder/monthly-template.md', '# Global\n')
+    await writeNote(app, 'Journal/Templates/monthly-template.md', '# Override\n')
 
-    const file = await createFile(app, 'Journal', '2026-05-07')
+    const monthly = await createFile(app, 'Journal', '2026-05')
     // @ts-expect-error
-    expect(await app.vault.read(file)).toBe('# Hello\n')
+    expect(await app.vault.read(monthly)).toBe('# Override\n')
   })
 
-  it('prefers the per-folder body of journal-folder.md over the global setting', async () => {
+  it('prefers the journal-folder.md body over the global template file (legacy)', async () => {
     ;({ app } = setupFeature({
       autoTemplateEnabled: true,
-      autoTemplateContent: '# Global\n',
+      templateFolder: 'Templates/journal-folder',
     }))
     seedJournalFolder(app, 'Journal', '---\nfoo: bar\n---\n# Folder body\n')
+    await writeNote(app, 'Templates/journal-folder/daily-template.md', '# Global\n')
 
     const file = await createFile(app, 'Journal', '2026-05-07')
     // @ts-expect-error
     expect(await app.vault.read(file)).toBe('# Folder body\n')
+  })
+
+  it('lets an override file beat the journal-folder.md body', async () => {
+    ;({ app } = setupFeature({
+      autoTemplateEnabled: true,
+      templateFolder: 'Templates/journal-folder',
+      templateOverrideFolderName: 'Templates',
+    }))
+    seedJournalFolder(app, 'Journal', '---\nfoo: bar\n---\n# Folder body\n')
+    await writeNote(app, 'Journal/Templates/daily-template.md', '# Override\n')
+
+    const file = await createFile(app, 'Journal', '2026-05-07')
+    // @ts-expect-error
+    expect(await app.vault.read(file)).toBe('# Override\n')
   })
 
   it('does nothing when there is no journal-folder.md in the folder', async () => {

@@ -27,6 +27,7 @@ import { suite as taskMigration } from './task-migration.spec.mjs'
 import { suite as tasksScope } from './tasks-scope.spec.mjs'
 import { suite as signifiers } from './signifiers.spec.mjs'
 import { suite as autoTemplate } from './auto-template.spec.mjs'
+import { suite as templatePreview } from './template-preview.spec.mjs'
 import { suite as settings } from './settings.spec.mjs'
 import { suite as settingsConfig } from './settings-config.spec.mjs'
 import { suite as sidebar } from './sidebar.spec.mjs'
@@ -43,6 +44,7 @@ export const suites = [
   tasksScope,
   signifiers,
   autoTemplate,
+  templatePreview,
   settings,
   settingsConfig,
   sidebar,

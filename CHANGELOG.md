@@ -7,6 +7,30 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [Unreleased]
+
+### Changed
+- **Templates are now notes, not settings text.** New-note templates live as
+  ordinary notes with standardized filenames — `daily-template.md`,
+  `weekly-template.md`, `monthly-template.md`, `quarterly-template.md`,
+  `yearly-template.md`, and `default-template.md` as a fallback — kept in a
+  configurable **template folder** (default `Templates/journal-folder`). A
+  per-journal **override subfolder** (default `Templates`, relative to each
+  journal folder) takes precedence for that folder. Template bodies are copied
+  verbatim, front matter included.
+- Legacy inline template text is **migrated automatically** into template notes
+  on first launch; the old `data.json` values are kept as a backup and
+  `journal-folder.md` bodies still work as a legacy template source.
+
+### Added
+- **Live template preview.** Opening a template note that contains a
+  `journal-header` block renders it as the current period's entry — header,
+  calendar, and signifiers — marked with a corner **TEMPLATE** ribbon. The
+  preview's navigation links and calendar cells are display-only (they resolve
+  to the template note itself instead of navigating to real journal notes).
+- **Create template files** button in the settings tab scaffolds any missing
+  standardized template notes.
+
 ## [3.0.1]
 
 ### Fixed

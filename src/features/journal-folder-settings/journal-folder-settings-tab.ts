@@ -23,6 +23,7 @@ import {
   DropdownComponent,
   Modal,
   MomentFormatComponent,
+  Notice,
   type Plugin,
   PluginSettingTab,
   setIcon,
@@ -36,17 +37,20 @@ import {
   type BuiltInTemplateId,
   cloneTemplate,
   DEFAULT_SETTINGS,
+  DEFAULT_TEMPLATE_FILENAME,
   DEFAULT_TEMPLATE_ID,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  type JournalTimeUnit,
   LUCIDE_MARKER_PREFIX,
   MIGRATION_REFERENCE_PRESETS,
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
   type TaskMigrationReferenceStyle,
   type TaskStatus,
+  TEMPLATE_FILENAMES,
 } from '../../data-access'
-import { DEFAULT_AUTO_TEMPLATE } from '../journal-auto-template'
+import { DEFAULT_AUTO_TEMPLATE, ensureFolderExists } from '../journal-auto-template'
 import {
   renderBreadcrumb,
   renderFolderTaskFlowSection,
@@ -91,14 +95,8 @@ type SettingsStringFieldName =
   | 'monthlyNoteMediumTitlePattern'
   | 'yearlyNoteMediumTitlePattern'
   | 'journalFolderTitle'
-
-type AutoTemplateField =
-  | 'autoTemplateContent'
-  | 'dailyNoteAutoTemplateContent'
-  | 'weeklyNoteAutoTemplateContent'
-  | 'monthlyNoteAutoTemplateContent'
-  | 'quarterlyNoteAutoTemplateContent'
-  | 'yearlyNoteAutoTemplateContent'
+  | 'templateFolder'
+  | 'templateOverrideFolderName'
 
 // `'global'` renders the full plugin-settings tab; `'folder'` skips
 // global-only fields (start-of-week, hide-config-notes, sidebar section)
@@ -295,70 +293,112 @@ class SettingsFormBuilder {
     )
   }
 
-  renderTemplatesTab(settings: JournalFolderSettings): void {
+  renderTemplatesTab(
+    settings: JournalFolderSettings,
+    isFolder = false
+  ): void {
     new Setting(this.containerEl).setName('New-note template').setHeading()
       .setDesc(
         "When enabled, newly created notes whose names match a journal " +
           "pattern (e.g. 2026-05-07, 2026-W19, 2026-05, 2026-Q2, 2026) and " +
           "that live in a folder containing a 'journal-folder.md' note are " +
-          "automatically seeded with a template body. Disable per-folder by " +
-          "adding 'auto-template-enabled: false' to that folder's " +
-          "journal-folder.md front matter, and override the template body " +
-          "per-folder by writing markdown into the body of journal-folder.md."
+          "seeded from a template note. Templates live as ordinary notes " +
+          "with standardized names — daily-template.md, weekly-template.md, " +
+          "monthly-template.md, quarterly-template.md, yearly-template.md, " +
+          "and default-template.md as a fallback. Editing " +
+          "one of those notes previews it as the current period's entry, " +
+          "signifiers and all. Disable per-folder by adding " +
+          "'auto-template-enabled: false' to that folder's journal-folder.md " +
+          "front matter."
       )
     this.createAutoTemplateEnabledSetting(settings)
-    if (settings.autoTemplateEnabled) {
-      this.createAutoTemplatePerTierSetting(settings)
-      if (settings.autoTemplatePerTier) {
-        this.createAutoTemplateContentSetting(
-          settings,
-          'dailyNoteAutoTemplateContent',
-          'Daily note template',
-          'Used for new daily notes (YYYY-MM-DD). Leave blank for the ' +
-            'built-in default (shown as placeholder).'
+    if (!settings.autoTemplateEnabled) return
+
+    if (isFolder) {
+      // Template-folder paths are global-only. Per-folder overrides are
+      // expressed by dropping files into the override subfolder, not via a
+      // setting — so the folder modal only carries the enable toggle plus
+      // this hint.
+      new Setting(this.containerEl)
+        .setName('Per-folder template overrides')
+        .setDesc(
+          `Drop standardized template notes (daily-template.md, ` +
+            `monthly-template.md, …) into ` +
+            `a '${settings.templateOverrideFolderName}' subfolder of this ` +
+            `journal folder to override the global templates for this folder ` +
+            `only. They take precedence over the global template folder.`
         )
-        this.createAutoTemplateContentSetting(
-          settings,
-          'weeklyNoteAutoTemplateContent',
-          'Weekly note template',
-          'Used for new weekly notes (gggg-[W]ww). Leave blank for the ' +
-            'built-in default (shown as placeholder).'
-        )
-        this.createAutoTemplateContentSetting(
-          settings,
-          'monthlyNoteAutoTemplateContent',
-          'Monthly note template',
-          'Used for new monthly notes (YYYY-MM). Leave blank for the ' +
-            'built-in default (shown as placeholder).'
-        )
-        if (settings.quartersEnabled) {
-          this.createAutoTemplateContentSetting(
-            settings,
-            'quarterlyNoteAutoTemplateContent',
-            'Quarterly note template',
-            'Used for new quarterly notes (YYYY-Q[1-4]). Leave blank for ' +
-              'the built-in default (shown as placeholder).'
+      return
+    }
+
+    this.createTextSetting(settings, 'templateFolder', 'Template folder').setDesc(
+      'Vault folder holding the template notes (daily-template.md, ' +
+        'weekly-template.md, …, default-template.md) that seed new journal ' +
+        'entries.'
+    )
+    this.createTextSetting(
+      settings,
+      'templateOverrideFolderName',
+      'Per-folder override subfolder'
+    ).setDesc(
+      'Name of a subfolder, relative to each journal folder, whose template ' +
+        'notes override the global ones for that folder only.'
+    )
+    this.createScaffoldTemplatesSetting(settings)
+  }
+
+  // Creates any missing standardized template notes in the configured
+  // template folder, seeded with the built-in default body, so the user has
+  // files to edit instead of starting from scratch.
+  createScaffoldTemplatesSetting(settings: JournalFolderSettings): Setting {
+    return new Setting(this.containerEl)
+      .setName('Create template files')
+      .setDesc(
+        'Adds any missing standardized template notes (daily-template.md, ' +
+          'weekly-template.md, monthly-template.md' +
+          (settings.quartersEnabled ? ', quarterly-template.md' : '') +
+          ', yearly-template.md, default-template.md) to the template folder, ' +
+          'seeded with the ' +
+          'built-in default. Existing files are left untouched.'
+      )
+      .addButton((btn) => {
+        btn.setButtonText('Create').onClick(async () => {
+          const written = await this.scaffoldTemplateFiles(settings)
+          new Notice(
+            written > 0
+              ? `Created ${written} template file${written === 1 ? '' : 's'} in ${settings.templateFolder}`
+              : `All template files already exist in ${settings.templateFolder}`
           )
-        }
-        this.createAutoTemplateContentSetting(
-          settings,
-          'yearlyNoteAutoTemplateContent',
-          'Yearly note template',
-          'Used for new yearly notes (YYYY). Leave blank for the ' +
-            'built-in default (shown as placeholder).'
-        )
-      } else {
-        this.createAutoTemplateContentSetting(
-          settings,
-          'autoTemplateContent',
-          'Default template',
-          "Markdown used to seed every new journal note. Leave blank " +
-            "for the built-in default (shown as placeholder). Per-folder " +
-            "overrides go in the body of that folder's journal-folder.md " +
-            "note."
-        )
+        })
+      })
+  }
+
+  private async scaffoldTemplateFiles(
+    settings: JournalFolderSettings
+  ): Promise<number> {
+    const app = this.config.app
+    const dir = settings.templateFolder.replace(/\/+$/, '')
+    if (!dir) return 0
+    await ensureFolderExists(app, dir)
+    const tiers: JournalTimeUnit[] = settings.quartersEnabled
+      ? ['day', 'week', 'month', 'quarter', 'year']
+      : ['day', 'week', 'month', 'year']
+    const names = [
+      ...tiers.map((t) => `${TEMPLATE_FILENAMES[t]}.md`),
+      `${DEFAULT_TEMPLATE_FILENAME}.md`,
+    ]
+    let written = 0
+    for (const name of names) {
+      const path = `${dir}/${name}`
+      if (app.vault.getAbstractFileByPath(path)) continue
+      try {
+        await app.vault.create(path, DEFAULT_AUTO_TEMPLATE)
+        written++
+      } catch {
+        // Best effort — skip on failure.
       }
     }
+    return written
   }
 
   renderPatternsTab(settings: JournalFolderSettings): void {
@@ -1136,77 +1176,6 @@ class SettingsFormBuilder {
       })
   }
 
-  createAutoTemplatePerTierSetting(settings: JournalFolderSettings): Setting {
-    let component: ToggleComponent
-
-    const onChange = (value: boolean) => {
-      settings.autoTemplatePerTier = value
-      // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.render())
-    }
-
-    return new Setting(this.containerEl)
-      .setName('Use a different template per note type')
-      .setDesc(
-        'Off — every new journal note (daily, weekly, monthly, ' +
-          'quarterly, yearly) is seeded with the same default template. ' +
-          'On — pick a separate template for each note type. The two ' +
-          'modes are mutually exclusive.'
-      )
-      .addToggle((toggle) => {
-        component = toggle
-        toggle.setValue(settings.autoTemplatePerTier).onChange(onChange)
-      })
-      .addExtraButton((btn) => {
-        btn
-          .setIcon('reset')
-          .setTooltip('Reset to default value')
-          .onClick(() => {
-            component.setValue(DEFAULT_SETTINGS.autoTemplatePerTier)
-            onChange(DEFAULT_SETTINGS.autoTemplatePerTier)
-          })
-      })
-  }
-
-  createAutoTemplateContentSetting(
-    settings: JournalFolderSettings,
-    field: AutoTemplateField,
-    name: string,
-    desc: string
-  ): Setting {
-    // Standard Obsidian Setting rows place the control on the right, which
-    // gives a textarea ~30% of the row width — useless for editing markdown.
-    // Render the name/desc as a normal Setting, then append a separate
-    // full-width row containing a plain <textarea>. The placeholder shows
-    // the effective fallback (the generic default template, or the
-    // built-in template) so users see what they'll get if they leave the
-    // field blank.
-    const setting = new Setting(this.containerEl).setName(name).setDesc(desc)
-
-    const wrapper = this.containerEl.createDiv({
-      cls: 'journal-folder-config-template-wrapper',
-    })
-    const textarea = wrapper.createEl('textarea', {
-      cls: 'journal-folder-config-template-textarea',
-    })
-    textarea.rows = 8
-    textarea.placeholder = DEFAULT_AUTO_TEMPLATE
-    textarea.value = settings[field]
-
-    const onChange = debounce(
-      (value: string) => {
-        settings[field] = value
-        // noinspection JSIgnoredPromiseFromCall
-        this.saveSettings(settings)
-      },
-      250,
-      true
-    )
-    textarea.addEventListener('input', () => onChange(textarea.value))
-
-    return setting
-  }
-
   createQuartersEnabledSetting(settings: JournalFolderSettings): Setting {
     let component: ToggleComponent
 
@@ -1458,7 +1427,8 @@ const TABS: TabDef[] = [
     id: 'templates',
     label: 'New-note template',
     isVisible: () => true,
-    render: (builder, settings) => builder.renderTemplatesTab(settings),
+    render: (builder, settings, isFolder) =>
+      builder.renderTemplatesTab(settings, isFolder),
   },
   {
     id: 'patterns',

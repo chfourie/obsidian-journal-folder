@@ -128,6 +128,23 @@ export class Vault {
     return file
   }
 
+  async createFolder(path: string): Promise<TFolder> {
+    const existing = this.files.get(path)
+    if (existing instanceof TFolder) return existing
+    const folder = new TFolder()
+    folder.path = path
+    folder.name = path.split('/').pop() ?? path
+    const parentPath = path.includes('/')
+      ? path.slice(0, path.lastIndexOf('/'))
+      : ''
+    if (parentPath) {
+      const parent = this.files.get(parentPath)
+      folder.parent = parent instanceof TFolder ? parent : null
+    }
+    this.files.set(path, folder)
+    return folder
+  }
+
   setContents(file: TFile, content: string): void {
     this.contents.set(file.path, content)
   }
