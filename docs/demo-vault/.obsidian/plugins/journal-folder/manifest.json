@@ -1,7 +1,7 @@
 {
 	"id": "journal-folder",
 	"name": "Journal Folder",
-	"version": "2.4.3",
+	"version": "2.5.0",
 	"minAppVersion": "0.15.0",
 	"description": "Utilities for folder-based journaling",
 	"author": "Charl Fourie",
