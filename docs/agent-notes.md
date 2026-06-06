@@ -291,6 +291,35 @@ placeholder body, you forgot step 1.
 
 ---
 
+## Known traps in the settings tab
+
+### Stale-snapshot `getSettings` closures (fixed in 3.0.1)
+
+`SettingsFormBuilder.render()` takes a one-time snapshot
+`const settings = { ...this.getCurrentSettings() }` and passes closures like
+`getSettings: () => settings` into section renderers. This is fine for the
+*initial render*, but any closure that calls `getSettings()` **after** an
+async `saveSettings()` in the same event handler will receive the pre-render
+snapshot — which no longer reflects what was just written to disk.
+
+The original bug: the "Add signifier" / "Add category" buttons
+1. saved the new item (`saveSettings({ ...snapshot, list: [...list, item] })`), then
+2. opened an edit modal whose onSave called `getSettings()` → got the stale snapshot (empty list), then
+3. saved `stale.map(...)` → empty array → erased the item.
+
+**Fix applied:** `renderSignifiersSection` and `renderCategoriesSection` now
+receive `getSettings: () => this.getCurrentSettings()` so modal callbacks
+always read live persisted state.
+
+**Rule for future sections:** any settings section that follows the pattern
+*"save to disk → open a modal → modal save mutates the saved list"* must pass
+`() => this.getCurrentSettings()` (not `() => settings`) for its `getSettings`
+slot. The three remaining `() => settings` closures (`renderTaskFlowOverview`,
+`renderTaskFlowDetail`, `renderFolderTaskFlowSection`) are safe because their
+callees never call `getSettings()` after an intervening async save.
+
+---
+
 ## Shipped-feature design notes
 
 These features are shipped; the canonical detail lives in `CLAUDE.md` and the
