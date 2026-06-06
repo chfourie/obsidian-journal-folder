@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Read [docs/agent-notes.md](docs/agent-notes.md) before non-trivial work.** It
+> holds the durable, hard-won working knowledge that isn't derivable from the code
+> — the maintainer's conventions (tests-with-features, robust-over-cosmetic,
+> toggle-label and theming rules), the vault topology, how to verify live-preview
+> behaviour via the Obsidian CLI, screenshot procedure, Obsidian styling traps,
+> the release flow, and shipped-feature design history. **When you learn something
+> durable, append it there in the same change** — that file, not ephemeral session
+> memory, is the shared long-term record.
+
 ## Project
 
 Obsidian community plugin (`id: journal-folder`) that adds folder-based journaling utilities. Any folder in a vault can act as a journal — notes named `YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, or `YYYY` are recognized as daily/weekly/monthly/yearly entries. Quarterly notes (`YYYY-Q[1-4]`) are an **opt-in** fifth tier gated by the `quartersEnabled` setting; they slot between yearly and monthly when on. The vault root is *not* supported as a journal folder due to Obsidian link-resolution behavior.
