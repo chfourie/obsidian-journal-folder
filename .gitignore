@@ -42,3 +42,7 @@ tests/e2e/jf-e2e-vault/.obsidian/appearance.json
 # ...but the deterministic baseline plugin settings MUST be committed, so
 # re-include it despite the global `data.json` rule above.
 !tests/e2e/jf-e2e-vault/.obsidian/plugins/journal-folder/data.json
+
+# Repo root accidentally opened as an Obsidian vault — config has no
+# purpose here (not the demo vault, not a deploy target). Keep local, untrack.
+/.obsidian/
