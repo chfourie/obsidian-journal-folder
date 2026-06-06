@@ -518,7 +518,7 @@ class SettingsFormBuilder {
     renderCategoriesSection({
       app: this.config.app,
       containerEl: this.containerEl,
-      getSettings: () => settings,
+      getSettings: () => this.getCurrentSettings(),
       saveSettings: (next: JournalFolderSettings) => this.saveSettings(next),
       rerender: () => this.render(),
     })
@@ -528,11 +528,11 @@ class SettingsFormBuilder {
   // rendered markdown, not just tasks), so they get a dedicated tab rather
   // than living under Tasks. Task *categories* stay under Tasks because
   // they only shape task lists.
-  renderSignifiersTab(settings: JournalFolderSettings): void {
+  renderSignifiersTab(_settings: JournalFolderSettings): void {
     renderSignifiersSection({
       app: this.config.app,
       containerEl: this.containerEl,
-      getSettings: () => settings,
+      getSettings: () => this.getCurrentSettings(),
       saveSettings: (next: JournalFolderSettings) => this.saveSettings(next),
       rerender: () => this.render(),
     })

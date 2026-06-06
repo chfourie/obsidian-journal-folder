@@ -7,6 +7,15 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.0.1]
+
+### Fixed
+- **Add signifier / Add category** — clicking *Add signifier* or *Add category*
+  in the settings tab now correctly persists the new item. Previously the edit
+  modal that opens after the initial save was calling `getSettings()` against a
+  stale pre-render snapshot, causing its own save to overwrite the freshly-added
+  item with the old empty list.
+
 ## [3.0.0]
 
 Major-version milestone. The last month added a lot — bullet-journal
