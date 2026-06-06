@@ -24,6 +24,22 @@ describe('lineToTaskMarkdown', () => {
   it('handles an empty bullet', () => {
     expect(lineToTaskMarkdown('- ', '[ ]')).toBe('- [ ] ')
   })
+
+  it('does not duplicate a bare bullet with no trailing space', () => {
+    expect(lineToTaskMarkdown('-', '[ ]')).toBe('- [ ] ')
+    expect(lineToTaskMarkdown('*', '[ ]')).toBe('* [ ] ')
+    expect(lineToTaskMarkdown('+', '[ ]')).toBe('+ [ ] ')
+  })
+
+  it('reuses a bare indented bullet rather than adding a second one', () => {
+    expect(lineToTaskMarkdown('  -', '[ ]')).toBe('  - [ ] ')
+  })
+
+  it('treats a hyphen with no following space as literal text, not a bullet', () => {
+    // `-no space` is a paragraph in markdown, so the hyphen is part of the
+    // text — a fresh bullet is added and the literal hyphen kept.
+    expect(lineToTaskMarkdown('-no space', '[ ]')).toBe('- [ ] -no space')
+  })
 })
 
 describe('computeTaskLineEdit', () => {

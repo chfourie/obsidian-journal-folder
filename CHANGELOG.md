@@ -7,6 +7,20 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.5.2]
+
+### Changed
+- **The header's previous/next chip now becomes *Today* when it points at
+  today.** When the day either side of the current note is today, that arrow's
+  chip reads *Today* and the separate *Today* button is dropped (it pointed at
+  the same note) — one less redundant button in the primary row.
+
+### Fixed
+- **Converting an empty bullet to a task no longer duplicates the bullet.**
+  Running *Toggle task / advance status on current line* on a bare `-`, `*`, or
+  `+` (a list item you've only just started) now reuses that bullet instead of
+  producing `- [ ] -`.
+
 ## [2.5.1]
 
 ### Changed

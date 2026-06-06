@@ -37,10 +37,13 @@ describe('buildJournalHeaderInfo', () => {
     expect(info.secondaryLinks).toEqual([])
   })
 
-  it('exposes a [Today] link when the current note is not today', () => {
-    const { files } = buildApp('Journal', ['2026-05-02'])
+  it('exposes a [Today] link when the current note is not today and no arrow points at today', () => {
+    // 2026-04-20 is far enough from today (2026-05-03) that neither the
+    // forward nor backward arrow lands on today, so the standalone button
+    // stays.
+    const { files } = buildApp('Journal', ['2026-04-20'])
     const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
-      files['2026-05-02']
+      files['2026-04-20']
     )
 
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
@@ -53,14 +56,50 @@ describe('buildJournalHeaderInfo', () => {
   })
 
   it('keeps the Today link out of moreLinks so it stays in the primary row', () => {
-    const { files } = buildApp('Journal', ['2026-05-02'])
+    const { files } = buildApp('Journal', ['2026-04-20'])
     const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
-      files['2026-05-02']
+      files['2026-04-20']
     )
 
     const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
 
     expect(info.moreLinks.some((l) => l.title === 'Today')).toBe(false)
+  })
+
+  describe('Today folded into an arrow chip', () => {
+    it('renders the forward chip as "Today" and drops the standalone button when the next note is today', () => {
+      // 2026-05-02 → next sibling 2026-05-03 is today.
+      const { files } = buildApp('Journal', ['2026-05-02'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05-02']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.forwardLink).toEqual({
+        title: 'Today',
+        url: 'Journal/2026-05-03',
+        needsConfirmation: false,
+      })
+      expect(info.todayLink).toBeUndefined()
+    })
+
+    it('renders the backward chip as "Today" and drops the standalone button when the previous note is today', () => {
+      // 2026-05-04 → previous sibling 2026-05-03 is today.
+      const { files } = buildApp('Journal', ['2026-05-04'])
+      const note = journalNoteFactoryWithSettings(DEFAULT_SETTINGS)(
+        files['2026-05-04']
+      )
+
+      const info = buildJournalHeaderInfo(DEFAULT_SETTINGS, note)
+
+      expect(info.backwardLink).toEqual({
+        title: 'Today',
+        url: 'Journal/2026-05-03',
+        needsConfirmation: false,
+      })
+      expect(info.todayLink).toBeUndefined()
+    })
   })
 
   it('returns an empty moreLinks array for yearly notes (no higher-order periods)', () => {

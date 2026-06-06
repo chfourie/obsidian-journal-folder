@@ -19,8 +19,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import type { TaskModel } from './task-models'
 
 // A bullet list line that does *not* already carry a checkbox token.
-// (Lines that do are handled by the model's own parse path.)
-const LIST_ITEM_REGEX = /^(\s*)([-*+])\s+(.*)$/
+// (Lines that do are handled by the model's own parse path.) The trailing
+// content is optional so a *bare* bullet — `-`, `*`, `+`, with or without a
+// trailing space — is recognised as an existing bullet and reused rather
+// than gaining a second one (which produced `- [ ] -`).
+const LIST_ITEM_REGEX = /^(\s*)([-*+])(?:\s+(.*))?$/
 const INDENT_REGEX = /^(\s*)(.*)$/
 
 // Turns a plain line into a top-level task line stamped with
@@ -30,7 +33,7 @@ export function lineToTaskMarkdown(line: string, statusToken: string): string {
   const listMatch = LIST_ITEM_REGEX.exec(line)
   if (listMatch) {
     const [, indent, bullet, rest] = listMatch
-    return `${indent}${bullet} ${statusToken} ${rest}`
+    return `${indent}${bullet} ${statusToken} ${rest ?? ''}`
   }
   const indentMatch = INDENT_REGEX.exec(line)
   const indent = indentMatch?.[1] ?? ''

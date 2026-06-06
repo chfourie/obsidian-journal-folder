@@ -50,11 +50,19 @@ export function buildJournalHeaderInfo(
   const lowerOrderUnit = lowerOrderNotes[0]?.getTimeUnit()
   const extraSection = buildExtraSection()
 
+  // When the previous/next sibling happens to be today, collapse the separate
+  // Today button into that arrow's chip — the chip then reads "Today" and the
+  // standalone button is dropped (it would point to the same note).
+  const backwardTarget = resolveBackwardTarget()
+  const forwardTarget = resolveForwardTarget()
+  const backwardIsToday = backwardTarget?.isToday() ?? false
+  const forwardIsToday = forwardTarget?.isToday() ?? false
+
   return {
     title: note.getTitle(),
     moreLinks: buildMoreLinks(),
     moreLinksLabel: 'Jump to',
-    todayLink: buildTodayLink(),
+    todayLink: buildTodayLink(backwardIsToday || forwardIsToday),
     backwardLink: createBackwardLink(),
     forwardLink: createForwardLink(),
     secondaryLinks: buildSecondaryLinks(),
@@ -127,33 +135,41 @@ export function buildJournalHeaderInfo(
     return links
   }
 
-  function buildTodayLink(): Link | undefined {
-    if (note.isToday()) return undefined
+  // Suppress the standalone Today button when the current note is today, or
+  // when it has already been folded into the backward/forward chip.
+  function buildTodayLink(mergedIntoArrow: boolean): Link | undefined {
+    if (note.isToday() || mergedIntoArrow) return undefined
     return note.dailyNoteToday().linkWithTitlePattern('[Today]')
   }
 
-  function createForwardLink(): Link | undefined {
+  // Resolve the note the forward arrow points at: the direct sibling when it
+  // exists or is present/future, otherwise the closest existing sibling after.
+  function resolveForwardTarget(): JournalNote | undefined {
     const directSibling = note.forwardInTime()
-
     if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
-      return directSibling.shortLinkFrom(note)
+      return directSibling
     }
+    return note.closestSibling('after')
+  }
 
-    const closestSibling = note.closestSibling('after')
-
-    if (closestSibling) {
-      return closestSibling.shortLinkFrom(note)
+  function resolveBackwardTarget(): JournalNote | undefined {
+    const directSibling = note.backInTime()
+    if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
+      return directSibling
     }
+    return note.closestSibling('before')
+  }
+
+  function createForwardLink(): Link | undefined {
+    if (!forwardTarget) return undefined
+    if (forwardIsToday) return forwardTarget.linkWithTitlePattern('[Today]')
+    return forwardTarget.shortLinkFrom(note)
   }
 
   function createBackwardLink(): Link | undefined {
-    const directSibling = note.backInTime()
-
-    if (directSibling.isExistingNote() || directSibling.isPresentOrFuture()) {
-      return directSibling.shortLinkFrom(note)
-    }
-
-    return note.closestSibling('before')?.shortLinkFrom(note)
+    if (!backwardTarget) return undefined
+    if (backwardIsToday) return backwardTarget.linkWithTitlePattern('[Today]')
+    return backwardTarget.shortLinkFrom(note)
   }
 
   function buildSecondaryLinks(): Link[] {
