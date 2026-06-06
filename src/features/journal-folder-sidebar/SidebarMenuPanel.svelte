@@ -173,6 +173,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   aria-haspopup="menu"
   aria-expanded={open}
   aria-disabled={disabled}
+  data-jf-menu-trigger
   onclick={toggle}
   onkeydown={activate(toggle)}
 >
@@ -191,6 +192,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     style={panelStyle}
     role="menu"
     tabindex="-1"
+    data-jf-menu-panel
   >
     {#each items as item, i (i)}
       {#if item.kind === 'separator'}
@@ -200,6 +202,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           role="menuitem"
           tabindex="0"
           class="jf-sidebar-menu-item"
+          data-jf-menu-item
+          data-jf-menu-item-title={item.title}
           onclick={() => runItem(item.onClick)}
           onkeydown={activate(() => runItem(item.onClick))}
         >

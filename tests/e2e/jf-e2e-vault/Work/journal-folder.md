@@ -1,0 +1,3 @@
+---
+journal-folder-title: Work
+---

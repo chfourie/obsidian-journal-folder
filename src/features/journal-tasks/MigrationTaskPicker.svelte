@@ -95,7 +95,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 </script>
 
-<div class="jf-migrate-picker">
+<div class="jf-migrate-picker" data-jf-migrate-picker>
   <div class="jf-migrate-picker-heading">{heading}</div>
 
   {#if tasks.length === 0}
@@ -104,7 +104,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <div class="jf-migrate-picker-list">
       {#each groups as group (group.path)}
         {@const state = groupState(group)}
-        <div class="jf-migrate-picker-group">
+        <div class="jf-migrate-picker-group" data-jf-migrate-group={group.path}>
           <label class="jf-migrate-picker-group-heading">
             <input
               type="checkbox"
@@ -117,7 +117,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           </label>
           <div class="jf-migrate-picker-tasks">
             {#each group.tasks as task (keyOf(task))}
-              <label class="jf-migrate-picker-task">
+              <label class="jf-migrate-picker-task" data-jf-migrate-task={keyOf(task)}>
                 <input
                   type="checkbox"
                   checked={isSelected(task)}
@@ -134,11 +134,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   {/if}
 
   <div class="modal-button-container jf-migrate-picker-actions">
-    <button type="button" onclick={onCancel}>Cancel</button>
+    <button type="button" data-jf-migrate-cancel onclick={onCancel}>Cancel</button>
     <button
       type="button"
       class="mod-cta"
       disabled={selectedCount === 0}
+      data-jf-migrate-confirm
       onclick={confirm}
     >
       Migrate ({selectedCount})

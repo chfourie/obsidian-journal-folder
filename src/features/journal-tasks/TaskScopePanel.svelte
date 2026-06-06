@@ -201,6 +201,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   aria-expanded={open}
   aria-label="Configure task scope"
   title="Configure task scope"
+  data-jf-scope-trigger
   onclick={toggle}
   onkeydown={activate(toggle)}
 >
@@ -211,7 +212,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 {#snippet option(
   label: string,
   selected: boolean,
-  onSelect: () => void
+  onSelect: () => void,
+  testValue?: string
 )}
   <span
     role="menuitemradio"
@@ -219,6 +221,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     aria-checked={selected}
     class="journal-folder-tasks-scope-option"
     class:is-selected={selected}
+    data-jf-scope-option={testValue}
     onclick={onSelect}
     onkeydown={activate(onSelect)}
   >
@@ -237,43 +240,44 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     style={panelStyle}
     role="menu"
     tabindex="-1"
+    data-jf-scope-panel
   >
-    <div class="journal-folder-tasks-scope-section">
+    <div class="journal-folder-tasks-scope-section" data-jf-scope-section="anchor">
       <div class="journal-folder-tasks-scope-section-label">Anchor</div>
       <div class="journal-folder-tasks-scope-rule"></div>
       {#each ANCHOR_OPTIONS as opt (opt.value)}
         {@render option(opt.label, anchor === opt.value, () =>
           onSetAnchor(opt.value)
-        )}
+        , 'anchor:' + opt.value)}
       {/each}
     </div>
 
-    <div class="journal-folder-tasks-scope-section">
+    <div class="journal-folder-tasks-scope-section" data-jf-scope-section="range">
       <div class="journal-folder-tasks-scope-section-label">Range</div>
       <div class="journal-folder-tasks-scope-rule"></div>
       {#each rangeOptions as opt (opt.value)}
         {@render option(opt.label, range === opt.value, () =>
           onSetRange(opt.value)
-        )}
+        , 'range:' + opt.value)}
       {/each}
     </div>
 
-    <div class="journal-folder-tasks-scope-section">
+    <div class="journal-folder-tasks-scope-section" data-jf-scope-section="folders">
       <div class="journal-folder-tasks-scope-section-label">In folders</div>
       <div class="journal-folder-tasks-scope-rule"></div>
       <div class="journal-folder-tasks-scope-folders">
         {#each folderRows as row (row.kind + ('path' in row ? ':' + row.path : ''))}
           {@render option(row.label, isFolderRowSelected(row), () =>
             selectFolderRow(row)
-          )}
+          , 'folder:' + (row.kind === 'specific' ? row.path : row.kind))}
         {/each}
       </div>
     </div>
 
-    <div class="journal-folder-tasks-scope-section">
+    <div class="journal-folder-tasks-scope-section" data-jf-scope-section="filter">
       <div class="journal-folder-tasks-scope-section-label">Filter</div>
       <div class="journal-folder-tasks-scope-rule"></div>
-      {@render option('Show completed tasks', showCompleted, onToggleShowCompleted)}
+      {@render option('Show completed tasks', showCompleted, onToggleShowCompleted, 'filter:show-completed')}
     </div>
   </div>
 {/if}

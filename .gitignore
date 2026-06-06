@@ -31,3 +31,14 @@ deploy-targets.json
 # Demo vault — Obsidian writes workspace state every close.
 docs/demo-vault/.obsidian/workspace.json
 docs/demo-vault/.obsidian/workspace-mobile.json
+
+# E2E test vault (tests/e2e/jf-e2e-vault) — the committed fixtures and
+# .obsidian config ARE tracked, but a few artifacts must not be:
+#   - the built main.js is deployed fresh each run (global `main.js` rule covers it)
+#   - Obsidian rewrites workspace state on every close
+tests/e2e/jf-e2e-vault/.obsidian/workspace*.json
+# Obsidian rewrites appearance.json (accent colour, etc.) on every session.
+tests/e2e/jf-e2e-vault/.obsidian/appearance.json
+# ...but the deterministic baseline plugin settings MUST be committed, so
+# re-include it despite the global `data.json` rule above.
+!tests/e2e/jf-e2e-vault/.obsidian/plugins/journal-folder/data.json

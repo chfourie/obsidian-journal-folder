@@ -108,6 +108,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   class:journal-folder-tasks-done={isDone}
   class:task-list-item={rendering === 'theme'}
   data-task={rendering === 'theme' ? statusChar : undefined}
+  data-jf-task-item
+  data-jf-task-path={task.sourceFile.path}
+  data-jf-task-line={task.sourceLine}
+  data-jf-status={task.status}
   title={titleAttr}
 >
   <StatusIcon

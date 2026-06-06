@@ -34,6 +34,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		// cancelled). The More panel uses this to close itself once the user
 		// commits to or backs out of creating a past note.
 		onAfterClick?: () => void
+		// Stable hook for the e2e suite (rendered as `data-jf-id`). Has no
+		// effect on behaviour or styling — purely a test selector.
+		testId?: string
 	}
 
 	let {
@@ -44,6 +47,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		confirmCreate,
 		navigate,
 		onAfterClick,
+		testId,
 	}: Props = $props()
 
 	async function handleClick(event: MouseEvent) {
@@ -66,5 +70,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	class:is-unresolved={needsConfirmation}
 	class:needs-confirmation={needsConfirmation}
 	href={url}
+	data-jf-id={testId}
 	onclick={handleClick}
 >{title}</a>

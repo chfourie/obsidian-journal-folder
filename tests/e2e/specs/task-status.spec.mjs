@@ -1,0 +1,111 @@
+/*
+Obsidian Journal Folder - Utilities for folder-based journaling in Obsidian
+Copyright (C) 2024  Charl Fourie
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// Task status interaction: left-click cycles to the flow's next status and
+// writes it back to disk; right-click opens the in-house status picker, whose
+// selection also persists. Uses the Bullet Journal flow (baseline): open (' ')
+// → in-progress ('/') → done ('x'); plus cancelled ('-') via the picker.
+//
+// Journal/2026-06-06 body has the open task on line index 11 ("- [ ] open task one").
+
+const RV = '.workspace-leaf.mod-active .markdown-reading-view'
+const OPEN_ICON = `${RV} li[data-jf-doc-line="11"] [data-jf-doc-icon]`
+
+export const suite = {
+  name: 'task-status',
+  settings: {},
+  tests: [
+    [
+      'left-click cycles open → in-progress and writes to disk',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.contains(ctx.readNote('Journal/2026-06-06.md'), '- [ ] open task one', 'precondition')
+        await ctx.click(OPEN_ICON, { settleMs: 600 })
+        const ok = await ctx.waitFor(() =>
+          ctx.readNote('Journal/2026-06-06.md').includes('- [/] open task one')
+        )
+        ctx.assert.ok(ok, 'status advanced to in-progress on disk')
+      },
+    ],
+    [
+      'right-click opens the status picker',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        await ctx.dispatch(OPEN_ICON, 'contextmenu', { settleMs: 400 })
+        ctx.assert.ok(await ctx.exists('[data-jf-status-picker]'), 'picker portaled open')
+        ctx.assert.ok(
+          (await ctx.count('[data-jf-status-picker] [data-jf-status-option]')) >= 3,
+          'picker lists the flow statuses'
+        )
+      },
+    ],
+    [
+      'choosing a status from the picker persists it',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        await ctx.dispatch(OPEN_ICON, 'contextmenu', { settleMs: 400 })
+        await ctx.click('[data-jf-status-picker] [data-jf-status-option="cancelled"]', { settleMs: 600 })
+        ctx.assert.ok(
+          await ctx.waitFor(() =>
+            ctx.readNote('Journal/2026-06-06.md').includes('- [-] open task one')
+          ),
+          'cancelled status written to disk'
+        )
+      },
+    ],
+    [
+      'cycling from the sidebar panel also writes to disk',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        await ctx.openSidebar()
+        const icon =
+          '[data-jf-task-list="sidebar"] [data-jf-task-item][data-jf-task-line="11"] [data-jf-status-icon]'
+        ctx.assert.ok(await ctx.exists(icon), 'open task present in sidebar panel')
+        await ctx.click(icon, { settleMs: 600 })
+        ctx.assert.ok(
+          await ctx.waitFor(() =>
+            ctx.readNote('Journal/2026-06-06.md').includes('- [/] open task one')
+          ),
+          'sidebar cycle advanced the status on disk'
+        )
+        await ctx.closeSidebar()
+      },
+    ],
+    [
+      'theme-rendering flow keeps the native checkbox (no plugin icon swap)',
+      async (ctx) => {
+        // Flip the active flow to theme rendering and confirm the document
+        // body keeps Obsidian's native checkbox instead of the plugin shell.
+        const flows = ctx.readSettings().taskFlows
+        const name = ctx.readSettings().defaultTaskFlow
+        flows[name] = { ...flows[name], rendering: 'theme' }
+        await ctx.applySettings({ taskFlows: flows })
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.ok(
+          (await ctx.count(`${RV} li.task-list-item input.task-list-item-checkbox`)) >= 1,
+          'native checkbox present under theme rendering'
+        )
+        ctx.assert.eq(
+          await ctx.count(`${RV} [data-jf-doc-icon]`),
+          0,
+          'no plugin icon swap under theme rendering'
+        )
+      },
+    ],
+  ],
+}

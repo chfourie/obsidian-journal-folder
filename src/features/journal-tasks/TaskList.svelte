@@ -220,7 +220,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 </script>
 
-<div class="journal-folder-tasks">
+<div class="journal-folder-tasks" data-jf-task-list={header}>
   <div class="journal-folder-tasks-header">
     <span class="journal-folder-tasks-header-label">{headerLabel}</span>
     {#if showScopePanel}
@@ -251,6 +251,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         tabindex="0"
         class="journal-folder-tasks-link"
         aria-pressed={showCompleted}
+        data-jf-task-filter-toggle
         onclick={onToggleShowCompleted}
         onkeydown={activate(onToggleShowCompleted)}
       >
@@ -268,6 +269,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <div
         class="journal-folder-tasks-group journal-folder-tasks-category"
         class:is-collapsed={collapsed}
+        data-jf-task-group="category"
+        data-jf-group-id={section.category.id}
       >
         <div class="journal-folder-tasks-group-heading">
           <span
@@ -313,6 +316,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       <div
         class="journal-folder-tasks-group"
         class:is-collapsed={collapsed}
+        data-jf-task-group="note"
+        data-jf-group-path={group.path}
       >
         <div class="journal-folder-tasks-group-heading">
           <span
@@ -362,6 +367,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           role="button"
           tabindex="0"
           class="journal-folder-tasks-link"
+          data-jf-increase-cap
           onclick={onOpenSettings}
           onkeydown={activate(onOpenSettings)}
         >increase limit in settings</span>

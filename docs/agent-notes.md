@@ -191,6 +191,50 @@ fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
 
 ---
 
+## E2E suite (live Obsidian, via the CLI)
+
+`tests/e2e/` is an **agent-independent** end-to-end suite that drives the real
+plugin in a running Obsidian instance through the CLI and asserts on rendered
+DOM, vault-file changes, and settings — the live counterpart to the jsdom unit
+suite. Run `npm run test:e2e:build`; full docs in
+[`tests/e2e/README.md`](tests/e2e/README.md) and the scenario matrix in
+[`tests/e2e/TEST-PLAN.md`](tests/e2e/TEST-PLAN.md).
+
+- **Committed test vault** `tests/e2e/jf-e2e-vault/` — open it once manually to
+  register it (trust prompt); thereafter the runner reverts it with git between
+  tests. `main.js`/`workspace*.json` are gitignored; `data.json` is force-tracked
+  (baseline settings). Stable `data-jf-*` attributes on the UI are the selectors.
+- **Isolation = git.** Before every test the runner closes open modals/panels,
+  `git checkout`/`clean`s the vault, and re-applies the suite's settings.
+  `resetVault` refuses to run on an untracked vault (else `git clean` would delete
+  the fixtures), so the vault must be committed/staged.
+- **Three traps that cost real time** (all now handled in the harness, keep them
+  in mind when extending):
+  1. **The CLI binds to the *focused* window** and `eval` hangs on the wrong/busy
+     one → every call has a timeout + one refocus-retry; keep the vault window
+     reachable.
+  2. **Leftover modals break unrelated tests** — a modal left open sits over the
+     reading view and fails every subsequent render assertion (looked like a
+     mysterious "first N suites fail then recover" cascade). The harness closes
+     all modals/panels before each test; a spec that opens one should still
+     dismiss it.
+  3. **Read-after-write races** — disk writes / debounced saves lag the UI action;
+     assert via `ctx.waitFor(() => …)`, never an immediate read. Also: the plugin
+     keeps settings in a private field, so read them back from `data.json`
+     (`ctx.readSettings()`), not off the plugin instance.
+  4. **A non-visible Obsidian window renders nothing** — the reading view
+     lazy-renders only while `document.hidden === false`, so empty previews mean
+     the window is occluded / on another Space / minimized (NOT necessarily
+     minimized — a fully-covered window also reports hidden). This was the real
+     cause of the "early suites fail then recover" cascade; the runner's
+     preflight now fails fast on it. Settings editing goes through
+     `data-jf-setting="<key>"` hooks on each field's `.setting-item`.
+- **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is
+  `"{}"`; the helper wraps as `Promise.resolve(x).then(JSON.stringify)` so the CLI
+  awaits first.
+
+---
+
 ## Screenshots
 
 - **Always capture from a live Obsidian session against the demo vault** — never

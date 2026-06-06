@@ -92,6 +92,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   const panel = document.createElement('div')
   panel.className = 'jf-status-picker-panel'
   panel.setAttribute('role', 'menu')
+  panel.setAttribute('data-jf-status-picker', '')
   panel.tabIndex = -1
 
   let firstFocusable: HTMLElement | null = null
@@ -101,6 +102,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     const row = document.createElement('span')
     row.className = 'jf-status-picker-item'
     row.setAttribute('role', 'menuitemradio')
+    row.setAttribute('data-jf-status-option', status.id)
     row.tabIndex = 0
     const selected = status.id === opts.currentStatus
     row.setAttribute('aria-checked', String(selected))
@@ -154,6 +156,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     const row = document.createElement('span')
     row.className = 'jf-status-picker-item jf-status-picker-migrate'
     row.setAttribute('role', 'menuitem')
+    row.setAttribute('data-jf-migrate-row', '')
     row.tabIndex = 0
     if (!firstFocusable) firstFocusable = row
 

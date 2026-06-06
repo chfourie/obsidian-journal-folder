@@ -420,8 +420,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 </script>
 
-<div class="jf-sidebar-root">
-  <div class="jf-sidebar-section">
+<div class="jf-sidebar-root" data-jf-sidebar-root>
+  <div class="jf-sidebar-section" data-jf-sidebar-section="folder">
     <div class="jf-sidebar-header">
       <label class="jf-sidebar-label" for="jf-sidebar-folder">
         Journal folder
@@ -451,7 +451,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     </SidebarMenuPanel>
   </div>
 
-  <div class="jf-sidebar-section">
+  <div class="jf-sidebar-section" data-jf-sidebar-section="calendar">
     {#if anchorNote}
       <SidebarCalendar
         note={anchorNote}
@@ -480,7 +480,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   {#if settings.tasksSidebarEnabled}
     <hr class="jf-sidebar-divider" />
-    <div class="jf-sidebar-section">
+    <div class="jf-sidebar-section" data-jf-sidebar-section="tasks">
       <TaskList
         tasks={visibleTasks}
         model={taskModel}

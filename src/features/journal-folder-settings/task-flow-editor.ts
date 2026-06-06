@@ -126,6 +126,7 @@ export function renderTaskFlowOverview(config: TaskFlowOverviewConfig): void {
       })
 
     row.settingEl.addClass('jf-flow-row')
+    row.settingEl.dataset.jfFlow = name
     if (isDefault) row.settingEl.addClass('is-default')
     // Make the whole row a single click target — easier than aiming
     // for the chevron, especially on touch.

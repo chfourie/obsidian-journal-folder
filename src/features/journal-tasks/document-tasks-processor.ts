@@ -88,6 +88,9 @@ export function processDocumentTasks(
     // `[/]`).
     const status = model.statuses.find((s) => s.id === entry.status)
     li.setAttribute('data-task', status?.char ?? ' ')
+    // Stable hook for the e2e suite: the absolute source line of this task,
+    // so a test can target a specific document checkbox deterministically.
+    li.setAttribute('data-jf-doc-line', String(entry.line))
     // Flow-level rendering choice (theme = leave the native checkbox
     // alone, plugin = swap in our custom shell + icon).
     if (model.rendering === 'theme') {

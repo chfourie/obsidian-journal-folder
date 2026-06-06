@@ -57,6 +57,7 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
       btn
         .setButtonText('Add signifier')
         .setCta()
+        .then((b) => b.buttonEl.setAttribute('data-jf-add-signifier', ''))
         .onClick(async () => {
           const signifier: Signifier = {
             id: uniqueId('signifier', usedIds(settings.signifiers)),
@@ -246,6 +247,7 @@ export function renderCategoriesSection(config: CategorySectionConfig): void {
       btn
         .setButtonText('Add category')
         .setCta()
+        .then((b) => b.buttonEl.setAttribute('data-jf-add-category', ''))
         .onClick(async () => {
           const category: TaskCategory = {
             id: uniqueId('category', usedIds(settings.taskCategories)),
@@ -629,11 +631,13 @@ function renderModalButtons(
   onSave: () => void | Promise<void>
 ): void {
   const buttons = contentEl.createDiv({ cls: 'modal-button-container' })
-  new ButtonComponent(buttons).setButtonText('Cancel').onClick(onCancel)
-  new ButtonComponent(buttons)
+  const cancel = new ButtonComponent(buttons).setButtonText('Cancel').onClick(onCancel)
+  cancel.buttonEl.setAttribute('data-jf-editor-cancel', '')
+  const save = new ButtonComponent(buttons)
     .setButtonText('Save')
     .setCta()
     .onClick(async () => {
       await onSave()
     })
+  save.buttonEl.setAttribute('data-jf-editor-save', '')
 }

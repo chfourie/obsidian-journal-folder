@@ -230,6 +230,9 @@ class SettingsFormBuilder {
         text: tab.label,
       })
       btn.type = 'button'
+      // Stable hook for the e2e suite — target a tab by its stable id
+      // rather than its translated label.
+      btn.setAttribute('data-jf-settings-tab', tab.id)
       if (tab.id === this.activeTab) btn.addClass('is-active')
       btn.onclick = (e) => {
         e.preventDefault()
@@ -240,6 +243,7 @@ class SettingsFormBuilder {
 
     // ---- active tab content -------------------------------------
     this.tabContentEl = root.createDiv({ cls: 'jf-settings-tab-panel' })
+    this.tabContentEl.setAttribute('data-jf-tab-panel', this.activeTab)
     const tabDef = visibleTabs.find((t) => t.id === this.activeTab)
     tabDef?.render(this, settings, isFolder)
     this.tabContentEl = null
@@ -993,6 +997,8 @@ class SettingsFormBuilder {
     sampleValueEl.addClass('journal-folder-config-sample-value')
 
     const setting = new Setting(this.containerEl)
+    setting.settingEl.dataset.jfSetting = fieldName
+    setting
       .setName(name)
       .addMomentFormat((text) => {
         component = text
@@ -1039,6 +1045,9 @@ class SettingsFormBuilder {
     name: string
   ): Setting {
     const setting = new Setting(this.containerEl)
+    // Stable hook for the e2e suite: target a field's control by its settings
+    // key (`[data-jf-setting="dailyNoteTitlePattern"] input`).
+    setting.settingEl.dataset.jfSetting = fieldName
     let component: TextComponent
 
     return setting
@@ -1207,7 +1216,9 @@ class SettingsFormBuilder {
       this.saveSettings(settings).then(() => this.render())
     }
 
-    return new Setting(this.containerEl)
+    const setting = new Setting(this.containerEl)
+    setting.settingEl.dataset.jfSetting = 'quartersEnabled'
+    return setting
       .setName('Enable quarterly notes')
       .addToggle((toggle) => {
         component = toggle
@@ -1275,7 +1286,9 @@ class SettingsFormBuilder {
       this.saveSettings(settings)
     }
 
-    return new Setting(this.containerEl)
+    const setting = new Setting(this.containerEl)
+    setting.settingEl.dataset.jfSetting = 'startOfWeek'
+    return setting
       .setName('Start of week')
       .addDropdown((dropdown) => {
         component = dropdown

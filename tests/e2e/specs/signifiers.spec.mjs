@@ -1,0 +1,114 @@
+/*
+Obsidian Journal Folder - Utilities for folder-based journaling in Obsidian
+Copyright (C) 2024  Charl Fourie
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// Signifiers in reading view and live preview: icon rendered in a left-margin
+// gutter, the matched tag hidden, and the placement modes (margin-column vs
+// margin). Baseline config: priority(#important→star), inspiration(#inspiration),
+// hide-tag on (both views), placement margin-column.
+
+const RV = '.workspace-leaf.mod-active .markdown-reading-view'
+const SRC = '.workspace-leaf.mod-active .markdown-source-view'
+
+export const suite = {
+  name: 'signifiers',
+  settings: {},
+  tests: [
+    [
+      'reading view renders signifier icons in a gutter',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.ok(
+          await ctx.exists(`${RV} .jf-signifier-gutter [data-sig-id="priority"]`),
+          'priority (#important) icon rendered'
+        )
+        ctx.assert.ok(
+          await ctx.exists(`${RV} .jf-signifier-gutter [data-sig-id="inspiration"]`),
+          'inspiration (#inspiration) icon rendered'
+        )
+      },
+    ],
+    [
+      'matched tag text is hidden in reading view',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.ok(
+          await ctx.exists(`${RV} a.tag.jf-signifier-hidden-tag`),
+          'a matched tag carries the hidden-tag class'
+        )
+      },
+    ],
+    [
+      'margin-column placement adds the column modifier',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.ok(
+          await ctx.exists(`${RV} .jf-signifier-gutter.jf-signifier-column`),
+          'column variant present under margin-column'
+        )
+      },
+    ],
+    [
+      'switching to per-row margin drops the column modifier',
+      async (ctx) => {
+        await ctx.applySettings({ signifierPlacement: 'margin' })
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.assert.ok(
+          await ctx.exists(`${RV} .jf-signifier-gutter`),
+          'gutter still rendered'
+        )
+        ctx.assert.ok(
+          !(await ctx.exists(`${RV} .jf-signifier-gutter.jf-signifier-column`)),
+          'no column modifier under per-row margin'
+        )
+      },
+    ],
+    [
+      'live preview renders a gutter marker',
+      async (ctx) => {
+        await ctx.openNote('Journal/2026-06-06', 'source')
+        ctx.assert.ok(
+          await ctx.exists(`${SRC} .jf-signifier-gutter.jf-signifier-live [data-sig-id]`),
+          'live-preview gutter marker rendered'
+        )
+      },
+    ],
+    [
+      'live preview reveals the tag on the active line, hides it elsewhere',
+      async (ctx) => {
+        await ctx.applySettings({ signifierShowTagsOnActiveLine: true })
+        await ctx.openNote('Journal/2026-06-06', 'source')
+        // Put the cursor on the "#important idea" line (index 5).
+        await ctx.eval(
+          `(()=>{const l=app.workspace.getLeavesOfType('markdown')` +
+            `.find(x=>x.view&&x.view.file&&x.view.file.path==='Journal/2026-06-06.md'); ` +
+            `l.view.editor.setCursor({line:5,ch:8}); return 'ok'})()`
+        )
+        await ctx.sleep(500)
+        const state = await ctx.inPage(
+          `const lines=[...document.querySelectorAll('${SRC} .cm-line')]; ` +
+            `const active=lines.find(e=>(e.textContent||'').includes('idea worth remembering')); ` +
+            `const other=lines.find(e=>(e.textContent||'').includes('spark of')); ` +
+            `return {activeShows: active?active.textContent.includes('#important'):null, ` +
+            `otherHides: other?!other.textContent.includes('#inspiration'):null};`
+        )
+        ctx.assert.eq(state.activeShows, true, 'active line reveals its tag')
+        ctx.assert.eq(state.otherHides, true, 'a non-active signifier line stays hidden')
+      },
+    ],
+  ],
+}

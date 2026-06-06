@@ -220,6 +220,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		}
 	}
 
+	// The basename portion of a cell's linktext (e.g. `2026-06-07`), exposed as
+	// `data-jf-date` so the e2e suite can target a specific period cell.
+	function cellDate(cell: CalendarCell): string {
+		return cell.url.split('/').pop() ?? cell.url
+	}
+
 	async function handleCellClick(cell: CalendarCell, event: MouseEvent) {
 		if (!cell.needsConfirmation) return
 		// Always block the default internal-link navigation; the modal is
@@ -240,6 +246,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		type="button"
 		class="clickable-icon journal-folder-calendar-arrow"
 		aria-label="Show earlier months"
+		data-jf-nav="prev"
 		onclick={scrollBack}
 	>
 		‹
@@ -255,6 +262,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				bind:this={pickerTriggerEl}
 				aria-haspopup="dialog"
 				aria-expanded={pickerOpen}
+				data-jf-picker-trigger
 				onclick={togglePicker}
 				onkeydown={onKey(togglePicker)}
 				aria-label="Year/Month picker — currently {centeredMonthLabel} {centeredAnchor.year}"
@@ -267,6 +275,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					role="button"
 					tabindex="0"
 					aria-label="Jump to today's month"
+					data-jf-quick-jump="today"
 					onclick={scrollToToday}
 					onkeydown={onKey(scrollToToday)}
 				>
@@ -279,6 +288,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					role="button"
 					tabindex="0"
 					aria-label="Jump to this note's month"
+					data-jf-quick-jump="note-month"
 					onclick={scrollToNoteMonth}
 					onkeydown={onKey(scrollToNoteMonth)}
 				>
@@ -297,6 +307,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					<a
 						class="internal-link {calendarCellClasses(month.monthCell)}"
 						href={month.monthCell.url}
+						data-jf-cell="month"
+						data-jf-date={cellDate(month.monthCell)}
 						onclick={(e) => handleCellClick(month.monthCell, e)}
 					>
 						{month.monthCell.label}
@@ -304,6 +316,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					<a
 						class="internal-link {calendarCellClasses(month.yearCell)}"
 						href={month.yearCell.url}
+						data-jf-cell="year"
+						data-jf-date={cellDate(month.yearCell)}
 						onclick={(e) => handleCellClick(month.yearCell, e)}
 					>
 						{month.yearCell.label}
@@ -312,6 +326,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 						<a
 							class="internal-link {calendarCellClasses(month.quarterCell)} quarter-suffix"
 							href={month.quarterCell.url}
+							data-jf-cell="quarter"
+							data-jf-date={cellDate(month.quarterCell)}
 							onclick={(e) => handleCellClick(month.quarterCell!, e)}
 						>
 							({month.quarterCell.label})
@@ -337,6 +353,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 							<a
 								class="internal-link {calendarCellClasses(week.weekCell)} week"
 								href={week.weekCell.url}
+								data-jf-cell="week"
+								data-jf-date={cellDate(week.weekCell)}
 								onclick={(e) => handleCellClick(week.weekCell, e)}
 							>
 								{week.weekCell.label}
@@ -348,6 +366,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 									<a
 										class="internal-link {calendarCellClasses(day)} day"
 										href={day.url}
+										data-jf-cell="day"
+										data-jf-date={cellDate(day)}
 										onclick={(e) => handleCellClick(day, e)}
 									>
 										{day.label}
@@ -366,6 +386,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		type="button"
 		class="clickable-icon journal-folder-calendar-arrow"
 		aria-label="Show later months"
+		data-jf-nav="next"
 		onclick={scrollForward}
 	>
 		›
@@ -387,6 +408,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		style={pickerStyle}
 		role="dialog"
 		aria-label="Pick a month and year"
+		data-jf-date-picker
 	>
 		<div class="journal-folder-calendar-picker-year">
 			<button
@@ -416,6 +438,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					class:active={m.value === centeredAnchor.month}
 					role="button"
 					tabindex="0"
+					data-jf-month-select={m.value}
 					onclick={() => selectMonth(m.value)}
 					onkeydown={onKey(() => selectMonth(m.value))}
 				>

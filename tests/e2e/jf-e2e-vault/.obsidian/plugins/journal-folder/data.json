@@ -1,0 +1,306 @@
+{
+  "dailyNoteTitlePattern": "dddd, DD MMMM YYYY",
+  "dailyNoteShortTitlePattern": "ddd, D MMM",
+  "dailyNoteMediumTitlePattern": "ddd, D MMM YY",
+  "weeklyNoteTitlePattern": "gggg [Week] w",
+  "weeklyNoteShortTitlePattern": "[W]ww",
+  "weeklyNoteMediumTitlePattern": "[W]ww gg",
+  "monthlyNoteTitlePattern": "MMMM YYYY",
+  "monthlyNoteShortTitlePattern": "MMM",
+  "monthlyNoteMediumTitlePattern": "MMM YY",
+  "quarterlyNoteTitlePattern": "YYYY [Quarter] Q",
+  "quarterlyNoteShortTitlePattern": "[Q]Q",
+  "quarterlyNoteMediumTitlePattern": "[Q]Q YY",
+  "yearlyNoteTitlePattern": "YYYY",
+  "yearlyNoteShortTitlePattern": "YYYY",
+  "yearlyNoteMediumTitlePattern": "YYYY",
+  "journalFolderTitle": "",
+  "useFolderNameAsDefaultTitle": false,
+  "defaultCalendarVisibleDesktop": true,
+  "defaultCalendarVisibleMobile": true,
+  "quartersEnabled": false,
+  "autoTemplateEnabled": true,
+  "autoTemplateContent": "",
+  "autoTemplatePerTier": false,
+  "dailyNoteAutoTemplateContent": "",
+  "weeklyNoteAutoTemplateContent": "",
+  "monthlyNoteAutoTemplateContent": "",
+  "quarterlyNoteAutoTemplateContent": "",
+  "yearlyNoteAutoTemplateContent": "",
+  "startOfWeek": "sunday",
+  "defaultJournalFolder": "Journal",
+  "hideJournalFolderNotes": false,
+  "sidebarMode": "dynamic",
+  "tasksSidebarEnabled": true,
+  "tasksSidebarAnchor": "today",
+  "tasksSidebarRange": "day",
+  "tasksSidebarFolderMode": "note",
+  "tasksSidebarFolder": "",
+  "tasksShowCompleted": true,
+  "tasksOnlySidebarAnchor": "note",
+  "tasksOnlySidebarRange": "day",
+  "tasksOnlySidebarFolderMode": "all",
+  "tasksOnlySidebarFolder": "",
+  "tasksOnlySidebarShowCompleted": true,
+  "tasksMaxItems": 200,
+  "taskFlows": {
+    "Bullet Journal": {
+      "statuses": [
+        {
+          "id": "open",
+          "label": "Open",
+          "char": " ",
+          "isDone": false,
+          "next": "in-progress",
+          "shell": {
+            "shape": "circle",
+            "border": {
+              "color": {
+                "kind": "token",
+                "var": "--checkbox-border-color"
+              },
+              "width": 1
+            }
+          },
+          "icon": {
+            "source": {
+              "kind": "none"
+            }
+          }
+        },
+        {
+          "id": "in-progress",
+          "label": "In progress",
+          "char": "/",
+          "isDone": false,
+          "next": "done",
+          "shell": {
+            "shape": "circle",
+            "background": {
+              "kind": "token",
+              "var": "--background-modifier-border"
+            },
+            "border": {
+              "color": {
+                "kind": "token",
+                "var": "--checkbox-border-color"
+              },
+              "width": 1
+            }
+          },
+          "icon": {
+            "source": {
+              "kind": "none"
+            }
+          }
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "char": "x",
+          "isDone": true,
+          "next": "open",
+          "shell": {
+            "shape": "circle",
+            "background": {
+              "kind": "token",
+              "var": "--color-green"
+            },
+            "border": null
+          },
+          "icon": {
+            "source": {
+              "kind": "lucide",
+              "name": "check"
+            },
+            "color": {
+              "kind": "token",
+              "var": "--text-on-accent"
+            },
+            "inset": 0.7
+          }
+        },
+        {
+          "id": "migrated",
+          "label": "Migrated",
+          "char": ">",
+          "isDone": true,
+          "next": "migrated",
+          "shell": {
+            "shape": "none"
+          },
+          "icon": {
+            "source": {
+              "kind": "lucide",
+              "name": "redo-2"
+            },
+            "color": {
+              "kind": "token",
+              "var": "--color-blue"
+            },
+            "inset": 1
+          }
+        },
+        {
+          "id": "cancelled",
+          "label": "Cancelled",
+          "char": "-",
+          "isDone": true,
+          "next": "open",
+          "shell": {
+            "shape": "circle",
+            "background": {
+              "kind": "token",
+              "var": "--color-red"
+            },
+            "border": null
+          },
+          "icon": {
+            "source": {
+              "kind": "lucide",
+              "name": "x"
+            },
+            "color": {
+              "kind": "token",
+              "var": "--text-on-accent"
+            },
+            "inset": 0.7
+          }
+        },
+        {
+          "id": "delegated",
+          "label": "Delegated",
+          "char": "d",
+          "isDone": false,
+          "next": "open",
+          "shell": {
+            "shape": "none"
+          },
+          "icon": {
+            "source": {
+              "kind": "lucide",
+              "name": "user-round"
+            },
+            "color": {
+              "kind": "token",
+              "var": "--color-purple"
+            },
+            "inset": 1
+          }
+        }
+      ],
+      "rendering": "plugin",
+      "migratedStatus": "migrated"
+    }
+  },
+  "defaultTaskFlow": "Bullet Journal",
+  "taskFlow": "",
+  "taskInteractionScope": "everywhere",
+  "taskMigrationPlacement": "after-last-task",
+  "taskMigrationHeading": "Mi",
+  "taskMigrationAddToReference": true,
+  "taskMigrationAddFromReference": true,
+  "taskMigrationReferenceStyle": "lucide",
+  "taskMigrationToMarker": "lucide:redo",
+  "taskMigrationFromMarker": "lucide:undo",
+  "taskMigrationReferenceOpacity": 30,
+  "signifiers": [
+    {
+      "id": "priority",
+      "label": "Priority",
+      "tags": [
+        "important"
+      ],
+      "icon": {
+        "source": {
+          "kind": "lucide",
+          "name": "star"
+        },
+        "color": {
+          "kind": "token",
+          "var": "--color-yellow"
+        }
+      }
+    },
+    {
+      "id": "inspiration",
+      "label": "Inspiration",
+      "tags": [
+        "inspiration"
+      ],
+      "icon": {
+        "source": {
+          "kind": "lucide",
+          "name": "lightbulb"
+        },
+        "color": {
+          "kind": "token",
+          "var": "--color-yellow"
+        }
+      }
+    },
+    {
+      "id": "explore",
+      "label": "Explore",
+      "tags": [
+        "explore"
+      ],
+      "icon": {
+        "source": {
+          "kind": "lucide",
+          "name": "eye"
+        },
+        "color": {
+          "kind": "token",
+          "var": "--color-blue"
+        }
+      }
+    }
+  ],
+  "signifierHideTagInReadingView": true,
+  "signifierHideTagInLivePreview": true,
+  "signifierShowTagsOnActiveLine": false,
+  "signifierPlacement": "margin-column",
+  "signifierReserveGutter": true,
+  "taskCategories": [
+    {
+      "id": "important",
+      "label": "Important",
+      "tags": [
+        "important"
+      ],
+      "icon": {
+        "source": {
+          "kind": "lucide",
+          "name": "star"
+        },
+        "color": {
+          "kind": "token",
+          "var": "--color-yellow"
+        }
+      }
+    },
+    {
+      "id": "local",
+      "label": "Local",
+      "tags": [
+        "local"
+      ],
+      "maxRange": "day",
+      "icon": {
+        "source": {
+          "kind": "lucide",
+          "name": "house"
+        },
+        "color": {
+          "kind": "token",
+          "var": "--color-cyan"
+        }
+      }
+    }
+  ],
+  "taskCategoryShowUnderNote": false,
+  "signifierLivePreviewEnabled": true,
+  "taskCheckboxStyle": "circle",
+  "documentTasksEnabled": true
+}

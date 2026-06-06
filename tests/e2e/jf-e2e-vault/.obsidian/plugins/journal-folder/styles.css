@@ -1,0 +1,2391 @@
+/*No global styles to declare*/
+
+.journal-folder-header {
+	position: sticky;
+	top: 0;
+	z-index: 10000000;
+	align-self: start;
+	justify-self: start;
+	width: 100%
+}
+
+.journal-folder-header-folder-title {
+	width: fit-content;
+	margin-inline: auto;
+	font-size: 1.2rem;
+	opacity: 50%;
+	margin-bottom: 0.4rem;
+	cursor: default;
+}
+
+.journal-folder-header-title {
+	width: fit-content;
+	margin-inline: auto;
+	margin-block: .4rem !important;
+	cursor: default;
+}
+
+.journal-folder-header-options {
+	font-size: .9rem;
+	padding: .3rem 0;
+	gap: .2rem;
+	border-block: solid var(--border-width) var(--hr-color);
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 1rem;
+}
+
+/* When the calendar is visible it follows the options bar directly. The
+   default 1rem margin leaves too much air between the More-row and the
+   Today/Month-Year link strip; halve the collapsed margin in that case
+   only (when the calendar is hidden, the 1rem still spaces the options
+   bar from the markdown content below). */
+.journal-folder-header-options:has(+ .journal-folder-calendar) {
+	margin-bottom: .5rem;
+}
+
+.journal-folder-header-links {
+	display: flex;
+	gap: .2rem .3rem;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.journal-folder-header-links > * {
+	margin: 0;
+}
+
+.journal-folder-header-arrow {
+	color: var(--text-muted);
+	user-select: none;
+	line-height: 1;
+}
+
+.journal-folder-note-link.chip {
+	border: solid thin;
+	display: block;
+	line-height: 1rem;
+	border-radius: .5rem;
+	padding-inline: .5rem;
+	height: fit-content;
+	text-decoration: none;
+
+	&:link, &:visited, &:hover, &:active {
+		text-decoration: none !important;
+	}
+
+	&:hover {
+		background: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
+	}
+
+	&:active, &.open {
+		color: var(--background-primary);
+		background: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+	}
+}
+
+/* Past-missing links render at the same fade as past-missing calendar cells
+   so the user gets a consistent "this doesn't exist yet" cue everywhere a
+   journal link can appear. We restate the combined opacity (instead of
+   stacking on `.is-unresolved`'s theme opacity) for the same reason the
+   calendar does: CSS opacity doesn't multiply across classes on the same
+   element — the more specific declaration wins outright. `!important` is
+   needed because Obsidian's own
+   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
+   rule has higher specificity than this selector and would otherwise win. */
+.journal-folder-note-link.needs-confirmation {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+}
+
+.journal-folder-header-more {
+	display: inline-flex;
+}
+
+.journal-folder-header-more-panel {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .8rem;
+	padding: .7rem .8rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	box-sizing: border-box;
+}
+
+.journal-folder-header-more-panel-section {
+	display: flex;
+	flex-direction: column;
+	gap: .4rem;
+}
+
+.journal-folder-header-more-panel-section-label {
+	font-size: .7rem;
+	font-weight: 600;
+	letter-spacing: .08em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+}
+
+.journal-folder-header-more-panel-section-rule {
+	height: 1px;
+	background: var(--hr-color);
+	margin-top: -.25rem;
+}
+
+.journal-folder-header-more-panel-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .35rem 1.2rem;
+	align-items: center;
+}
+
+.journal-folder-header-more-panel-list .journal-folder-note-link {
+	white-space: nowrap;
+	overflow-wrap: normal;
+	word-break: keep-all;
+}
+
+.journal-folder-header-more-panel-section-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .5rem;
+}
+
+.journal-folder-calendar-toggle {
+	font-size: .75rem;
+	color: var(--text-accent);
+	cursor: pointer;
+	user-select: none;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+
+	&:hover {
+		color: var(--text-accent-hover, var(--text-accent));
+		text-decoration: underline;
+	}
+
+	&.active {
+		color: var(--text-accent-hover, var(--text-accent));
+	}
+}
+
+.journal-folder-calendar {
+	display: flex;
+	align-items: stretch;
+	gap: .25rem;
+	margin-top: .35rem;
+	padding-bottom: .35rem;
+	background: var(--background-primary);
+}
+
+/* Built on top of Obsidian's `.clickable-icon` so arrow buttons inherit the
+   active theme's hover/active states. We only add sizing here. */
+.journal-folder-calendar-arrow {
+	flex: 0 0 auto;
+	width: 1.6rem;
+	min-height: 1.6rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.1rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.journal-folder-calendar-body {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	gap: .7rem;
+	min-width: 0;
+}
+
+/* Quick-navigation row: Today link, "Month Year" picker trigger. Rendered
+   as <span role="button"> rather than <button> because Obsidian's
+   stylesheet repaints native buttons with a filled chip background — using
+   spans bypasses that entirely so we get plain underlined accent text. */
+.journal-folder-calendar-controls {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	gap: .8rem;
+	flex-wrap: wrap;
+}
+
+.journal-folder-calendar-link {
+	font-size: .8rem;
+	line-height: 1.2;
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-calendar-link:hover,
+.journal-folder-calendar-link.open {
+	color: var(--text-accent-hover, var(--text-accent));
+}
+
+.journal-folder-calendar-months {
+	display: flex;
+	justify-content: center;
+	gap: 1.2rem;
+	min-width: 0;
+}
+
+.journal-folder-calendar-month {
+	display: flex;
+	flex-direction: column;
+	gap: .2rem;
+	flex-shrink: 0;
+}
+
+.journal-folder-calendar-month-title {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	gap: .35rem;
+	font-size: .85rem;
+	font-weight: 600;
+	margin-bottom: .15rem;
+}
+
+.journal-folder-calendar-grid {
+	display: grid;
+	grid-template-columns: 1.4rem .35rem repeat(7, 1.32rem);
+	row-gap: 1px;
+	column-gap: 2.25px;
+	font-size: .75rem;
+	justify-content: center;
+}
+
+/* Vertical divider between the week-number column and the weekday columns.
+   Sits as a 1px line centred in a dedicated grid track so spacing on either
+   side stays uniform regardless of how much horizontal room each month
+   gets. Spans every grid row via `grid-row: 1 / -1` so the line runs the
+   full height of the grid (header row + all week rows). */
+.journal-folder-calendar-divider {
+	grid-column: 2;
+	grid-row: 1 / -1;
+	width: 1px;
+	background: var(--hr-color);
+	justify-self: center;
+	opacity: .5;
+}
+
+.journal-folder-calendar-weekday {
+	text-align: center;
+	color: var(--text-muted);
+	font-size: .65rem;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	padding-bottom: .15rem;
+}
+
+.journal-folder-calendar-weekday.is-sunday {
+	color: var(--text-accent);
+}
+
+/* Calendar cells force `--text-normal` with `!important` so the theme's
+   normal text colour is what readers see for missing days — Obsidian's own
+   `a.internal-link.is-unresolved` rule (and many community themes that
+   override it) repaints unresolved links in the accent or a custom red,
+   which would otherwise leak through onto every missing day cell. We still
+   stamp `is-unresolved` ourselves (in `calendarCellClasses`) so the theme's
+   `--link-unresolved-opacity` applies — the cell is faded the way an
+   unresolved link is faded, just not recoloured. The plugin stamps
+   `is-unresolved` rather than relying on Obsidian's link-resolution pass
+   because that pass only marks cells present during the initial markdown
+   render and misses months inserted later as the ResizeObserver settles or
+   as the user scrolls. Existing cells (`.exists`) and Sunday day cells
+   (`.day.is-sunday`) override the colour back to `--text-accent` further
+   down — both with `!important` so they can win against the base. */
+.journal-folder-calendar-cell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.5rem;
+	padding: .05rem .15rem;
+	border-radius: var(--radius-s, .25rem);
+	color: var(--text-normal) !important;
+	text-decoration: none !important;
+	cursor: pointer;
+	box-sizing: border-box;
+	border: solid 1px transparent;
+	user-select: none;
+	background: transparent;
+}
+
+.journal-folder-calendar-cell:hover {
+	background: var(--background-modifier-hover);
+}
+
+.journal-folder-calendar-cell.empty {
+	cursor: default;
+	background: transparent !important;
+	border-color: transparent !important;
+}
+
+.journal-folder-calendar-cell.week {
+	font-size: .65rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.journal-folder-calendar-cell.day {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Existing cells render in the theme accent so the user can see at a glance
+   which periods already have notes. `!important` is required to win against
+   the base cell's `!important`-qualified `--text-normal`. Missing cells get
+   no colour rule here — they keep the base `--text-normal`. */
+.journal-folder-calendar-cell.exists {
+	color: var(--text-accent) !important;
+	font-weight: 600;
+}
+
+/* Existing cells get an underline on top of the emphasis colour so the user
+   can spot at a glance which periods already have notes — applies uniformly
+   to days, weeks, months, and years. */
+.journal-folder-calendar-cell.exists {
+	text-decoration: underline !important;
+	text-underline-offset: 2px;
+}
+
+/* Past-missing cells render 50% more faded than future-missing cells so the
+   user can still tell at a glance which missing days are in the past. CSS
+   `opacity` doesn't multiply across classes on the same element (the most-
+   specific declaration wins outright), so we can't simply add a second
+   `opacity` on top of `.is-unresolved`'s theme opacity — we have to restate
+   the combined value. `--link-unresolved-opacity` is Obsidian's standard
+   variable for unresolved-link fading; the .7 fallback matches Obsidian's
+   default theme value, so themes that don't set the variable still get a
+   sensible result. `!important` is required because Obsidian's own
+   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
+   rule has specificity (0,2,1) — higher than this selector's (0,2,0) — so
+   without it the theme's full opacity wins and past- and future-missing
+   render identically. The 0.5 multiplier was tuned by eye: 0.8 (20% lighter)
+   and 0.7 (30%) weren't pronounced enough at the small calendar cell sizes. */
+.journal-folder-calendar-cell.past-missing {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+}
+
+/* Sundays render in the theme accent colour across every state — existing,
+   future-missing, past-missing — so the start of the week is always easy to
+   pick out. `!important` is required because the base cell rule above
+   forces `--text-normal !important` to keep the theme's normal text colour
+   on missing days; without `!important` here, Sunday missing cells would
+   inherit that and appear in `--text-normal` instead of accent. The
+   unresolved opacity (and the past-missing fade above) still applies. */
+.journal-folder-calendar-cell.day.is-sunday {
+	color: var(--text-accent) !important;
+}
+
+.journal-folder-calendar-cell.is-today {
+	border-color: var(--interactive-accent);
+}
+
+.journal-folder-calendar-cell.is-current,
+.journal-folder-calendar-cell.is-current:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent) !important;
+	font-weight: 600;
+	border-color: var(--interactive-accent);
+}
+
+/* Mobile: enlarge cells so they're comfortable to tap. Desktop is left
+   untouched (the user explicitly preferred its tighter spacing). */
+.journal-folder-calendar.is-mobile {
+	gap: .35rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-arrow {
+	width: 2.4rem;
+	min-height: 2.4rem;
+	font-size: 1.4rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-grid {
+	grid-template-columns: 2rem .5rem repeat(7, 1.8rem);
+	row-gap: 4px;
+	column-gap: 9px;
+	font-size: .95rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-month-title {
+	font-size: 1rem;
+	gap: .5rem;
+	margin-bottom: .35rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-weekday {
+	font-size: .75rem;
+	padding-bottom: .3rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-cell {
+	min-height: 2.5rem;
+	padding: .25rem .35rem;
+}
+
+/* Mobile: enlarge the Today / Month-Year link tap targets to ~44px per
+   Apple HIG and Material's 48dp guideline. Padding alone (no border or
+   background) expands the click region while preserving the underlined
+   link look — `inline-flex` is needed so `min-height` actually applies to
+   what would otherwise be an inline span. The controls row also gets a
+   wider gap so the two links are well-separated for finger taps. */
+.journal-folder-calendar.is-mobile .journal-folder-calendar-controls {
+	gap: 1.5rem;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-link {
+	font-size: 1rem;
+	padding: .55rem .6rem;
+	min-height: 2.75rem;
+	display: inline-flex;
+	align-items: center;
+}
+
+.journal-folder-calendar.is-mobile .journal-folder-calendar-cell.week {
+	font-size: .8rem;
+}
+
+/* Date-picker popover — portaled to <body> like the More popover so it
+   isn't clipped by CodeMirror live-preview widgets. A year row with
+   chevrons on either side of the year label, and a 4×3 month grid below.
+   Months render as link-styled spans (accent text on hover) and the
+   centred month is bolded so the user can see what's currently selected
+   without committing. Desktop uses ~1/3 the padding/gap of mobile (the
+   user explicitly walked back the chunky mobile-equivalent desktop
+   spacing) — the `.is-mobile` overrides further down restore the roomier
+   ~44px-target spacing for touch. Tap-target dimensions (arrow size,
+   month min-height, font sizes) stay at their mobile values on desktop
+   too so the panel keeps the same shape — only the air around the
+   elements shrinks. */
+.journal-folder-calendar-picker {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .135rem;
+	padding: .33rem .4rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.journal-folder-calendar-picker-year {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: .2rem;
+}
+
+.journal-folder-calendar-picker-year-arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.4rem;
+	line-height: 1;
+	padding: 0;
+}
+
+.journal-folder-calendar-picker-year-label {
+	font-size: 1.1rem;
+	font-weight: 600;
+	min-width: 4.5rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.journal-folder-calendar-picker-months {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: .12rem .4rem;
+	justify-items: center;
+}
+
+.journal-folder-calendar-picker-month {
+	font-size: 1rem;
+	line-height: 1.2;
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+	user-select: none;
+	text-align: center;
+	padding: .22rem .27rem;
+	min-height: 2.75rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.journal-folder-calendar-picker-month:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+}
+
+.journal-folder-calendar-picker-month.active {
+	color: var(--text-accent-hover, var(--text-accent));
+	font-weight: 700;
+}
+
+/* Mobile: restore the roomier padding/gap (3× the desktop values) so
+   adjacent tap targets don't share an edge. The year-arrow tap-target
+   sizing is mobile-only — desktop lets the chevrons size to their
+   content so the year row stays close to the month grid. */
+.journal-folder-calendar-picker.is-mobile {
+	gap: .8rem;
+	padding: 1rem 1.2rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-year {
+	gap: .6rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-year-arrow {
+	width: 2.75rem;
+	min-height: 2.75rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-months {
+	gap: .35rem 1.2rem;
+}
+
+.journal-folder-calendar-picker.is-mobile .journal-folder-calendar-picker-month {
+	padding: .65rem .8rem;
+}
+
+.journal-folder-error-message {
+	color: var(--color-red);
+}
+
+.journal-folder-config-sample-label {
+	opacity: 50%;
+}
+
+.journal-folder-config-sample-value {
+	opacity: 75%;
+}
+
+.journal-folder-config-hints-row {
+	display: flex;
+	gap: 1em;
+	margin-bottom: .25em;
+}
+
+.journal-folder-config-template-wrapper {
+	margin: -.5em 0 1em;
+}
+
+.journal-folder-config-template-textarea {
+	width: 100%;
+	min-height: 8em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	resize: vertical;
+}
+
+.journal-folder-config-template-textarea::placeholder {
+	color: var(--text-faint);
+	opacity: 1;
+}
+
+/* The folder-config modal borrows Obsidian's settings-dialog skin
+ * (`mod-settings`) so it gets the same width and chrome as the plugin
+ * settings tab. `mod-settings` normally renders a left-hand tab list
+ * (`.modal-tab-header`) and uses `.vertical-tabs-container` as the
+ * sibling content area; we have only one tab worth of content, so we
+ * hide the empty tab list and let our content fill the modal. */
+.journal-folder-config-modal-wrap {
+	width: min(95vw, 1100px);
+	max-width: 95vw;
+}
+
+.journal-folder-config-modal-wrap .modal-tab-header {
+	display: none;
+}
+
+.journal-folder-config-modal-wrap .vertical-tab-content-container {
+	display: none;
+}
+
+.journal-folder-config-modal-wrap .modal-content.journal-folder-config-modal {
+	flex: 1 1 auto;
+	overflow-y: auto;
+}
+
+/* The task-migration picker modal borrows the same settings-dialog skin
+ * so the grouped task list has room to breathe. Sized smaller than the
+ * config modal — it's a focused pick-and-go list, not a full form. */
+.journal-folder-migrate-modal-wrap {
+	width: min(92vw, 640px);
+	max-width: 92vw;
+}
+
+.journal-folder-migrate-modal-wrap .modal-tab-header,
+.journal-folder-migrate-modal-wrap .vertical-tab-content-container {
+	display: none;
+}
+
+.jf-migrate-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75em;
+}
+
+.jf-migrate-picker-heading {
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+}
+
+.jf-migrate-picker-list {
+	max-height: 50vh;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+}
+
+.jf-migrate-picker-group-heading {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+}
+
+.jf-migrate-picker-group-count {
+	color: var(--text-muted);
+	font-weight: var(--font-normal);
+}
+
+.jf-migrate-picker-tasks {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	padding-left: 1.5em;
+	margin-top: 0.25em;
+}
+
+.jf-migrate-picker-task {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5em;
+	cursor: pointer;
+}
+
+.jf-migrate-picker-task-char {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+}
+
+.jf-migrate-picker-task-text {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jf-migrate-picker-actions {
+	margin-top: 0;
+}
+
+/* A migration cross-reference (marker + link) rendered in reading view.
+ * The post-processor wraps the marker and its link in this span and sets
+ * `--jf-migration-ref-opacity` from the configured setting; the reference
+ * fades to that opacity and returns to full on hover. */
+.jf-migration-ref {
+	opacity: var(--jf-migration-ref-opacity, 0.3);
+	transition: opacity 280ms ease-in-out;
+	/* Keep the marker glued to its link so the reference never splits
+	 * across lines — it wraps as a single unit when space runs out. */
+	white-space: nowrap;
+}
+
+.jf-migration-ref:hover {
+	opacity: 1;
+}
+
+.jf-migration-ref-icon {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: text-bottom;
+}
+
+.jf-migration-ref-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+/* Marker preview shown beside the marker text input in settings — renders
+ * the actual icon for a Lucide token (or the literal char for emoji). */
+.jf-migration-marker-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.6em;
+	color: var(--text-muted);
+}
+
+.jf-migration-marker-preview .svg-icon {
+	width: 1.2em;
+	height: 1.2em;
+}
+
+/* When the global "Hide journal-folder.md in file explorer" setting is on,
+ * the settings feature toggles `journal-folder-hide-config-notes` on the
+ * <body>. The selector targets the explorer item by `data-path` ending in
+ * `journal-folder.md` and hides its containing `.nav-file` row. We don't
+ * scope to `.workspace-leaf-content[data-type="file-explorer"]` because
+ * Obsidian's DOM layering varies between layouts (popout windows, mobile)
+ * and `.nav-file` itself is specific enough — there are no nav-files
+ * outside file explorers. */
+body.journal-folder-hide-config-notes
+	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
+body.journal-folder-hide-config-notes
+	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
+	display: none !important;
+}
+
+/* Sidebar view */
+.journal-folder-sidebar .jf-sidebar-root {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+	padding: .75em;
+}
+
+.journal-folder-sidebar .jf-sidebar-section {
+	display: flex;
+	flex-direction: column;
+	gap: .5em;
+}
+
+.journal-folder-sidebar .jf-sidebar-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .5em;
+}
+
+.journal-folder-sidebar .jf-sidebar-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: .05em;
+}
+
+.journal-folder-sidebar .jf-sidebar-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .75em;
+	align-items: baseline;
+}
+
+/* Folder picker — rendered as a `<span role="button">` trigger for a
+ * `SidebarMenuPanel` (the same <body>-portaled panel as the *More...*
+ * menu) rather than a native OS `<select>` dropdown whose styling can't
+ * be brought in line with the rest of the floating panels. */
+.journal-folder-sidebar .jf-sidebar-folder-button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: .5em;
+	padding: var(--size-4-1) var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: transparent;
+	color: var(--text-normal);
+	cursor: pointer;
+	user-select: none;
+	font-size: var(--font-ui-small);
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button:hover {
+	background: var(--background-modifier-hover);
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button:focus-visible {
+	outline: 1px dotted var(--text-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button.is-disabled {
+	color: var(--text-muted);
+	cursor: default;
+	pointer-events: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.journal-folder-sidebar .jf-sidebar-folder-button-caret {
+	color: var(--text-muted);
+	font-size: .75em;
+	flex: 0 0 auto;
+}
+
+/* Inline action — rendered as a `<span role="button">` so Obsidian's
+ * built-in `<button>` chrome (border, box-shadow, padding, background)
+ * doesn't have to be overridden one rule at a time. Styled as a text link
+ * to match Obsidian's accent colour and underline-on-hover idiom. */
+.journal-folder-sidebar .jf-sidebar-link {
+	color: var(--text-accent);
+	cursor: pointer;
+	text-decoration: none;
+	user-select: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-link:hover {
+	color: var(--text-accent-hover);
+	text-decoration: underline;
+}
+
+.journal-folder-sidebar .jf-sidebar-link:focus-visible {
+	outline: 1px dotted var(--text-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-sidebar .jf-sidebar-link.is-disabled {
+	color: var(--text-muted);
+	cursor: default;
+	text-decoration: none;
+	pointer-events: none;
+}
+
+.journal-folder-sidebar .jf-sidebar-mode-link,
+.journal-folder-sidebar .jf-sidebar-more-link {
+	font-size: var(--font-ui-smaller);
+}
+
+.journal-folder-sidebar .jf-sidebar-more-link.open {
+	color: var(--text-accent-hover);
+	text-decoration: underline;
+}
+
+/* Styled replacement for the sidebar "More..." native menu. Portaled to
+ * <body>, so these classes are intentionally unscoped. */
+.jf-sidebar-menu-panel {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .1rem;
+	min-width: 200px;
+	max-width: min(320px, 90vw);
+	padding: .4rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	box-sizing: border-box;
+	font-size: var(--font-ui-smaller);
+}
+
+.jf-sidebar-menu-item {
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	padding: .3rem .4rem;
+	border-radius: .3rem;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-normal);
+}
+
+.jf-sidebar-menu-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.jf-sidebar-menu-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 1em;
+	color: var(--text-muted);
+}
+
+.jf-sidebar-menu-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.jf-sidebar-menu-item-label {
+	flex: 1 1 auto;
+}
+
+.jf-sidebar-menu-sep {
+	height: 1px;
+	background: var(--hr-color);
+	margin: .25rem .2rem;
+}
+
+/* The (Dynamic) / (Static) mode tag in the section header. Picks up the
+ * theme's emphasis colour so users can spot the current mode without
+ * having to open the More... menu. Title-cased in markup; the `.label`
+ * uppercase rule is not inherited because it doesn't apply to nested
+ * spans below. */
+.journal-folder-sidebar .jf-sidebar-label-mode {
+	color: var(--text-accent);
+	font-weight: var(--font-medium);
+	letter-spacing: 0;
+	text-transform: none;
+	margin-left: .25em;
+}
+
+.journal-folder-sidebar .jf-sidebar-help {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}
+
+/* Sidebar calendar — single-month view that reuses the in-note calendar
+ * markup classes (`journal-folder-calendar`, `-arrow`, `-controls`,
+ * `-month-title`, `-grid`, `-cell`) so layout and cell behaviour match the
+ * journal-header calendar exactly. The sidebar's narrower column gets a
+ * font tweak below; everything else inherits. */
+.journal-folder-sidebar .jf-sidebar-calendar .journal-folder-calendar-grid {
+	font-size: var(--font-ui-smaller);
+}
+
+/* When the sidebar widens, keep the calendar grid centred but the
+ * prev/next arrows immediately adjacent to it. The in-note calendar
+ * lets `.journal-folder-calendar-body` grow with `flex: 1 1 auto`
+ * (so a multi-month layout can fill the viewport); in the sidebar
+ * that growth pushes the arrows to the column edges and the user
+ * sees them floating far from the grid. Locking the body to
+ * `fit-content` width and centring the outer flex pulls the arrows
+ * back next to the calendar at any sidebar width. */
+.journal-folder-sidebar .jf-sidebar-calendar {
+	justify-content: center;
+}
+
+.journal-folder-sidebar .jf-sidebar-calendar .journal-folder-calendar-body {
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.journal-folder-sidebar .jf-sidebar-actions {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: .75em;
+	display: flex;
+	flex-direction: column;
+	gap: .5em;
+}
+
+/* Task panel — used by both the sidebar (`header: 'sidebar'`) and the
+ * `journal-tasks` code block (`header: 'note'`). Layout is minimal so
+ * the panel inherits Obsidian's theme everywhere it can. */
+.journal-folder-tasks {
+	display: flex;
+	flex-direction: column;
+	gap: .35em;
+}
+
+.journal-folder-tasks-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: .5em;
+	font-size: var(--font-ui-smaller);
+}
+
+.journal-folder-tasks-header-label {
+	font-weight: 600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+/* Read-only one-line summary of the current scope, shown under the
+ * header so the selection is visible without opening the panel. */
+.journal-folder-tasks-summary {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.journal-folder-tasks-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: .25em .4em;
+	font-size: var(--font-ui-smaller);
+	margin-bottom: .2em;
+}
+
+.journal-folder-tasks-link {
+	color: var(--text-accent);
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-tasks-link:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+	text-decoration: underline;
+}
+
+.journal-folder-tasks-sep {
+	color: var(--text-muted);
+}
+
+/* --- Task scope panel (sidebar reference + folder + filter) --- */
+
+.journal-folder-tasks-scope-trigger {
+	display: inline-flex;
+	align-items: center;
+	gap: .2em;
+	color: var(--text-accent);
+	cursor: pointer;
+	user-select: none;
+}
+
+.journal-folder-tasks-scope-trigger:hover,
+.journal-folder-tasks-scope-trigger.open {
+	color: var(--text-accent-hover, var(--text-accent));
+	text-decoration: underline;
+}
+
+.journal-folder-tasks-scope-caret {
+	font-size: .85em;
+	opacity: .8;
+}
+
+.journal-folder-tasks-scope-panel {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .8rem;
+	min-width: 200px;
+	max-width: min(320px, 90vw);
+	padding: .7rem .8rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	box-sizing: border-box;
+	font-size: var(--font-ui-smaller);
+}
+
+.journal-folder-tasks-scope-section {
+	display: flex;
+	flex-direction: column;
+	gap: .25rem;
+}
+
+.journal-folder-tasks-scope-section-label {
+	font-size: .7rem;
+	font-weight: 600;
+	letter-spacing: .08em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+}
+
+.journal-folder-tasks-scope-rule {
+	height: 1px;
+	background: var(--hr-color);
+	margin-bottom: .15rem;
+}
+
+.journal-folder-tasks-scope-folders {
+	display: flex;
+	flex-direction: column;
+	gap: .1rem;
+	max-height: 12rem;
+	overflow-y: auto;
+}
+
+.journal-folder-tasks-scope-option {
+	display: flex;
+	align-items: baseline;
+	gap: .35rem;
+	padding: .15rem .3rem;
+	border-radius: .3rem;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-normal);
+}
+
+.journal-folder-tasks-scope-option:hover {
+	background: var(--background-modifier-hover);
+}
+
+.journal-folder-tasks-scope-option.is-selected {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-scope-option.is-disabled {
+	cursor: default;
+	opacity: .55;
+}
+
+.journal-folder-tasks-scope-option.is-disabled:hover {
+	background: transparent;
+}
+
+.journal-folder-tasks-scope-check {
+	flex: 0 0 auto;
+	width: .9em;
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-scope-option-label {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Status picker — the `<body>`-portaled panel opened from a status
+ * icon (right-click everywhere, or left-click on a self-cycling
+ * status). Mirrors the sidebar More… menu / scope panel chrome so all
+ * the plugin's popovers read as one family, and shows each status with
+ * its real rendered icon next to the label. */
+.jf-status-picker-panel {
+	position: fixed;
+	z-index: 10000001;
+	display: flex;
+	flex-direction: column;
+	gap: .1rem;
+	min-width: 180px;
+	max-width: min(320px, 90vw);
+	max-height: min(60vh, 26rem);
+	overflow-y: auto;
+	padding: .4rem;
+	background: var(--background-primary);
+	border: solid var(--border-width) var(--hr-color);
+	border-radius: .5rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	box-sizing: border-box;
+	font-size: var(--font-ui-smaller);
+}
+
+.jf-status-picker-item {
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	padding: .3rem .4rem;
+	border-radius: .3rem;
+	cursor: pointer;
+	user-select: none;
+	color: var(--text-normal);
+}
+
+.jf-status-picker-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.jf-status-picker-item.is-selected {
+	background: var(--background-modifier-hover);
+	color: var(--text-accent);
+}
+
+.jf-status-picker-item:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.jf-status-picker-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+}
+
+/* The icon span carries the shared `.jf-task-status` markup, which
+ * already sets its own right margin (the list marker gap). Inside the
+ * picker the row's flex `gap` provides the spacing, so drop it. */
+.jf-status-picker-icon .jf-task-status {
+	margin-right: 0;
+	cursor: pointer;
+}
+
+.jf-status-picker-label {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Divider between the status list and the trailing actions (Migrate). */
+.jf-status-picker-sep {
+	height: 1px;
+	background: var(--hr-color);
+	margin: .25rem .2rem;
+}
+
+/* The migrate action reads as a secondary command, not a status — its
+ * Lucide icon follows the muted menu-icon convention. */
+.jf-status-picker-migrate .jf-status-picker-icon {
+	color: var(--text-muted);
+}
+
+.jf-status-picker-migrate .jf-status-picker-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.journal-folder-tasks-list {
+	display: flex;
+	flex-direction: column;
+	gap: .15em;
+}
+
+/* Each `journal-folder-tasks-group` collects every task that shares
+ * a source note (daily / weekly / monthly / …) so the title only
+ * appears once. Groups are spaced apart so the eye picks up the
+ * tier change without a horizontal divider; the heading itself is
+ * a click target that opens the source note. */
+.journal-folder-tasks-group {
+	display: flex;
+	flex-direction: column;
+	gap: .15em;
+}
+
+.journal-folder-tasks-group + .journal-folder-tasks-group {
+	margin-top: .5em;
+}
+
+.journal-folder-tasks-group-heading {
+	display: flex;
+	align-items: baseline;
+	gap: .35em;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--text-muted);
+	letter-spacing: .02em;
+	user-select: none;
+	padding-bottom: .15em;
+}
+
+/* Fixed-width caret so the title text doesn't shift left/right by a
+ * pixel as the user toggles the group. The character itself swaps
+ * between ▾ (expanded) and ▸ (collapsed). Caret and title are
+ * independent click targets — caret toggles, title opens the note. */
+.journal-folder-tasks-group-caret {
+	display: inline-block;
+	width: 1em;
+	text-align: center;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	cursor: pointer;
+}
+
+.journal-folder-tasks-group-caret:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-group-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.journal-folder-tasks-group-title:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-group-count {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-weight: 500;
+}
+
+.journal-folder-tasks-row {
+	display: flex;
+	align-items: center;
+	gap: .6em;
+	min-width: 0;
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+}
+
+.journal-folder-tasks-status-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: var(--text-normal);
+	flex: 0 0 auto;
+}
+
+.journal-folder-tasks-status-icon:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.journal-folder-tasks-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+	color: var(--text-normal);
+}
+
+.journal-folder-tasks-text:hover {
+	text-decoration: underline;
+}
+
+.journal-folder-tasks-chip {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.journal-folder-tasks-chip:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-tasks-done .journal-folder-tasks-text {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
+.journal-folder-tasks-empty {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin: 0;
+}
+
+.journal-folder-tasks-footer {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: .35em;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.jf-sidebar-divider {
+	border: none;
+	border-top: 1px solid var(--background-modifier-border);
+	margin: .75em 0;
+}
+
+/* Document-level task icon: replaces Obsidian's native checkbox in
+ * reading view and live preview when `documentTasksEnabled` is on.
+ * Sized to roughly match the native checkbox so list indentation
+ * doesn't reflow. Inherits theme colour so themes that key off
+ * `[data-task]` on the parent li still drive emphasis. */
+.journal-folder-document-task-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1em;
+	height: 1em;
+	cursor: pointer;
+	vertical-align: -0.15em;
+	margin-inline-end: 0.4em;
+	color: var(--text-normal);
+}
+
+.journal-folder-document-task-icon:hover {
+	color: var(--text-accent);
+}
+
+.journal-folder-document-task-icon:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+/* When the row's data-task indicates a "done" status (`x`, `>`, `-`),
+ * fade the text and strike through — mirrors the task-panel rows so
+ * both surfaces feel the same regardless of the active model. Themes
+ * frequently style `[data-task="x"]` already; the rules below are
+ * a defensive baseline for themes that don't. */
+li.task-list-item[data-task="x"],
+li.task-list-item[data-task="X"],
+li.task-list-item[data-task=">"],
+li.task-list-item[data-task="-"] {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
+/* Status icon shell — the outer span every plugin-rendered status
+ * icon paints into. The data attributes (`data-status`,
+ * `data-task`, `data-model`) give power users a stable selector
+ * surface for CSS overrides without rebuilding the plugin. Inline
+ * styles drive the shell's shape / background / border (each model
+ * provides those via `TaskStatus.shell`); the inner `.jf-task-status-icon`
+ * carries the glyph and its colour. */
+.jf-task-status {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* Sizing falls back to 1em when the theme doesn't expose
+	 * `--checkbox-size`. Spacing falls back to a font-relative
+	 * value when `--list-marker-gap` isn't defined. Both prefer
+	 * the theme's own variables when present so the icon stays
+	 * visually in line with whatever the theme renders native
+	 * checkboxes at. */
+	width: var(--checkbox-size, 1em);
+	height: var(--checkbox-size, 1em);
+	flex: 0 0 auto;
+	cursor: pointer;
+	box-sizing: border-box;
+	vertical-align: middle;
+	margin-right: var(--list-marker-gap, 0.4em);
+	user-select: none;
+	transition: transform 0.05s ease-out;
+}
+
+.jf-task-status:active {
+	transform: scale(0.94);
+}
+
+.jf-task-status:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.jf-task-status-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	/* Inner glyph size is driven by the `inset` field on
+	 * `TaskStatus.icon` — the renderer sets width/height inline as
+	 * a percentage of the shell. The svg fills its box, so the
+	 * percentage gives us proportional sizing without per-icon
+	 * tuning. */
+}
+
+.jf-task-status-icon svg {
+	width: 100%;
+	height: 100%;
+	/* Bump the Lucide stroke a touch — the default ~1.75 reads thin
+	 * against coloured shell fills (white check on green, white X on
+	 * red). 2.25 lands closer to the weight of theme-rendered task
+	 * checkboxes from Things / Minimal / AnuPpuccin. */
+	stroke-width: 2.25;
+}
+
+/* Reading view — our renderer swaps the native `<input>` checkbox for a
+ * `.jf-task-status` icon IN PLACE, so the task `<li>` keeps Obsidian's
+ * native `list-item` flow. The icon is an inline replacement (sized to
+ * `--checkbox-size`, with the marker gap as its right margin), which
+ * means the task text and ANY trailing inline content — links, emphasis,
+ * migration references — flow exactly as they do with the plugin
+ * disabled. We deliberately do NOT promote the row to flex/grid: those
+ * blockify every direct child of the `<li>`, dropping each trailing
+ * inline element onto its own row. Keeping native flow is the only
+ * layout that stays stable for arbitrary task content. */
+
+/* Reading view only: the native checkbox is kept in flow (hidden via
+ * opacity) so the theme positions it; the icon is the input's next
+ * sibling and we overlay it back onto the checkbox with a negative
+ * inline-start margin of one checkbox width. The marker gap then sits
+ * between the icon and the task text. Because position comes from the
+ * (still-in-flow) native checkbox, this matches the theme's layout
+ * without measuring geometry, and reflows naturally. The
+ * `jf-doc-task-status` marker is added only by the reading-view swap —
+ * live preview positions its icon correctly on its own, and the
+ * sidebar/panel rows keep their own flex spacing. */
+.jf-doc-task-status.jf-task-status {
+	margin-inline-start: calc(-1 * var(--checkbox-size, 1em));
+	margin-inline-end: var(--list-marker-gap, 0.5em);
+}
+
+/* Panel rows already establish their own flex layout — the icon
+ * sits as a flex child and the row's `align-items: center` does
+ * the vertical work. Override the document-body defaults to a
+ * touch larger than text (the panel is custom UI, not bound by
+ * inline-text typography rules) and clear the inline margin so
+ * the row's `gap` controls spacing. */
+.journal-folder-tasks-row .jf-task-status {
+	width: 1.2em;
+	height: 1.2em;
+	margin-right: 0;
+	vertical-align: middle;
+}
+
+/* ============================================================
+ * Task template editor — status list with drag-reorder.
+ * ============================================================ */
+
+.jf-status-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	margin-top: 0.5em;
+}
+
+.jf-status-row {
+	/* Six columns: drag handle, live preview, [char], label, flow
+	 * arrow, actions. Label is the flex column so long status names
+	 * push the flow + actions to the right rather than wrapping the
+	 * actions to a second line. */
+	display: grid;
+	grid-template-columns: auto auto auto 1fr auto auto;
+	align-items: center;
+	column-gap: 0.75em;
+	padding: 0.4em 0.6em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	cursor: grab;
+}
+
+.jf-status-row.is-dragging {
+	opacity: 0.5;
+	cursor: grabbing;
+}
+
+.jf-status-row.is-drop-target {
+	border-color: var(--interactive-accent);
+}
+
+.jf-status-handle {
+	display: inline-flex;
+	color: var(--text-faint);
+}
+
+/* Live checkbox preview pinned between the drag handle and the
+ * monospaced [c] character text. Renders the same shell/icon the
+ * task lists use so the row visually matches the on-page result. */
+.jf-status-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--checkbox-size, 1.1em);
+	height: var(--checkbox-size, 1.1em);
+	flex-shrink: 0;
+}
+
+.jf-status-preview .jf-task-status,
+.jf-status-preview .task-list-item-checkbox {
+	margin: 0;
+}
+
+.jf-status-char {
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+}
+
+.jf-status-label {
+	font-weight: 500;
+}
+
+.jf-status-flow {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.jf-status-actions {
+	display: inline-flex;
+	gap: 0.4em;
+}
+
+.jf-status-action {
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------
+ * Status edit modal — wider than default so the sections breathe.
+ * ------------------------------------------------------------ */
+
+.jf-status-edit-modal {
+	/* Lock the modal dimensions so switching sections never resizes
+	 * the dialog. Width is a fixed proportion of the viewport with
+	 * a sensible cap; height matches via min(). */
+	width: min(760px, 90vw);
+	max-width: min(760px, 90vw);
+	height: min(640px, 85vh);
+	max-height: min(640px, 85vh);
+}
+
+.jf-status-edit-modal .jf-status-edit-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	/* Fill the modal exactly — no shrink-to-content. The split's
+	 * right pane is the only thing that scrolls. */
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Inline status detail (Tasks tab → flow → status) — the Obsidian
+ * settings dialog supplies the outer scroll, so we just stack the
+ * preview + split as a normal block. The split caps its own height
+ * so the right-pane scroll kicks in for long sections rather than
+ * pushing the breadcrumb off-screen. */
+.jf-status-edit-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	margin-top: 0.4em;
+}
+
+.jf-status-edit-content .jf-status-edit-split {
+	min-height: 360px;
+	max-height: min(560px, 70vh);
+}
+
+.jf-status-edit-subsection {
+	display: contents;
+}
+
+.jf-status-edit-split {
+	display: grid;
+	grid-template-columns: 180px 1fr;
+	flex: 1;
+	min-height: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.jf-status-edit-nav {
+	display: flex;
+	flex-direction: column;
+	background: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	overflow-y: auto;
+	padding: 0.4em 0;
+}
+
+.jf-status-edit-nav-item {
+	background: transparent;
+	border: 0;
+	border-left: 2px solid transparent;
+	padding: 0.5em 0.9em;
+	text-align: left;
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 0.95em;
+}
+
+.jf-status-edit-nav-item:hover:not(.is-disabled) {
+	background: var(--background-modifier-hover);
+}
+
+.jf-status-edit-nav-item.is-active {
+	background: var(--background-modifier-hover);
+	border-left-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.jf-status-edit-nav-item.is-disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.jf-status-edit-panel {
+	overflow-y: auto;
+	padding: 0.5em 1em 1em;
+}
+
+.jf-status-edit-panel-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	margin: 1em 0;
+}
+
+.jf-status-edit-actions {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 0.75em;
+}
+
+/* ------------------------------------------------------------
+ * Three-tab colour picker.
+ * ------------------------------------------------------------ */
+
+.jf-color-picker {
+	margin: 0.75em 0;
+	padding: 0.6em 0.75em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.jf-color-picker-header {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0.4em;
+}
+
+.jf-color-picker-label {
+	font-weight: 600;
+}
+
+.jf-color-picker-desc {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.jf-color-picker-current {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.jf-color-picker-current-label {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	flex: 1;
+}
+
+.jf-color-swatch {
+	display: inline-block;
+	width: 1.2em;
+	height: 1.2em;
+	border-radius: 4px;
+}
+
+.jf-color-picker-clear {
+	cursor: pointer;
+	font-size: 0.85em;
+}
+
+.jf-color-picker-tabs {
+	display: flex;
+	gap: 0.25em;
+	margin-bottom: 0.4em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.jf-color-picker-tab {
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: 0.3em 0.6em;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.jf-color-picker-tab.is-active {
+	color: var(--text-normal);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.jf-color-token-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 0.4em;
+}
+
+.jf-color-token {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 0.3em 0.5em;
+	cursor: pointer;
+}
+
+.jf-color-token:hover {
+	border-color: var(--interactive-accent);
+}
+
+.jf-color-token-label {
+	font-size: 0.85em;
+}
+
+.jf-color-custom {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.jf-color-custom-text {
+	flex: 1;
+}
+
+/* ------------------------------------------------------------
+ * Status edit modal — live preview + tighter compact pickers.
+ * ------------------------------------------------------------ */
+
+.jf-status-edit-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3em;
+	margin: 0.5em 0 0.75em;
+	padding: 0.6em 0.75em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+}
+
+.jf-status-edit-preview-caption {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.jf-status-edit-preview-row {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	font-size: 1.05em;
+}
+
+.jf-status-edit-preview-row .jf-task-status {
+	width: 1.4em;
+	height: 1.4em;
+}
+
+.jf-status-edit-preview-text {
+	color: var(--text-normal);
+}
+
+/* Compact colour picker — no outer frame so it can nest inside
+ * a Setting row without doubling the visual frame. */
+.jf-color-picker.is-compact {
+	margin: 0.3em 0;
+	padding: 0;
+	border: 0;
+}
+
+/* Highlight the currently-selected colour-token cell. */
+.jf-color-token.is-active {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--interactive-accent) inset;
+}
+
+/* ------------------------------------------------------------
+ * Lucide + emoji icon pickers.
+ * ------------------------------------------------------------ */
+
+.jf-icon-picker {
+	margin: 0.4em 0;
+}
+
+.jf-icon-search {
+	width: 100%;
+	margin-bottom: 0.5em;
+}
+
+.jf-icon-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+	gap: 0.35em;
+	margin-bottom: 0.4em;
+	/* A page's worth of cells. Fixed minimum height so the pager
+	 * stays anchored when the last page is short. */
+	min-height: 280px;
+	align-content: start;
+}
+
+.jf-icon-footer {
+	color: var(--text-muted);
+	font-size: 0.8em;
+	margin-bottom: 0.5em;
+}
+
+.jf-icon-pager {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	margin-bottom: 0.4em;
+	flex-wrap: wrap;
+}
+
+.jf-icon-pager-btn {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 0.15em 0.55em;
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 0.95em;
+	line-height: 1.2;
+}
+
+.jf-icon-pager-btn:hover:not(:disabled) {
+	border-color: var(--interactive-accent);
+}
+
+.jf-icon-pager-btn:disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.jf-icon-pager-label {
+	flex: 1;
+	color: var(--text-muted);
+	font-size: 0.8em;
+	text-align: center;
+}
+
+.jf-icon-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.25em;
+	padding: 0.45em 0.2em;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.jf-icon-cell:hover {
+	border-color: var(--interactive-accent);
+}
+
+.jf-icon-cell.is-active {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--interactive-accent) inset;
+}
+
+.jf-icon-cell-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4em;
+	height: 1.4em;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
+
+.jf-icon-cell-emoji .jf-icon-cell-glyph {
+	font-size: 1.3em;
+}
+
+.jf-icon-cell-label {
+	font-size: 0.7em;
+	color: var(--text-muted);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jf-icon-cell-emoji .jf-icon-cell-label {
+	display: none;
+}
+
+.jf-icon-custom {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.jf-icon-custom-label {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	min-width: 7em;
+}
+
+.jf-icon-custom-text {
+	flex: 1;
+}
+
+/* ------------------------------------------------------------
+ * Settings tab strip — splits the plugin settings (and the per-
+ * folder modal) into themed tabs at the top of the form.
+ * ------------------------------------------------------------ */
+
+.jf-settings-tabbed {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+}
+
+/* Pill-style buttons rather than transparent underlined text — the
+ * underline-only style disappears inside Obsidian's `.mod-settings`
+ * modals where the theme paints native `<button>` chrome that we'd
+ * have to fight on every level. A solid pill reads clearly against
+ * any theme background. */
+.jf-settings-tabbed .jf-settings-tab-strip {
+	display: flex !important;
+	flex-wrap: wrap;
+	gap: 0.35em;
+	padding: 0.4em 0;
+	margin-bottom: 0.75em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab {
+	display: inline-flex !important;
+	align-items: center;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	padding: 0.3em 0.85em;
+	font-size: 0.9em;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: none;
+	white-space: nowrap;
+	height: auto;
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.jf-settings-tabbed .jf-settings-tab-panel {
+	display: block;
+}
+
+/* ------------------------------------------------------------
+ * Breadcrumb — drill-down navigation across Tasks-tab levels.
+ * ------------------------------------------------------------ */
+
+.jf-breadcrumb {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	margin-bottom: 0.6em;
+	padding-bottom: 0.4em;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-wrap: wrap;
+	font-size: 0.95em;
+}
+
+/* Override Obsidian's native `<button>` chrome aggressively — inside
+ * `.mod-settings` the theme paints buttons with a filled chip
+ * background that's wildly out of place for breadcrumb links. */
+.jf-breadcrumb button.jf-breadcrumb-link,
+.jf-breadcrumb span.jf-breadcrumb-link {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	height: auto !important;
+	min-height: 0 !important;
+	color: var(--text-accent);
+	cursor: pointer;
+	font: inherit;
+	line-height: 1.4;
+}
+
+.jf-breadcrumb button.jf-breadcrumb-link:hover {
+	color: var(--text-accent-hover, var(--text-accent));
+	text-decoration: underline;
+}
+
+.jf-breadcrumb-sep {
+	color: var(--text-faint);
+}
+
+.jf-breadcrumb-current {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+/* ------------------------------------------------------------
+ * Flow list cards on the Tasks overview.
+ * ------------------------------------------------------------ */
+
+/* Flow rows on the Tasks overview — a clean list of Obsidian
+ * Setting rows where each row drills into the flow detail. The
+ * extra-button chevron on the right is the explicit affordance;
+ * clicking anywhere on the row also triggers the drill-in. */
+.jf-flow-row {
+	cursor: pointer;
+}
+
+.jf-flow-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.jf-flow-row.is-default .setting-item-name::after {
+	content: 'Default';
+	display: inline-block;
+	margin-left: 0.5em;
+	padding: 0.05em 0.45em;
+	border-radius: 999px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 0.7em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	vertical-align: middle;
+}
+
+/* ============================================================
+ * Signifiers (tag → icon) and task categories
+ * ============================================================ */
+
+/* Inline signifier icon wrapper — used in reading view, the live-preview
+ * widget, task lists, the picker modal, and category headers. The icon's
+ * own colour is set inline by `renderSignifierIcon` (from the configured
+ * `ColorRef`); this baseline only governs layout and the fallback colour
+ * for emoji / uncoloured icons. */
+.jf-signifier {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: text-bottom;
+	color: var(--text-normal);
+}
+
+.jf-signifier + .jf-signifier {
+	margin-inline-start: 0.15em;
+}
+
+/* Small gap when a signifier sits before a tag (reading view, tag shown)
+ * or before the task text. */
+.jf-signifier {
+	margin-inline-end: 0.2em;
+}
+
+.jf-signifier-icon,
+.jf-signifier .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.jf-signifier img {
+	width: 1em;
+	height: 1em;
+	object-fit: contain;
+}
+
+/* When the reading-view post-processor is set to hide the tag, the original
+ * tag anchor is collapsed so only the margin signifier icon shows. */
+.jf-signifier-hidden-tag {
+	display: none;
+}
+
+/* Inside a gutter marker the icons carry no inline spacing — the flex gap
+ * governs separation. */
+.jf-signifier-gutter .jf-signifier {
+	margin: 0;
+}
+
+/* Left-margin gutter placements — `margin` hangs the icon just left
+ * of EACH entry (indented with nesting); `margin-column` aligns every icon in
+ * one far-left column (physical-journal left rule).
+ *
+ * Horizontal placement is done by MEASUREMENT, not theme-specific CSS: JS
+ * writes each marker's `left` (see gutter-positioner.ts for reading view and
+ * the live-preview ViewPlugin for editing view). That keeps the gutter correct
+ * across themes / snippets / indentation settings, where a fixed CSS offset
+ * would collide with restyled bullets or checkboxes. CSS here only:
+ *  - makes the entry's content host / line the positioning context,
+ *  - centres the icon vertically on the line, and
+ *  - hides the marker until its first measurement lands (no wrong-x flash). */
+.jf-signifier-host {
+	position: relative;
+}
+
+.jf-signifier-gutter {
+	position: absolute;
+	/* Anchor to the entry's FIRST line, not the whole block. A parent list
+	 * item's host (`.jf-signifier-host`) spans its nested children, so
+	 * `top:0; bottom:0` would centre the icon over the entire subtree and drop
+	 * it below its own line. A one-line-tall box from the top keeps it on the
+	 * entry's line (`1lh` = the line height; `em` is the older-engine
+	 * fallback). `align-items: center` then centres the icon within it. */
+	top: 0;
+	bottom: auto;
+	height: 1.5em;
+	height: 1lh;
+	/* `left` is overwritten by the measured value; this is only the pre-paint
+	 * fallback (the marker is hidden until measured anyway). */
+	left: 0;
+	/* Per-row: the measured `left` marks the entry's bullet / checkbox start,
+	 * so shift the icon left by its own width to hang it in the margin. The
+	 * single-column variant overrides this — its measured `left` already is
+	 * the icon's left edge. */
+	/* Both modes hang the icon LEFT of the measured anchor: the measured
+	 * `left` puts the icon's box at the anchor x, and this shifts it left by
+	 * its own width. Per-row anchor = the entry's bullet/checkbox; column
+	 * anchor = the shared far-left column x. */
+	transform: translateX(-100%);
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	white-space: nowrap;
+	pointer-events: none;
+	visibility: hidden;
+}
+
+/* Revealed by the positioner once `left` has been measured. */
+.jf-signifier-gutter.jf-positioned {
+	visibility: visible;
+}
+
+/* Editing view only: the gutter is interactive — clicking it opens the
+ * signifier picker for that line. Reading-view gutters stay display-only
+ * (no `jf-signifier-live`), so this never makes them clickable. */
+.jf-signifier-gutter.jf-signifier-live {
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+/* The add affordance painted in the gutter of a line that has NO signifier
+ * yet. The marker box stays transparent and only its plus icon fades in:
+ * faint while the line is hovered (discoverable as the cursor crosses the
+ * margin), full while the affordance itself is hovered. The box keeps a
+ * layout width even at `opacity: 0` so it remains a hover / click target. */
+.jf-signifier-add {
+	opacity: 0;
+	color: var(--text-faint);
+	transition: opacity 120ms ease;
+}
+
+.cm-line:hover .jf-signifier-add-gutter .jf-signifier-add {
+	opacity: 0.4;
+}
+
+.jf-signifier-add-gutter:hover .jf-signifier-add {
+	opacity: 1;
+	color: var(--text-muted);
+}
+
+/* Category section reuses the task-group frame; nudge the header icon to
+ * sit between the caret and the title. */
+.journal-folder-tasks-category .journal-folder-tasks-group-heading .jf-signifier {
+	flex: 0 0 auto;
+}
+
+/* Source-note chip shown on a task inside a category section (where the
+ * note header is absent). Muted, pushed to the trailing edge. */
+.journal-folder-tasks-note-chip {
+	flex: 0 0 auto;
+	margin-inline-start: 0.5em;
+	padding: 0 0.4em;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-smallest);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.journal-folder-tasks-note-chip:hover {
+	color: var(--text-normal);
+}
+
+/* Signifier icons in a task row never shrink. */
+.journal-folder-tasks-row .jf-signifier {
+	flex: 0 0 auto;
+}
+
+/* ===========================================================================
+ * Mobile-only adjustments for the newer features (signifiers, tasks, task
+ * migration, the flow/status settings editors). The desktop layouts assume a
+ * pointer (hover-to-reveal) and a wide pane; these overrides restore touch
+ * legibility and stop fixed two-column layouts from collapsing on a phone.
+ *
+ * Scoped to `.is-mobile` (Obsidian's body class on every mobile build) so the
+ * desktop app is never touched. Layout *collapses* are additionally gated on a
+ * narrow viewport so a tablet in landscape keeps the roomier desktop layout;
+ * touch-affordance tweaks apply to all mobile builds (no hover anywhere).
+ * Reading-view signifier gutters already adapt via measured positioning and
+ * the gutter reserve, so they need nothing here.
+ * ======================================================================== */
+
+/* A migration cross-reference de-emphasises itself to a low opacity and only
+ * returns to full on :hover. Touch has no hover, so a faint reference (30% by
+ * default) stays unreadable forever. Floor the opacity to a legible level
+ * while still honouring a higher configured value. */
+.is-mobile .jf-migration-ref {
+	opacity: max(var(--jf-migration-ref-opacity, 0.3), 0.6);
+}
+
+/* Slightly roomier tap targets for the portaled list panels (task scope +
+ * sidebar More… + the master ribbon menu, which reuses .jf-sidebar-menu-item)
+ * — the rows are otherwise sized for a mouse. */
+.is-mobile .journal-folder-tasks-scope-option,
+.is-mobile .jf-sidebar-menu-item,
+.is-mobile .jf-status-picker-item {
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+}
+
+/* The master menu has no ribbon to anchor to on mobile, so it opens centred
+ * (see computeMenuPanelPosition). A centred sheet reads better a little wider
+ * than the desktop dropdown. */
+.is-mobile .jf-ribbon-menu-panel {
+	min-width: min(300px, 92vw);
+	max-width: 92vw;
+}
+
+/* The "Scope ▾" / "More…" triggers and the task status-cycle icon are tiny
+ * text/glyph hit areas. Grow the touchable area without shifting the
+ * surrounding layout (padding offset by a matching negative margin). */
+.is-mobile .journal-folder-tasks-scope-trigger,
+.is-mobile .journal-folder-sidebar .jf-sidebar-more-link,
+.is-mobile .journal-folder-sidebar .jf-sidebar-mode-link {
+	padding: 0.35rem 0.2rem;
+	margin: -0.35rem -0.2rem;
+}
+
+.is-mobile .journal-folder-tasks-status-icon {
+	padding: 0.3rem;
+	margin: -0.3rem;
+}
+
+/* On a phone-width viewport the status detail editor's fixed 180px nav column
+ * leaves the panel too narrow to read (descriptions wrap a word per line, the
+ * colour-picker tabs clip). Stack the nav above the panel as a wrapping row of
+ * chips and give the panel the full width. */
+@media (max-width: 600px) {
+	.is-mobile .jf-status-edit-split {
+		grid-template-columns: 1fr;
+	}
+
+	.is-mobile .jf-status-edit-nav {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0.2em;
+		border-right: 0;
+		border-bottom: 1px solid var(--background-modifier-border);
+		padding: 0.4em;
+	}
+
+	.is-mobile .jf-status-edit-nav-item {
+		border-left: 0;
+		border-bottom: 2px solid transparent;
+		border-radius: 0.3em;
+		padding: 0.45em 0.8em;
+	}
+
+	.is-mobile .jf-status-edit-nav-item.is-active {
+		border-left-color: transparent;
+		border-bottom-color: var(--interactive-accent);
+	}
+
+	/* Let the colour-mode tabs wrap instead of clipping the last one. */
+	.is-mobile .jf-color-picker-tabs {
+		flex-wrap: wrap;
+	}
+
+	/* Tighten the icon / colour-token tiles so several still fit per row in
+	 * the now full-width (but still narrow) panel. */
+	.is-mobile .jf-icon-grid {
+		grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+		min-height: 0;
+	}
+
+	.is-mobile .jf-color-token-grid {
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	}
+}

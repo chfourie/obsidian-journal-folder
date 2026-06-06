@@ -65,6 +65,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     data-task={statusChar}
     checked={isChecked}
     aria-label={`Status: ${status}`}
+    data-jf-status-icon={status}
     onclick={(e) => {
       e.preventDefault()
       onClick(e)
@@ -80,6 +81,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     role="button"
     tabindex="0"
     aria-label={`Status: ${status}`}
+    data-jf-status-icon={status}
     onclick={onClick}
     oncontextmenu={(e) => {
       e.preventDefault()

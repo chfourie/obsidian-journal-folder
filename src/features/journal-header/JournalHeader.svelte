@@ -167,6 +167,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<NoteLink
 					{...info.backwardLink}
 					linkStyle="chip"
+					testId="nav-backward"
 					{confirmCreate}
 					{navigate}
 				/>
@@ -181,6 +182,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 					tabindex="0"
 					aria-haspopup="true"
 					aria-expanded={moreOpen}
+					data-jf-more-button
 					onclick={toggleMore}
 					onkeydown={handleMoreKeydown}
 				>
@@ -192,6 +194,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<NoteLink
 					{...info.todayLink}
 					linkStyle="chip"
+					testId="nav-today"
 					{confirmCreate}
 					{navigate}
 				/>
@@ -202,6 +205,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 				<NoteLink
 					{...info.forwardLink}
 					linkStyle="chip"
+					testId="nav-forward"
 					{confirmCreate}
 					{navigate}
 				/>
@@ -221,6 +225,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		role="button"
 		tabindex="0"
 		aria-pressed={$calendarVisible}
+		data-jf-calendar-toggle
 		onclick={handleToggleCalendar}
 		onkeydown={handleToggleKeydown}
 	>
@@ -257,6 +262,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		class="journal-folder-header-more-panel"
 		style={panelStyle}
 		role="menu"
+		data-jf-more-panel
 		onclick={handlePanelClick}
 	>
 		{#if info.moreLinks.length > 0}
