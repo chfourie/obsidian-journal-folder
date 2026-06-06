@@ -7,6 +7,14 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [2.5.1]
+
+### Changed
+- **Docs:** the *journal-header* tip now leads with the plugin's built-in
+  *Auto-fill new journal notes* feature (no extra plugins, journal-aware
+  per-folder / per-tier templates), with Templater and the core Templates plugin
+  noted only as alternatives. Documentation-only release.
+
 ## [2.5.0]
 
 ### Added
