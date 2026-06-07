@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { moment } from '../../data-access'
 import type {
   JournalTask,
   TaskCategory,
@@ -26,8 +25,7 @@ import {
   type ReferenceRange,
   type ReferenceRangeUnit,
   RANGE_UNIT_RANK as UNIT_SIZE,
-  largerRangeUnit,
-  periodAround,
+  expandRange,
   rangesIntersect,
 } from './reference-range'
 
@@ -57,46 +55,33 @@ export function smallestTaskCap(
 }
 
 // Builds a per-task predicate that enforces category range caps for one
-// list render. The list passes its own anchor `base` moment and `listUnit`
-// (the range it's showing — `'all'` for the unbounded view). For a task
-// whose smallest cap is **smaller** than the list range, inclusion is
-// re-tested against the capped period (anchored at `base`) instead of the
-// list range; otherwise the cap doesn't bite and the task is left to the
-// list's normal range handling (it already passed candidate filtering).
-// Capped reference ranges are memoised per unit. Pure aside from reading
-// the supplied moment.
-// `floorUnit` (optional) is the active note's own tier, supplied when the
-// list is anchored on a note (the sidebar's *Current note* anchor, and every
-// in-note block). Each cap is then floored up to it — when measuring from a
-// note, nothing reaches a finer grain than the note's own period — so a cap
-// finer than the note tier stops biting. Omit it for the *Today* anchor,
-// where caps measure from today at their configured grain.
+// list render. The list passes its own `anchor` date range (today → a single
+// day; the active note → its whole period) and `listUnit` (the range it's
+// showing — `'all'` for the unbounded view). For a task whose smallest cap is
+// **smaller** than the list range, inclusion is re-tested against the capped
+// window — the cap unit expanded across the anchor range, exactly as the list
+// range is — instead of the list range; otherwise the cap doesn't bite and
+// the task is left to the list's normal range handling (it already passed
+// candidate filtering). Capped reference ranges are memoised per unit. Pure.
 export function makeRangeCapFilter(opts: {
-  base: moment.Moment
+  anchor: ReferenceRange
   listUnit: ReferenceRangeUnit
   categories: readonly TaskCategory[]
-  floorUnit?: ReferenceRangeUnit | null
 }): (task: Pick<JournalTask, 'categoryIds'>, noteRange: ReferenceRange) => boolean {
   const capsById = rangeCapsByCategory(opts.categories)
   const listSize = UNIT_SIZE[opts.listUnit]
   const refByUnit = new Map<ReferenceRangeUnit, ReferenceRange>()
 
   return (task, noteRange) => {
-    const rawCap = smallestTaskCap(task, capsById)
-    if (!rawCap) return true
-    // Floor the cap to the note's tier when note-anchored.
-    const cap: ReferenceRangeUnit = opts.floorUnit
-      ? largerRangeUnit(rawCap, opts.floorUnit)
-      : rawCap
+    const cap = smallestTaskCap(task, capsById)
+    if (!cap) return true
     // Cap only constrains when it's strictly smaller than the list range
     // (or the list is the unbounded `all`). Otherwise the list range is
     // already at least as tight, so leave the task to normal filtering.
     if (UNIT_SIZE[cap] >= listSize) return true
     let ref = refByUnit.get(cap)
     if (!ref) {
-      // `cap` is always a day–year unit here (caps + floor never carry
-      // `all`), so it's a valid moment start-of unit.
-      ref = periodAround(opts.base, cap as TaskCategoryRange)
+      ref = expandRange(opts.anchor, cap)
       refByUnit.set(cap, ref)
     }
     return rangesIntersect(noteRange, ref)

@@ -6,9 +6,10 @@ import {
 } from '../../../src/data-access'
 import {
   allTimeRange,
+  anchorRange,
   buildReferenceRange,
   currentPeriodRange,
-  largerRangeUnit,
+  expandRange,
   periodAround,
   rangeForNote,
   rangesIntersect,
@@ -65,7 +66,7 @@ describe('buildReferenceRange', () => {
     expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
   })
 
-  it('sidebar + anchor note + range day with a MONTHLY note → its whole month (floored up)', () => {
+  it('sidebar + anchor note + range day with a MONTHLY note → its whole month (day-expanded note span)', () => {
     const note = makeNote('2026-06')
     const range = buildReferenceRange({
       host: 'sidebar',
@@ -77,7 +78,7 @@ describe('buildReferenceRange', () => {
     expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
   })
 
-  it('sidebar + anchor note + range week with a MONTHLY note → its whole month (week < month)', () => {
+  it('sidebar + anchor note + range week with a MONTHLY note → the weeks spanning the month', () => {
     const note = makeNote('2026-06')
     const range = buildReferenceRange({
       host: 'sidebar',
@@ -85,11 +86,16 @@ describe('buildReferenceRange', () => {
       range: 'week',
       activeNote: note,
     })
-    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
-    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+    // The union of every day-of-June's surrounding week: the whole month
+    // plus the partial-week spillover at each end (week boundaries don't
+    // line up with month boundaries — that's the point of the new model).
+    expect(range.start.isSame(moment('2026-06-01').startOf('week'))).toBe(true)
+    expect(range.end.isSame(moment('2026-06-30').endOf('week'))).toBe(true)
+    expect(range.start.isSameOrBefore(moment('2026-06-01'))).toBe(true)
+    expect(range.end.isSameOrAfter(moment('2026-06-30'))).toBe(true)
   })
 
-  it('sidebar + anchor note + range day with a WEEKLY note → its whole week (floored up)', () => {
+  it('sidebar + anchor note + range day with a WEEKLY note → its whole week (day-expanded note span)', () => {
     const note = makeNote('2026-W23')
     const range = buildReferenceRange({
       host: 'sidebar',
@@ -210,12 +216,51 @@ describe('periodAround / currentPeriodRange', () => {
   })
 })
 
-describe('largerRangeUnit', () => {
-  it('returns the coarser unit', () => {
-    expect(largerRangeUnit('day', 'month')).toBe('month')
-    expect(largerRangeUnit('year', 'week')).toBe('year')
-    expect(largerRangeUnit('quarter', 'quarter')).toBe('quarter')
-    expect(largerRangeUnit('week', 'all')).toBe('all')
+describe('anchorRange', () => {
+  it('today anchor → a single day', () => {
+    const range = anchorRange({ anchor: 'today' })
+    const today = moment().startOf('day')
+    expect(range.start.isSame(today, 'day')).toBe(true)
+    expect(range.end.isSame(today, 'day')).toBe(true)
+  })
+
+  it('note anchor → the note’s whole period', () => {
+    const range = anchorRange({ anchor: 'note', activeNote: makeNote('2026-06') })
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('note anchor with no note → today', () => {
+    const range = anchorRange({ anchor: 'note', activeNote: null })
+    expect(range.start.isSame(todayRange().start, 'day')).toBe(true)
+  })
+})
+
+describe('expandRange', () => {
+  const june = { start: moment('2026-06-01'), end: moment('2026-06-30') }
+
+  it('widens both endpoints to the unit boundary', () => {
+    const range = expandRange(june, 'month')
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('a coarser unit grows the window outward', () => {
+    const range = expandRange(june, 'year')
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-01-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-12-31')
+  })
+
+  it('a finer unit than the span still covers the whole span', () => {
+    const range = expandRange(june, 'day')
+    expect(range.start.format('YYYY-MM-DD')).toBe('2026-06-01')
+    expect(range.end.format('YYYY-MM-DD')).toBe('2026-06-30')
+  })
+
+  it('all → unbounded', () => {
+    const range = expandRange(june, 'all')
+    expect(range.start.year()).toBeLessThan(1000)
+    expect(range.end.year()).toBeGreaterThan(9000)
   })
 })
 

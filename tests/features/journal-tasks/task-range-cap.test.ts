@@ -65,38 +65,45 @@ describe('smallestTaskCap', () => {
   })
 })
 
+// A note's whole-period anchor range, [start, end] inclusive.
+const span = (startIso: string, endIso: string): ReferenceRange => ({
+  start: moment(startIso).startOf('day'),
+  end: moment(endIso).endOf('day'),
+})
+
 describe('makeRangeCapFilter', () => {
-  // Mid-June 2026; the 15th is a Monday so week math is unambiguous.
-  const base = moment('2026-06-15')
+  // Mid-June 2026; the 15th is a Monday so week math is unambiguous. A
+  // single-day anchor is the *today* case.
+  const anchor = day('2026-06-15')
   const categories = [cat('local', 'day'), cat('weekish', 'week'), cat('plain')]
 
   it('passes tasks with no capped category through untouched', () => {
-    const filter = makeRangeCapFilter({ base, listUnit: 'all', categories })
+    const filter = makeRangeCapFilter({ anchor, listUnit: 'all', categories })
     expect(filter({ categoryIds: ['plain'] }, day('1999-01-01'))).toBe(true)
   })
 
   it('does not constrain when the cap is not smaller than the list range', () => {
     // list range is day; a week cap is larger, so it can't bite.
-    const filter = makeRangeCapFilter({ base, listUnit: 'day', categories })
+    const filter = makeRangeCapFilter({ anchor, listUnit: 'day', categories })
     expect(filter({ categoryIds: ['weekish'] }, day('2026-06-25'))).toBe(true)
   })
 
   it('constrains to the capped period when the cap is smaller (incl. `all`)', () => {
-    const filter = makeRangeCapFilter({ base, listUnit: 'all', categories })
-    // day-capped: only the anchor day passes.
+    const filter = makeRangeCapFilter({ anchor, listUnit: 'all', categories })
+    // day-capped, single-day anchor: only the anchor day passes.
     expect(filter({ categoryIds: ['local'] }, day('2026-06-15'))).toBe(true)
     expect(filter({ categoryIds: ['local'] }, day('2026-06-16'))).toBe(false)
   })
 
-  it('uses the anchor base for the capped window', () => {
-    const filter = makeRangeCapFilter({ base, listUnit: 'month', categories })
+  it('expands the cap across the anchor range', () => {
+    const filter = makeRangeCapFilter({ anchor, listUnit: 'month', categories })
     // week cap: same calendar week as the 15th passes, later week fails.
     expect(filter({ categoryIds: ['weekish'] }, day('2026-06-16'))).toBe(true)
     expect(filter({ categoryIds: ['weekish'] }, day('2026-06-25'))).toBe(false)
   })
 
   it('applies the smallest cap when a task is in several capped categories', () => {
-    const filter = makeRangeCapFilter({ base, listUnit: 'all', categories })
+    const filter = makeRangeCapFilter({ anchor, listUnit: 'all', categories })
     // local (day) + weekish (week) → day wins, so only the anchor day passes.
     expect(
       filter({ categoryIds: ['weekish', 'local'] }, day('2026-06-16'))
@@ -106,44 +113,30 @@ describe('makeRangeCapFilter', () => {
     ).toBe(true)
   })
 
-  describe('note floor (floorUnit)', () => {
+  describe('note anchor (multi-day anchor range)', () => {
     const cats = [cat('local', 'day')]
+    const june = span('2026-06-01', '2026-06-30')
 
-    it('floors a finer cap up to the note tier, so it stops biting', () => {
-      // Note-anchored on a month: the day-cap is floored to month, and the
-      // effective list range is also month → no bite, task passes regardless.
+    it('a finer cap expands across the whole note period', () => {
+      // Monthly note, list range year, day cap: the day cap expanded across
+      // every day of June is June, so any June note passes, March does not.
       const filter = makeRangeCapFilter({
-        base,
-        listUnit: 'month',
-        categories: cats,
-        floorUnit: 'month',
-      })
-      expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(true)
-    })
-
-    it('still bites at the floored grain when the list range is larger', () => {
-      // Monthly note, list range year: day-cap floored to month → window is the
-      // note's month, so June passes but March does not.
-      const filter = makeRangeCapFilter({
-        base,
+        anchor: june,
         listUnit: 'year',
         categories: cats,
-        floorUnit: 'month',
       })
+      expect(filter({ categoryIds: ['local'] }, day('2026-06-01'))).toBe(true)
       expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(true)
       expect(filter({ categoryIds: ['local'] }, day('2026-03-25'))).toBe(false)
     })
 
-    it('does not floor when floorUnit is null (Today anchor)', () => {
+    it('a cap not smaller than the list range still does not bite', () => {
       const filter = makeRangeCapFilter({
-        base,
-        listUnit: 'month',
+        anchor: june,
+        listUnit: 'day',
         categories: cats,
-        floorUnit: null,
       })
-      // Day-cap is unaffected → window is the single anchor day.
-      expect(filter({ categoryIds: ['local'] }, day('2026-06-15'))).toBe(true)
-      expect(filter({ categoryIds: ['local'] }, day('2026-06-25'))).toBe(false)
+      expect(filter({ categoryIds: ['local'] }, day('2026-12-25'))).toBe(true)
     })
   })
 })

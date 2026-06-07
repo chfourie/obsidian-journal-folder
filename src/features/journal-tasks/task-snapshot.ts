@@ -28,8 +28,11 @@ import {
   type TasksSidebarRange,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
-import { moment } from '../../data-access'
-import { buildReferenceRange, largerRangeUnit, rangeForNote } from './reference-range'
+import {
+  anchorRange,
+  buildReferenceRange,
+  rangeForNote,
+} from './reference-range'
 import {
   effectiveUnits,
   findTaskCandidates,
@@ -109,32 +112,14 @@ export async function computeTaskSnapshot(
   })
 
   const model = resolveTaskModel(settings)
-  // Category range caps are measured from the same anchor the reference
-  // range uses (today, or the active note when anchored on it), so a
-  // capped task reaches no further than its cap around that anchor — even
-  // under the `all` range.
-  //
-  // When anchored on a note, the note's own tier is the floor for BOTH the
-  // effective list range and each cap (the note's whole period is the
-  // smallest sensible window when measuring from it) — matching the floor
-  // `buildReferenceRange` applies to the reference range above.
-  const noteFloorUnit =
-    scope.anchor === 'note' && activeNote ? activeNote.getTimeUnit() : null
-  const capBase =
-    scope.anchor === 'note' && activeNote
-      ? activeNote.getMoment()
-      : moment()
-  const effectiveListUnit =
-    scope.range === 'all'
-      ? 'all'
-      : noteFloorUnit
-        ? largerRangeUnit(scope.range, noteFloorUnit)
-        : scope.range
+  // Category range caps are expanded across the same anchor range the
+  // reference range uses (today, or the active note's whole period when
+  // anchored on it), so a capped task reaches no further than its cap — even
+  // under the `all` range. The list range itself does the rest of the work.
   const capFilter = makeRangeCapFilter({
-    base: capBase,
-    listUnit: effectiveListUnit,
+    anchor: anchorRange({ anchor: scope.anchor, activeNote }),
+    listUnit: scope.range,
     categories: settings.taskCategories,
-    floorUnit: noteFloorUnit,
   })
   const collected: JournalTask[] = []
   for (const candidate of candidates) {

@@ -25,7 +25,6 @@ import {
   type JournalNote,
   type JournalTask,
   journalNoteFactoryWithSettings,
-  moment,
   openPluginSettings,
   PluginFeature,
 } from '../../data-access'
@@ -35,7 +34,7 @@ import { TaskCache } from './task-cache'
 import { resolveTaskModel } from './task-models'
 import { computeTaskLineEdit } from './task-line-command'
 import { parseJournalTasksBlock } from './parse-block-config'
-import { buildReferenceRange } from './reference-range'
+import { anchorRange, buildReferenceRange } from './reference-range'
 import { effectiveUnits, findTaskCandidates } from './task-scope'
 import { sortTasks } from './task-sorting'
 import { rangeForNote } from './reference-range'
@@ -484,18 +483,12 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
     const cache = this.getCache()
     // Enforce category range caps relative to the host note's own period.
     // The in-note block is always measured from its host note, so the host's
-    // tier is both the list range and the cap floor — a cap finer than the
-    // host tier therefore doesn't bite here (same note-anchored rule the
-    // sidebar applies for its *Current note* anchor). A non-journal host
-    // falls back to today/day with no floor.
-    const capBase = activeNote
-      ? activeNote.getMoment()
-      : moment()
+    // tier is the list range — a cap finer than the host tier expands across
+    // the note's whole period. A non-journal host falls back to today/day.
     const capFilter = makeRangeCapFilter({
-      base: capBase,
+      anchor: anchorRange({ anchor: 'note', activeNote }),
       listUnit: activeNote ? activeNote.getTimeUnit() : 'day',
       categories: settings.taskCategories,
-      floorUnit: activeNote ? activeNote.getTimeUnit() : null,
     })
     const allTasks: JournalTask[] = []
     for (const candidate of candidates) {

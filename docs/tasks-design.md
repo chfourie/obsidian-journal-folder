@@ -98,12 +98,12 @@ Primary left-click cycles stay short (typically open → in-progress → done �
 
 The sidebar reference is two orthogonal axes set in the scope panel (`TaskScopePanel.svelte`), resolved by `buildReferenceRange`:
 
-- **Anchor** — `today` (the current date) or `note` (the active journal note's date; non-journal leaf → falls back to today).
-- **Range** — `day` / `week` / `month` / `quarter` / `year` → `periodAround(base, unit)`, the calendar period of that size containing the anchor; `all` → `allTimeRange()` (no date filtering). `quarter` is only offered when `quartersEnabled`.
+- **Anchor** — a genuine date *range* (`anchorRange`): `today` → a single day `[today, today]`; `note` → the active journal note's whole period (`rangeForNote`; non-journal leaf → falls back to today).
+- **Range** — `day` / `week` / `month` / `quarter` / `year` → `expandRange(anchor, unit)`, which snaps each endpoint of the anchor span out to that unit's calendar boundary; `all` → `allTimeRange()` (no date filtering). `quarter` is only offered when `quartersEnabled`.
 
-**Note-anchored floor:** when `anchor === 'note'`, the effective range unit is `largerRangeUnit(range, noteTier)` — the window is never finer than the active note's own tier (a note bigger than a day spans a date range, not a single anchor instant, so e.g. a monthly note + `day` resolves to the whole month, not just the 1st). `buildReferenceRange` applies this floor; the same floor is applied to category caps (`makeRangeCapFilter`'s `floorUnit`). The `today` anchor is unaffected.
+**Why `expandRange` and not `periodAround`:** the intended semantics are "take each day in the anchor span, build the unit-period around it, union the results." Those per-day windows are contiguous, so the union collapses to the outer envelope — `[anchor.start.startOf(unit), anchor.end.endOf(unit)]` — computed in two boundary snaps, no loop. This works even when tier boundaries don't line up (a month + `week` range yields the month plus the partial-week spillover at each end), which the old "floor the unit up to the note's tier" approach got wrong. For a `today` anchor (a single day) `expandRange` reduces to the plain `periodAround`.
 
-So *Today + Week* = this week; *Current note + Month* = the month containing the active note; *Current note + Day* on a monthly note = that whole month (floored); *Current note + All* = every task in scope regardless of date.
+So *Today + Week* = this week; *Current note + Month* on a daily note = its month; *Current note + Day* on a monthly note = that whole month (the month span day-expanded is itself); *Current note + All* = every task in scope regardless of date.
 
 In-note blocks ignore the axes and always use the host note's own tier range (`rangeForNote`), or `[today, today]` for a non-journal host.
 
@@ -376,10 +376,10 @@ A category can also carry a **range cap** (`TaskCategory.maxRange`): tasks in
 that category reach no further than the cap (day/week/month/quarter/year) from
 the list's anchor, so they don't flood broader views (Week/Month/Year/All).
 A larger list range is clamped to the cap; a smaller list range still wins; the
-smallest cap among a task's categories applies. When note-anchored (sidebar
-*Current note* anchor or any in-note block) the cap is floored to the host
-note's tier (`floorUnit`), so a cap finer than the note tier stops biting —
-matching the reference-range floor. Enforced by `task-range-cap.ts`
+smallest cap among a task's categories applies. The cap window is the cap unit
+`expandRange`-d across the same anchor span the list uses (so it's measured the
+same way the range is) — on a note anchor that's the note's whole period, so a
+Day cap on a monthly note covers the month. Enforced by `task-range-cap.ts`
 (`makeRangeCapFilter`) during task collection in both list surfaces.
 
 ## Out of scope (v1)

@@ -38,7 +38,7 @@ export interface ReferenceRange {
 
 // Calendar size order of the range units, smallest → largest. Single source
 // of truth for "which unit is bigger" comparisons (range clamping + category
-// cap flooring).
+// cap selection).
 export const RANGE_UNIT_RANK: Record<ReferenceRangeUnit, number> = {
   day: 0,
   week: 1,
@@ -46,14 +46,6 @@ export const RANGE_UNIT_RANK: Record<ReferenceRangeUnit, number> = {
   quarter: 3,
   year: 4,
   all: 5,
-}
-
-// The larger (coarser) of two range units.
-export function largerRangeUnit(
-  a: ReferenceRangeUnit,
-  b: ReferenceRangeUnit
-): ReferenceRangeUnit {
-  return RANGE_UNIT_RANK[a] >= RANGE_UNIT_RANK[b] ? a : b
 }
 
 export interface ReferenceRangeInput {
@@ -65,12 +57,43 @@ export interface ReferenceRangeInput {
   activeNote?: JournalNote | null
 }
 
+// The anchor as a genuine date *range* (not a single point):
+//   today → a single day `[today, today]`
+//   note  → the active note's whole period (today when there's no note)
+// The range setting is applied to this span by `expandRange`.
+export function anchorRange(input: {
+  anchor?: ReferenceAnchor
+  activeNote?: JournalNote | null
+}): ReferenceRange {
+  return input.anchor === 'note' && input.activeNote
+    ? rangeForNote(input.activeNote)
+    : todayRange()
+}
+
+// Widens `anchor` so each endpoint sits on its `unit` calendar boundary.
+// This is the materialised union of `periodAround(d, unit)` for every day
+// `d` in `[anchor.start, anchor.end]`: those per-day windows are contiguous,
+// so their union is just the outer envelope — two boundary snaps, no loop.
+// `'all'` drops date filtering entirely.
+export function expandRange(
+  anchor: ReferenceRange,
+  unit: ReferenceRangeUnit
+): ReferenceRange {
+  if (unit === 'all') return allTimeRange()
+  const u = unit as moment.unitOfTime.StartOf
+  return {
+    start: anchor.start.clone().startOf(u),
+    end: anchor.end.clone().endOf(u),
+  }
+}
+
 // Returns `[start, end]` of the reference period as inclusive
 // day-aligned moments. The contract:
 //   sidebar + range 'all'                    → unbounded (everything)
 //   sidebar + anchor today + range r         → the r-period containing today
-//   sidebar + anchor note  + range r         → the r-period containing the
-//                                              active note (today if none)
+//   sidebar + anchor note  + range r         → the r-period(s) spanning the
+//                                              active note's whole period
+//                                              (today if none)
 //   note host                                → host note's own range
 //                                              (today for non-journal hosts)
 export function buildReferenceRange(input: ReferenceRangeInput): ReferenceRange {
@@ -78,28 +101,7 @@ export function buildReferenceRange(input: ReferenceRangeInput): ReferenceRange 
   if (input.host === 'note') {
     return input.activeNote ? rangeForNote(input.activeNote) : todayRange()
   }
-  if (input.range === 'all') return allTimeRange()
-  // Anchored on the active note, the window's floor is the note's OWN tier.
-  // A note bigger than a day spans a date *range*, not a single anchor date,
-  // so a configured range smaller than the note would collapse to a nonsense
-  // sub-window (a monthly note "anchored" at the 1st showing only the 1st's
-  // daily notes). Clamp the unit up to the note's tier — the note's own
-  // period is the smallest sensible window when measuring from it.
-  if (input.anchor === 'note' && input.activeNote) {
-    const noteUnit = input.activeNote.getTimeUnit()
-    const unit = largerRangeUnit(input.range ?? 'day', noteUnit)
-    return unit === noteUnit
-      ? rangeForNote(input.activeNote)
-      : // `unit` is never `all` here (range !== 'all', noteUnit is day–year).
-        periodAround(
-          input.activeNote.getMoment(),
-          unit as moment.unitOfTime.StartOf
-        )
-  }
-  return periodAround(
-    moment(),
-    input.range ?? 'day'
-  )
+  return expandRange(anchorRange(input), input.range ?? 'day')
 }
 
 // `[start, end]` of the calendar period of `unit` size that contains

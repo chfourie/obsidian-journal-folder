@@ -7,6 +7,17 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.3]
+
+### Changed
+- Reworked how the task **scope** turns into a date filter. The anchor is now a
+  genuine date *range* — *Today* is a single day, *Current note* is the note's
+  whole period — and the selected **range** includes every calendar period of
+  that size that overlaps the anchor. This fixes wrong results when period
+  boundaries didn't line up (e.g. a monthly note viewed with range *Week* now
+  correctly includes every week the month touches). Category range caps are
+  measured the same way. No settings change is needed.
+
 ## [3.1.2]
 
 Maintenance release — release-tooling and documentation work only. No new
