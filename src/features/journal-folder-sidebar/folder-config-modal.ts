@@ -128,11 +128,13 @@ export class FolderConfigModal extends Modal {
   ): Promise<void> {
     const diff = computeFrontMatterDiff(newSettings, this.getGlobalSettings())
     return this.app.fileManager.processFrontMatter(file, (fm) => {
+      // `processFrontMatter` hands back an `any`-typed object; narrow it once.
+      const front = fm as Record<string, unknown>
       for (const key of diff.remove) {
-        delete fm[key]
+        delete front[key]
       }
       for (const [key, value] of Object.entries(diff.set)) {
-        fm[key] = value
+        front[key] = value
       }
     })
   }

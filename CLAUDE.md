@@ -24,10 +24,12 @@ npm run dev        # esbuild in watch mode → main.js (inline sourcemap)
 npm run build      # tsc --noEmit type check, then production esbuild
 npm test           # Vitest run (one-shot)
 npm run test:watch # Vitest in watch mode
+npm run lint       # eslint-plugin-obsidianmd — the Obsidian community-review ruleset
+npm run lint:fix   # same, auto-fixing what's safe
 npm run version    # bump manifest.json + versions.json from package.json version
 ```
 
-Tests live in `tests/` and mirror the `src/` layout. ESLint and Prettier configs exist but must be run manually if desired.
+Tests live in `tests/` and mirror the `src/` layout. **Linting uses `eslint-plugin-obsidianmd`** (flat config in `eslint.config.mjs`) — the *same* ruleset the Obsidian community-review scanner runs against a submitted release, so `npm run lint` reproduces those findings locally. It type-checks against `tsconfig.json` (scoped to `src`; tests are excluded from the tsconfig). Run it before tagging a release to avoid surprises in the published review. Prettier config also exists and is run manually if desired.
 
 ## Architecture
 
@@ -56,7 +58,7 @@ See [docs/settings-resolution.md](docs/settings-resolution.md) for the per-folde
 
 ### Journal note model
 
-`src/data-access/journal-note.ts` picks one of up to five `JournalNoteStrategy` records (daily/weekly/monthly/quarterly/yearly — quarterly only when `settings.quartersEnabled` is truthy) by regex-matching a `TFile`'s basename, then exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `getNotesInPeriod`, `dailyNoteToday`), state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`), and `hasUnit(unit)` for callers that need to know whether a tier is currently active. **All date math goes through `obsidian`'s re-exported `moment`** — do not import moment directly.
+`src/data-access/journal-note.ts` picks one of up to five `JournalNoteStrategy` records (daily/weekly/monthly/quarterly/yearly — quarterly only when `settings.quartersEnabled` is truthy) by regex-matching a `TFile`'s basename, then exposes navigation methods (`forwardInTime`, `backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `getNotesInPeriod`, `dailyNoteToday`), state predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`), and `hasUnit(unit)` for callers that need to know whether a tier is currently active. **All date math goes through the typed `moment` wrapper in `src/data-access/moment.ts`** (re-exported from `src/data-access`) — `import { moment } from 'src/data-access'` (or a relative `data-access` path), never from `'obsidian'` or `'moment'` directly. The wrapper re-casts Obsidian's `moment` export to its real callable type (`typeof import('moment')`); the raw obsidian export is typed as a non-callable namespace under this project's `esModuleInterop`, which is why direct calls used to need scattered `@ts-ignore`s and tripped the type-checked `no-unsafe-*` lint rules.
 
 `isJournalFileBasename(basename, quartersEnabled)` is exported separately for callers that want the regex check without instantiating a `JournalNote` (the auto-template feature, the journal-header code block processor's "render nothing in non-journal notes" guard, and the sidebar's dynamic-mode active-leaf filter).
 
@@ -138,7 +140,8 @@ Obsidian ships a CLI ([help](https://obsidian.md/help/cli)) — `obsidian [vault
 
 - Prettier: single quotes, 2-space indent, no semicolons, trailing commas `es5`, 80-col print width.
 - License headers: every `.ts`/`.svelte` source file starts with the GPL-3.0 boilerplate. Match the existing style when adding new files.
-- Date formatting always goes through Obsidian's bundled moment (`import { moment } from 'obsidian'`).
+- Date formatting always goes through the typed moment wrapper (`import { moment } from 'src/data-access'`, backed by `src/data-access/moment.ts`) — never `'obsidian'` or `'moment'` directly. It's still the same bundled instance, just typed callable.
+- Obsidian-global DOM access uses `activeDocument` / `activeWindow` (not bare `document` / `window`) for popout-window compatibility — the `obsidianmd/prefer-active-doc` lint rule enforces this. `tests/setup-globals.ts` polyfills both to the jsdom document/window so unit tests still run.
 - The settings tab (`journal-folder-settings-tab.ts`) is explicitly marked as throwaway code in a comment — don't be surprised by its shape. The `renderSettingsForm` entrypoint is used by both the global settings tab and the per-folder `FolderConfigModal`; a `mode: 'global' | 'folder'` flag drives which sections render.
 - When constructing a synthetic `TFile` (e.g. for the sidebar's anchor note), use a duck-typed plain object cast `as unknown as TFile` rather than `new TFile()` — Obsidian's real `TFile` constructor wires `path` through an internal `setPath` that crashes on post-construction assignment.
 - Inline action affordances in the sidebar use `<span role="button" tabindex="0">` rather than `<button>` because Obsidian's button styling adds chrome (border/shadow/padding) that can't be cleanly overridden. Always pair with an `onkeydown` handler for Enter/Space activation.

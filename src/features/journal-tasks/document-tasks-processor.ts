@@ -130,7 +130,7 @@ function attachHandlersToNativeCheckbox(
       return
     }
     // noinspection JSIgnoredPromiseFromCall
-    cycleTaskStatus(app, target, model)
+    void cycleTaskStatus(app, target, model)
   }
   input.oncontextmenu = (evt) => {
     evt.preventDefault()
@@ -164,7 +164,7 @@ function swapCheckbox(
     existing.remove()
   }
 
-  const iconEl = document.createElement('span')
+  const iconEl = activeDocument.createElement('span')
   iconEl.setAttribute(DOC_ICON_ATTR, '')
   iconEl.setAttribute('role', 'button')
   iconEl.setAttribute('tabindex', '0')
@@ -182,7 +182,7 @@ function swapCheckbox(
       return
     }
     // noinspection JSIgnoredPromiseFromCall
-    cycleTaskStatus(app, target, model)
+    void cycleTaskStatus(app, target, model)
   })
   iconEl.addEventListener('contextmenu', (evt) => {
     evt.preventDefault()
@@ -197,7 +197,7 @@ function swapCheckbox(
         return
       }
       // noinspection JSIgnoredPromiseFromCall
-      cycleTaskStatus(app, target, model)
+      void cycleTaskStatus(app, target, model)
     }
   })
 
@@ -213,8 +213,8 @@ function swapCheckbox(
   // for those.
   input.setAttribute(DOC_SWAPPED_ATTR, '')
   input.setAttribute('aria-hidden', 'true')
-  input.style.opacity = '0'
-  input.style.pointerEvents = 'none'
-  input.style.marginInlineEnd = '0'
+  // Hiding (opacity/pointer-events/margin) is static and keyed off the swapped
+  // attribute in CSS — the checkbox stays in flow so the theme keeps
+  // positioning it; see styles.css `input[data-jf-doc-swapped]`.
   input.after(iconEl)
 }

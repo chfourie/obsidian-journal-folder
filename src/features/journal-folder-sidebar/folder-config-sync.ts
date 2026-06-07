@@ -69,7 +69,7 @@ export function computeFrontMatterDiff(
   const set: Record<string, unknown> = {}
   const remove: string[] = []
   for (const field of PER_FOLDER_FIELDS) {
-    const fmKey = kebabCase(field as string)
+    const fmKey = kebabCase(field)
     if (areEqual(newSettings[field], globalSettings[field])) {
       remove.push(fmKey)
     } else {

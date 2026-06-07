@@ -109,7 +109,7 @@ export function renderLucidePicker(config: LucidePickerConfig): void {
   })
   const customInput = customRow.createEl('input', {
     cls: 'jf-icon-custom-text',
-    attr: { type: 'text', placeholder: 'lucide name…' },
+    attr: { type: 'text', placeholder: 'Lucide name…' },
   })
   customInput.value = value
   customInput.oninput = () => {
@@ -210,7 +210,7 @@ export function renderEmojiPicker(config: EmojiPickerConfig): void {
   })
   const customInput = customRow.createEl('input', {
     cls: 'jf-icon-custom-text',
-    attr: { type: 'text', placeholder: 'paste an emoji…' },
+    attr: { type: 'text', placeholder: 'Paste an emoji…' },
   })
   customInput.value = value
   customInput.oninput = () => {
@@ -233,7 +233,7 @@ export class EmojiPickerModal extends Modal {
   constructor(
     app: App,
     private readonly current: string,
-    private readonly onPick: (emoji: string) => void
+    private readonly onPick: (emoji: string) => void | Promise<void>
   ) {
     super(app)
     this.pending = current
@@ -257,7 +257,7 @@ export class EmojiPickerModal extends Modal {
       .setButtonText('Use emoji')
       .setCta()
       .onClick(() => {
-        this.onPick(this.pending)
+        void this.onPick(this.pending)
         this.close()
       })
   }
@@ -277,13 +277,14 @@ export class LucidePickerModal extends Modal {
   constructor(
     app: App,
     private readonly current: string,
-    private readonly onPick: (name: string) => void
+    private readonly onPick: (name: string) => void | Promise<void>
   ) {
     super(app)
     this.pending = current
   }
 
   onOpen(): void {
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
     this.titleEl.setText('Pick a Lucide icon')
     const host = this.contentEl.createDiv()
     renderLucidePicker({
@@ -301,7 +302,7 @@ export class LucidePickerModal extends Modal {
       .setButtonText('Use icon')
       .setCta()
       .onClick(() => {
-        if (this.pending.trim()) this.onPick(this.pending.trim())
+        if (this.pending.trim()) void this.onPick(this.pending.trim())
         this.close()
       })
   }

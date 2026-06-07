@@ -65,7 +65,7 @@ export class MigrationPickerModal extends Modal {
   onClose(): void {
     if (this.component) {
       // noinspection JSIgnoredPromiseFromCall
-      unmount(this.component)
+      void unmount(this.component)
       this.component = null
     }
     this.contentEl.empty()

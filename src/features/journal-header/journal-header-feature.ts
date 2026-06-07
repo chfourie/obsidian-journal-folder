@@ -92,7 +92,7 @@ export class JournalHeaderFeature extends PluginFeature {
               ? async () => false
               : (basename: string) => confirmCreateNote(app, basename)
             const navigate = (linktext: string) => {
-              app.workspace.openLinkText(linktext, sourcePath, false)
+              void app.workspace.openLinkText(linktext, sourcePath, false)
             }
             const isMobile = Platform.isMobile
             const defaultCalendarVisible = resolveDefaultCalendarVisible(
@@ -118,7 +118,7 @@ export class JournalHeaderFeature extends PluginFeature {
             this.mountError(el, ctx, `No current file present (${ctx.sourcePath})`)
           }
         } catch (error) {
-          this.mountError(el, ctx, `${error}`)
+          this.mountError(el, ctx, String(error))
         }
       }
     )
@@ -186,7 +186,7 @@ class SvelteRenderChild extends MarkdownRenderChild {
 
   onunload(): void {
     try {
-      unmount(this.component)
+      void unmount(this.component)
     } catch {
       // Defensive: if the component is already torn down, swallow.
     }

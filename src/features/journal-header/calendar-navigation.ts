@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { moment } from 'obsidian'
+import { moment } from 'src/data-access'
 
 // Pure helpers for the calendar's quick-navigation controls (Today button,
 // year picker, month picker). Kept separate from `journal-calendar-info.ts`
@@ -64,7 +64,6 @@ export function offsetForTarget(
 export function monthOptions(): { label: string; value: number }[] {
   const out: { label: string; value: number }[] = []
   for (let i = 0; i < 12; i++) {
-    // @ts-ignore — `moment()` returns a Moment from the obsidian-bundled lib.
     out.push({ label: moment().month(i).format('MMM'), value: i })
   }
   return out
@@ -75,7 +74,6 @@ export function sameAnchor(a: AnchorMonth, b: AnchorMonth): boolean {
 }
 
 export function todayAnchor(): AnchorMonth {
-  // @ts-ignore — `moment()` returns a Moment from the obsidian-bundled lib.
   const t = moment()
   return { year: t.year(), month: t.month() }
 }

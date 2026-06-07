@@ -46,8 +46,9 @@ const DAYS_PER_UNIT = {
 // links and inline code are left alone — they render fine as plain text
 // in the chip-less single-line list view.
 function stripWikilinkSyntax(input: string): string {
-  return input.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, alias) =>
-    (alias ?? target).trim()
+  return input.replace(
+    /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+    (_match: string, target: string, alias?: string) => (alias ?? target).trim()
   )
 }
 

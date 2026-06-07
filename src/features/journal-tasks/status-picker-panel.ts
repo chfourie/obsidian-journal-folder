@@ -89,7 +89,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   // Only one picker at a time — drop any previous instance first.
   closeStatusPicker()
 
-  const panel = document.createElement('div')
+  const panel = activeDocument.createElement('div')
   panel.className = 'jf-status-picker-panel'
   panel.setAttribute('role', 'menu')
   panel.setAttribute('data-jf-status-picker', '')
@@ -99,7 +99,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   let selectedEl: HTMLElement | null = null
 
   for (const status of opts.model.statuses) {
-    const row = document.createElement('span')
+    const row = activeDocument.createElement('span')
     row.className = 'jf-status-picker-item'
     row.setAttribute('role', 'menuitemradio')
     row.setAttribute('data-jf-status-option', status.id)
@@ -112,13 +112,13 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     }
     if (!firstFocusable) firstFocusable = row
 
-    const iconHost = document.createElement('span')
+    const iconHost = activeDocument.createElement('span')
     iconHost.className = 'jf-status-picker-icon'
     iconHost.setAttribute('aria-hidden', 'true')
     renderStatusIconById(iconHost, status.id, opts.model)
     row.appendChild(iconHost)
 
-    const label = document.createElement('span')
+    const label = activeDocument.createElement('span')
     label.className = 'jf-status-picker-label'
     label.textContent = status.label || status.id
     row.appendChild(label)
@@ -149,24 +149,24 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
       ? migrationProvider(opts.migrateTarget)
       : null
   if (migrateRun) {
-    const sep = document.createElement('div')
+    const sep = activeDocument.createElement('div')
     sep.className = 'jf-status-picker-sep'
     panel.appendChild(sep)
 
-    const row = document.createElement('span')
+    const row = activeDocument.createElement('span')
     row.className = 'jf-status-picker-item jf-status-picker-migrate'
     row.setAttribute('role', 'menuitem')
     row.setAttribute('data-jf-migrate-row', '')
     row.tabIndex = 0
     if (!firstFocusable) firstFocusable = row
 
-    const iconHost = document.createElement('span')
+    const iconHost = activeDocument.createElement('span')
     iconHost.className = 'jf-status-picker-icon'
     iconHost.setAttribute('aria-hidden', 'true')
     setIcon(iconHost, 'arrow-right-from-line')
     row.appendChild(iconHost)
 
-    const label = document.createElement('span')
+    const label = activeDocument.createElement('span')
     label.className = 'jf-status-picker-label'
     label.textContent = 'Migrate task…'
     row.appendChild(label)
@@ -189,7 +189,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     panel.appendChild(row)
   }
 
-  document.body.appendChild(panel)
+  activeDocument.body.appendChild(panel)
   position(panel, opts.anchor)
   ;(selectedEl ?? firstFocusable)?.focus()
 
@@ -211,19 +211,19 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   const onViewport = () => position(panel, opts.anchor)
 
   function destroy() {
-    document.removeEventListener('mousedown', onOutsidePointer, true)
-    document.removeEventListener('contextmenu', onOutsidePointer, true)
-    document.removeEventListener('keydown', onKey, true)
-    document.removeEventListener('scroll', onViewport, true)
+    activeDocument.removeEventListener('mousedown', onOutsidePointer, true)
+    activeDocument.removeEventListener('contextmenu', onOutsidePointer, true)
+    activeDocument.removeEventListener('keydown', onKey, true)
+    activeDocument.removeEventListener('scroll', onViewport, true)
     window.removeEventListener('resize', onViewport)
     panel.remove()
     if (active && active.destroy === destroy) active = null
   }
 
-  document.addEventListener('mousedown', onOutsidePointer, true)
-  document.addEventListener('contextmenu', onOutsidePointer, true)
-  document.addEventListener('keydown', onKey, true)
-  document.addEventListener('scroll', onViewport, true)
+  activeDocument.addEventListener('mousedown', onOutsidePointer, true)
+  activeDocument.addEventListener('contextmenu', onOutsidePointer, true)
+  activeDocument.addEventListener('keydown', onKey, true)
+  activeDocument.addEventListener('scroll', onViewport, true)
   window.addEventListener('resize', onViewport)
 
   active = { destroy }
@@ -248,7 +248,7 @@ export function openStatusPickerForTarget(
     currentStatus: target.status,
     onSelect: (id) => {
       // noinspection JSIgnoredPromiseFromCall
-      setTaskStatus(app, target, id, model)
+      void setTaskStatus(app, target, id, model)
     },
     migrateTarget:
       rawText !== undefined

@@ -32,14 +32,8 @@ import {
   ToggleComponent,
 } from 'obsidian'
 import {
-  BUILTIN_TEMPLATES,
-  BUILTIN_TEMPLATE_LABELS,
-  type BuiltInTemplateId,
-  cloneTemplate,
   DEFAULT_SETTINGS,
   DEFAULT_TEMPLATE_FILENAME,
-  DEFAULT_TEMPLATE_ID,
-  isBuiltInTemplate,
   type JournalFolderSettings,
   type JournalTimeUnit,
   LUCIDE_MARKER_PREFIX,
@@ -47,7 +41,6 @@ import {
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
   type TaskMigrationReferenceStyle,
-  type TaskStatus,
   TEMPLATE_FILENAMES,
 } from '../../data-access'
 import { DEFAULT_AUTO_TEMPLATE, ensureFolderExists } from '../journal-auto-template'
@@ -729,7 +722,7 @@ class SettingsFormBuilder {
           .setTooltip('Reset to default value')
           .onClick(() => {
             dropdown.setValue(DEFAULT_SETTINGS.taskMigrationPlacement)
-            onPlacement(DEFAULT_SETTINGS.taskMigrationPlacement)
+            void onPlacement(DEFAULT_SETTINGS.taskMigrationPlacement)
           })
       })
 
@@ -745,7 +738,7 @@ class SettingsFormBuilder {
             debounce((value: string) => {
               settings.taskMigrationHeading = value.trim() || 'Tasks'
               // noinspection JSIgnoredPromiseFromCall
-              this.saveSettings(settings)
+              void this.saveSettings(settings)
             }, 250, true)
           )
         })
@@ -878,7 +871,7 @@ class SettingsFormBuilder {
           .onChange((value) => {
             settings.taskMigrationReferenceOpacity = value
             // noinspection JSIgnoredPromiseFromCall
-            this.saveSettings(settings)
+            void this.saveSettings(settings)
           })
       })
       .addExtraButton((btn) => {
@@ -927,7 +920,7 @@ class SettingsFormBuilder {
           settings[field] = value
           refreshPreview()
           // noinspection JSIgnoredPromiseFromCall
-          this.saveSettings(settings)
+          void this.saveSettings(settings)
         }, 250, true)
       )
     })
@@ -964,6 +957,7 @@ class SettingsFormBuilder {
       setting.addExtraButton((btn) => {
         btn
           .setIcon('image')
+          // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
           .setTooltip('Pick a Lucide icon')
           .onClick(() => {
             const current = settings[field].startsWith(LUCIDE_MARKER_PREFIX)
@@ -989,7 +983,7 @@ class SettingsFormBuilder {
       .addButton((btn) => {
         btn
           .setIcon('reset')
-          .setWarning()
+          .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
           .onClick(() => {
             new ConfirmModal(this.plugin.app, {
               title: 'Reset all settings?',
@@ -999,7 +993,7 @@ class SettingsFormBuilder {
               confirmText: 'Reset',
               onConfirm: () => {
                 // noinspection JSIgnoredPromiseFromCall
-                this.saveSettings(DEFAULT_SETTINGS).then(() => this.render())
+                void this.saveSettings(DEFAULT_SETTINGS).then(() => this.render())
               },
             }).open()
           })
@@ -1007,13 +1001,13 @@ class SettingsFormBuilder {
   }
 
   createPatternsHeading() {
-    const desc = document.createDocumentFragment()
+    const desc = activeDocument.createDocumentFragment()
     desc.append(
       'Date format strings used to render note titles and links. Each ' +
         "pattern should not render units shorter than its tier (e.g. don't " +
         'use day components in a monthly pattern). '
     )
-    const link = document.createElement('a')
+    const link = activeDocument.createElement('a')
     link.href = 'https://momentjs.com/docs/#/displaying/format/'
     link.textContent = 'Pattern syntax reference'
     link.setAttribute('target', '_blank')
@@ -1033,7 +1027,7 @@ class SettingsFormBuilder {
     name: string
   ): Setting {
     let component: MomentFormatComponent
-    const sampleValueEl = document.createElement('div')
+    const sampleValueEl = activeDocument.createElement('div')
     sampleValueEl.addClass('journal-folder-config-sample-value')
 
     const setting = new Setting(this.containerEl)
@@ -1046,7 +1040,7 @@ class SettingsFormBuilder {
           (value: string) => {
             settings[fieldName] = value
             // noinspection JSIgnoredPromiseFromCall
-            this.saveSettings(settings)
+            void this.saveSettings(settings)
           },
           250,
           true
@@ -1066,10 +1060,10 @@ class SettingsFormBuilder {
           })
       })
 
-    const sampleEl = document.createElement('div')
+    const sampleEl = activeDocument.createElement('div')
     sampleEl.addClass('journal-folder-config-hints-row')
 
-    const sampleLabelEl = document.createElement('div')
+    const sampleLabelEl = activeDocument.createElement('div')
     sampleLabelEl.addClass('journal-folder-config-sample-label')
     sampleLabelEl.setText('Sample value:')
 
@@ -1098,7 +1092,7 @@ class SettingsFormBuilder {
           (value: string) => {
             settings[fieldName] = value
             // noinspection JSIgnoredPromiseFromCall
-            this.saveSettings(settings)
+            void this.saveSettings(settings)
           },
           250,
           true
@@ -1125,7 +1119,7 @@ class SettingsFormBuilder {
     const onChange = (value: boolean) => {
       settings.hideJournalFolderNotes = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      void this.saveSettings(settings)
     }
 
     return new Setting(this.containerEl)
@@ -1156,7 +1150,7 @@ class SettingsFormBuilder {
     const onChange = (value: boolean) => {
       settings.autoTemplateEnabled = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.render())
+      void this.saveSettings(settings).then(() => this.render())
     }
 
     return new Setting(this.containerEl)
@@ -1182,7 +1176,7 @@ class SettingsFormBuilder {
     const onChange = (value: boolean) => {
       settings.quartersEnabled = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.render())
+      void this.saveSettings(settings).then(() => this.render())
     }
 
     const setting = new Setting(this.containerEl)
@@ -1222,7 +1216,7 @@ class SettingsFormBuilder {
       settings.useFolderNameAsDefaultTitle = value
       if (value) settings.journalFolderTitle = ''
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings).then(() => this.render())
+      void this.saveSettings(settings).then(() => this.render())
     }
 
     return new Setting(this.containerEl)
@@ -1252,7 +1246,7 @@ class SettingsFormBuilder {
     const onChange = (value: string) => {
       settings.startOfWeek = value as StartOfWeekSetting
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      void this.saveSettings(settings)
     }
 
     const setting = new Setting(this.containerEl)
@@ -1301,7 +1295,7 @@ class SettingsFormBuilder {
       settings.taskInteractionScope =
         value as JournalFolderSettings['taskInteractionScope']
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      void this.saveSettings(settings)
     }
 
     return new Setting(this.containerEl)
@@ -1340,7 +1334,7 @@ class SettingsFormBuilder {
       if (!Number.isFinite(parsed) || parsed <= 0) return
       settings.tasksMaxItems = parsed
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      void this.saveSettings(settings)
     }
 
     return new Setting(this.containerEl)
@@ -1377,7 +1371,7 @@ class SettingsFormBuilder {
     const onChange = (value: boolean) => {
       settings[field] = value
       // noinspection JSIgnoredPromiseFromCall
-      this.saveSettings(settings)
+      void this.saveSettings(settings)
     }
 
     const frontMatterKey =
@@ -1487,7 +1481,7 @@ class ConfirmModal extends Modal {
 
     new ButtonComponent(buttons)
       .setButtonText(this.options.confirmText)
-      .setWarning()
+      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(() => {
         this.close()
         this.options.onConfirm()

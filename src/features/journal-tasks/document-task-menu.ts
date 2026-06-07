@@ -39,7 +39,7 @@ export function appendStatusMenuItems(
       if (status.id === target.status) item.setIcon('check')
       item.onClick(() => {
         // noinspection JSIgnoredPromiseFromCall
-        setTaskStatus(app, target, status.id, model)
+        void setTaskStatus(app, target, status.id, model)
       })
     })
   }

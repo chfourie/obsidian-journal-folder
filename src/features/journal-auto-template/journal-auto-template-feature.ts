@@ -44,12 +44,12 @@ export class JournalAutoTemplateFeature extends PluginFeature {
       this.plugin.registerEvent(
         this.plugin.app.vault.on('create', (file) => {
           // noinspection JSIgnoredPromiseFromCall
-          this.handleCreate(file)
+          void this.handleCreate(file)
         })
       )
       // One-time move of legacy inline template text → template notes.
       // noinspection JSIgnoredPromiseFromCall
-      this.maybeMigrateInlineTemplates()
+      void this.maybeMigrateInlineTemplates()
     })
   }
 

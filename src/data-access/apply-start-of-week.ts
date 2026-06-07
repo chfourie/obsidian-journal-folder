@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { moment } from 'obsidian'
+import { moment } from './moment'
 import type { StartOfWeekSetting } from './journal-folder-settings.type'
 
 const DAY_INDEX: Record<string, number> = {
@@ -36,7 +36,6 @@ let localeDefault: { dow: number; doy: number } | null = null
 
 function captureLocaleDefault(): { dow: number; doy: number } {
   if (localeDefault) return localeDefault
-  // @ts-ignore — moment's localeData() exposes firstDayOfWeek/firstDayOfYear.
   const data = moment.localeData()
   localeDefault = {
     dow: data.firstDayOfWeek(),
@@ -45,7 +44,10 @@ function captureLocaleDefault(): { dow: number; doy: number } {
   return localeDefault
 }
 
-export function resolveWeekConfig(setting: StartOfWeekSetting | string): {
+// `string & {}` keeps the `StartOfWeekSetting` literals in autocomplete while
+// still accepting the arbitrary strings that arrive from folder front matter
+// (a plain `| string` would collapse the union back to `string`).
+export function resolveWeekConfig(setting: StartOfWeekSetting | (string & {})): {
   dow: number
   doy: number
 } {
@@ -57,9 +59,8 @@ export function resolveWeekConfig(setting: StartOfWeekSetting | string): {
   return { dow, doy: dow + 6 }
 }
 
-export function applyStartOfWeek(setting: StartOfWeekSetting | string): void {
+export function applyStartOfWeek(setting: StartOfWeekSetting | (string & {})): void {
   const { dow, doy } = resolveWeekConfig(setting)
-  // @ts-ignore — moment.updateLocale accepts a `week` config block.
   moment.updateLocale(moment.locale(), { week: { dow, doy } })
 }
 

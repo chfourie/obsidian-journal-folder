@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { moment } from 'obsidian'
+import { moment } from '../../data-access'
 import type { JournalNote } from '../../data-access'
 
 export type ReferenceHost = 'sidebar' | 'note'
@@ -97,7 +97,6 @@ export function buildReferenceRange(input: ReferenceRangeInput): ReferenceRange 
         )
   }
   return periodAround(
-    // @ts-ignore — obsidian re-exports moment.
     moment(),
     input.range ?? 'day'
   )
@@ -119,7 +118,6 @@ export function periodAround(
 export function currentPeriodRange(
   unit: moment.unitOfTime.StartOf
 ): ReferenceRange {
-  // @ts-ignore — obsidian re-exports moment.
   return periodAround(moment(), unit)
 }
 
@@ -128,9 +126,7 @@ export function currentPeriodRange(
 // the intersection test downstream.
 export function allTimeRange(): ReferenceRange {
   return {
-    // @ts-ignore — obsidian re-exports moment.
     start: moment('0001-01-01').startOf('day'),
-    // @ts-ignore — obsidian re-exports moment.
     end: moment('9999-12-31').endOf('day'),
   }
 }

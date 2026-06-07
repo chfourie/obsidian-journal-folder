@@ -50,7 +50,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
   unload(): void {
     // Pull the body-class off if the plugin disables — leaving it set would
     // continue to hide journal-folder.md notes after the plugin is gone.
-    document.body.classList.remove('journal-folder-hide-config-notes')
+    activeDocument.body.classList.remove('journal-folder-hide-config-notes')
   }
 
   // Public so sibling features (e.g. the sidebar) can mutate global
@@ -62,7 +62,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
   ): Promise<void> => {
     await this.plugin.saveData(settings)
     applyStartOfWeek(settings.startOfWeek)
-    document.body.classList.toggle(
+    activeDocument.body.classList.toggle(
       'journal-folder-hide-config-notes',
       !!settings.hideJournalFolderNotes
     )
@@ -70,7 +70,11 @@ export class JournalFolderSettingsFeature extends PluginFeature {
   }
 
   readonly updateSettingsFromStorage = async (): Promise<void> => {
-    const stored = (await this.plugin.loadData()) ?? {}
+    // `loadData()` is typed `Promise<any>`; narrow it to a partial settings
+    // object at the boundary so the spread below is type-checked.
+    const stored =
+      ((await this.plugin.loadData()) as Partial<JournalFolderSettings> | null) ??
+      {}
     const settings = migrateTaskSettings({
       ...this.globalSettings,
       ...stored,
@@ -78,5 +82,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     await this.saveSettings(settings)
   }
 
-  readonly onExternalSettingsChange = this.updateSettingsFromStorage
+  readonly onExternalSettingsChange = (): void => {
+    void this.updateSettingsFromStorage()
+  }
 }

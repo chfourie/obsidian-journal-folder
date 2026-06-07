@@ -57,7 +57,7 @@ export function renderStatusIcon(
   el.classList.toggle('is-done', status.isDone)
   applyShellStyles(el, status.shell)
 
-  const iconWrapper = document.createElement('span')
+  const iconWrapper = activeDocument.createElement('span')
   iconWrapper.classList.add('jf-task-status-icon')
   const color = colorRefToCss(status.icon.color)
   if (color) iconWrapper.style.color = color
@@ -72,7 +72,7 @@ export function renderStatusIcon(
   } else if (src.kind === 'emoji') {
     iconWrapper.textContent = src.emoji
   } else if (src.kind === 'image') {
-    const img = document.createElement('img')
+    const img = activeDocument.createElement('img')
     // `src` is set via the DOM property (not `innerHTML`) so the
     // value can't escape into markup — safe to take from settings.
     img.src = src.url
@@ -84,7 +84,7 @@ export function renderStatusIcon(
     // event-handler attrs / `javascript:` URLs must be stripped.
     const cleaned = sanitizeSvg(src.markup)
     if (cleaned) {
-      const imported = document.importNode(cleaned, true)
+      const imported = activeDocument.importNode(cleaned, true)
       // Let the wrapper's width/height drive layout instead of the
       // raw SVG's intrinsic size.
       imported.removeAttribute('width')
@@ -101,9 +101,9 @@ export function renderStatusIcon(
 function applyShellStyles(el: HTMLElement, shell: ShellAppearance): void {
   // Reset any prior render's inline styles so a status change
   // (cycling open → done → open) doesn't accumulate stale rules.
-  el.style.background = ''
-  el.style.border = ''
-  el.style.borderRadius = ''
+  el.style.removeProperty('background')
+  el.style.removeProperty('border')
+  el.style.removeProperty('border-radius')
   el.classList.remove(
     'jf-shell-none',
     'jf-shell-circle',
@@ -115,14 +115,14 @@ function applyShellStyles(el: HTMLElement, shell: ShellAppearance): void {
 
   const bg = colorRefToCss(shell.background)
   el.style.background = bg ?? 'transparent'
+  // Only a configured border is inline (dynamic colour/width). With no border
+  // configured the reset above already cleared any prior inline value, and the
+  // base `.jf-task-status` rule carries none. The corner radius is static per
+  // shape, so it lives in CSS keyed on the `jf-shell-<shape>` class added above.
   if (shell.border) {
     const borderColor = colorRefToCss(shell.border.color) ?? 'currentColor'
     el.style.border = `${shell.border.width}px solid ${borderColor}`
-  } else {
-    el.style.border = 'none'
   }
-  if (shell.shape === 'circle') el.style.borderRadius = '50%'
-  else if (shell.shape === 'rounded-square') el.style.borderRadius = '0.25em'
 }
 
 // Convenience for sites that have the model + status id (the common

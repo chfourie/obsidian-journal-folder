@@ -28,7 +28,7 @@ import {
   type TasksSidebarRange,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
-import { moment } from 'obsidian'
+import { moment } from '../../data-access'
 import { buildReferenceRange, largerRangeUnit, rangeForNote } from './reference-range'
 import {
   effectiveUnits,
@@ -123,8 +123,7 @@ export async function computeTaskSnapshot(
   const capBase =
     scope.anchor === 'note' && activeNote
       ? activeNote.getMoment()
-      : // @ts-ignore — obsidian re-exports moment.
-        moment()
+      : moment()
   const effectiveListUnit =
     scope.range === 'all'
       ? 'all'

@@ -124,9 +124,9 @@ function reserveBaseFor(container: HTMLElement): number {
 // when the placement leaves the margin modes. The cached base stays valid.
 export function clearAllReadingReserve(): void {
   for (const sizer of Array.from(
-    document.querySelectorAll<HTMLElement>('.markdown-preview-sizer')
+    activeDocument.querySelectorAll<HTMLElement>('.markdown-preview-sizer')
   )) {
-    sizer.style.paddingInlineStart = ''
+    sizer.style.removeProperty('padding-inline-start')
   }
 }
 
@@ -270,7 +270,7 @@ export function positionReadingGutters(
   if (shortfall > 0) {
     container.style.paddingInlineStart = `${base + shortfall}px`
   } else {
-    container.style.paddingInlineStart = ''
+    container.style.removeProperty('padding-inline-start')
   }
 }
 
@@ -300,7 +300,7 @@ export function scheduleReadingGutters(
   scheduledPlacement = placement
   scheduledReserve = reserveGutter
   if (rafHandle) return
-  rafHandle = requestAnimationFrame(() => {
+  rafHandle = window.requestAnimationFrame(() => {
     rafHandle = 0
     const containers = [...pendingContainers]
     pendingContainers.clear()
@@ -320,7 +320,7 @@ export function repositionAllReadingGutters(
   reserveGutter: boolean
 ): void {
   if (placement !== 'margin' && placement !== 'margin-column') return
-  const sizers = document.querySelectorAll<HTMLElement>(
+  const sizers = activeDocument.querySelectorAll<HTMLElement>(
     '.markdown-preview-sizer'
   )
   for (const sizer of Array.from(sizers)) {

@@ -154,7 +154,7 @@ function renderPreview(
   const shell = row.createSpan({ cls: 'jf-status-edit-preview-icon' })
 
   if (rendering === 'theme') {
-    const input = document.createElement('input')
+    const input = activeDocument.createElement('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
     input.setAttribute('data-task', status.char)
@@ -162,7 +162,7 @@ function renderPreview(
     input.disabled = true
     shell.appendChild(input)
   } else {
-    const iconShell = document.createElement('span')
+    const iconShell = activeDocument.createElement('span')
     iconShell.className = 'jf-task-status'
     shell.appendChild(iconShell)
     const model = buildTaskModel([status], 'plugin')
@@ -259,7 +259,7 @@ function renderBasics(
     .addText((t) =>
       t.setValue(status.label).onChange((v) => {
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({ label: v })
+        void deps.updateStatus({ label: v })
       })
     )
 
@@ -274,11 +274,10 @@ function renderBasics(
       t.setValue(status.char).onChange((v) => {
         const char = v.length === 0 ? ' ' : v.charAt(0)
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({ char })
+        void deps.updateStatus({ char })
       })
       t.inputEl.maxLength = 1
-      t.inputEl.style.width = '3em'
-      t.inputEl.style.textAlign = 'center'
+      t.inputEl.addClass('jf-status-char-input')
     })
 
   new Setting(panel)
@@ -304,7 +303,7 @@ function renderBasics(
           return
         }
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({ isDone: !v })
+        void deps.updateStatus({ isDone: !v })
       })
     )
 
@@ -327,7 +326,7 @@ function renderBasics(
       }
       dd.setValue(status.next).onChange((v) => {
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({ next: v })
+        void deps.updateStatus({ next: v })
       })
     })
 
@@ -357,11 +356,11 @@ function renderIconSection(
         'raw markup (sanitised before render).'
     )
     .addDropdown((dd) => {
-      dd.addOption('none', 'none')
-      dd.addOption('lucide', 'lucide')
-      dd.addOption('emoji', 'emoji')
-      dd.addOption('image', 'image')
-      dd.addOption('svg', 'svg')
+      dd.addOption('none', 'None')
+      dd.addOption('lucide', 'Lucide')
+      dd.addOption('emoji', 'Emoji')
+      dd.addOption('image', 'Image')
+      dd.addOption('svg', 'SVG')
       dd.setValue(status.icon.source.kind).onChange(async (v) => {
         await deps.updateStatus({
           icon: {
@@ -386,7 +385,7 @@ function renderIconSection(
         value: src.name,
         onChange: (name) => {
           // noinspection JSIgnoredPromiseFromCall
-          deps.updateStatus({
+          void deps.updateStatus({
             icon: { ...status.icon, source: { kind: 'lucide', name } },
           })
         },
@@ -397,7 +396,7 @@ function renderIconSection(
         value: src.emoji,
         onChange: (emoji) => {
           // noinspection JSIgnoredPromiseFromCall
-          deps.updateStatus({
+          void deps.updateStatus({
             icon: { ...status.icon, source: { kind: 'emoji', emoji } },
           })
         },
@@ -408,7 +407,7 @@ function renderIconSection(
         .addText((t) =>
           t.setValue(src.url).onChange((v) => {
             // noinspection JSIgnoredPromiseFromCall
-            deps.updateStatus({
+            void deps.updateStatus({
               icon: { ...status.icon, source: { kind: 'image', url: v } },
             })
           })
@@ -424,13 +423,12 @@ function renderIconSection(
         .addTextArea((area) => {
           area.setValue(src.markup).onChange((v) => {
             // noinspection JSIgnoredPromiseFromCall
-            deps.updateStatus({
+            void deps.updateStatus({
               icon: { ...status.icon, source: { kind: 'svg', markup: v } },
             })
           })
           area.inputEl.rows = 6
-          area.inputEl.style.width = '100%'
-          area.inputEl.style.fontFamily = 'var(--font-monospace)'
+          area.inputEl.addClass('jf-status-svg-input')
         })
     } else {
       payloadHost.createEl('p', {
@@ -446,6 +444,7 @@ function renderIconSection(
   colorWrap.el = panel.createDiv({ cls: 'jf-status-edit-subsection' })
   new Setting(colorWrap.el)
     .setName('Icon colour')
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
     .setDesc('Foreground for monochrome glyphs (Lucide, monochrome SVG).')
   const colorHost = colorWrap.el.createDiv()
   renderColorPicker({
@@ -454,7 +453,7 @@ function renderIconSection(
     value: status.icon.color,
     onChange: (next) => {
       // noinspection JSIgnoredPromiseFromCall
-      deps.updateStatus({ icon: { ...status.icon, color: next } })
+      void deps.updateStatus({ icon: { ...status.icon, color: next } })
     },
   })
 
@@ -471,14 +470,14 @@ function renderIconSection(
         const num = Number.parseFloat(v)
         if (Number.isFinite(num) && num >= 0 && num <= 1) {
           // noinspection JSIgnoredPromiseFromCall
-          deps.updateStatus({ icon: { ...status.icon, inset: num } })
+          void deps.updateStatus({ icon: { ...status.icon, inset: num } })
         }
       })
       t.inputEl.type = 'number'
       t.inputEl.min = '0'
       t.inputEl.max = '1'
       t.inputEl.step = '0.05'
-      t.inputEl.style.width = '5em'
+      t.inputEl.addClass('jf-status-number-input')
     })
 
   refreshConditionals()
@@ -523,7 +522,7 @@ function renderBackgroundSection(
     value: status.shell.background,
     onChange: (next) => {
       // noinspection JSIgnoredPromiseFromCall
-      deps.updateStatus({
+      void deps.updateStatus({
         shell: { ...status.shell, background: next },
       })
     },
@@ -573,7 +572,7 @@ function renderBorderSection(
       const num = Number.parseFloat(v)
       if (Number.isFinite(num) && num >= 0 && status.shell.border) {
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({
+        void deps.updateStatus({
           shell: {
             ...status.shell,
             border: { ...status.shell.border, width: num },
@@ -584,7 +583,7 @@ function renderBorderSection(
     t.inputEl.type = 'number'
     t.inputEl.min = '0'
     t.inputEl.step = '0.5'
-    t.inputEl.style.width = '5em'
+    t.inputEl.addClass('jf-status-number-input')
   })
 
   colorWrap.el = panel.createDiv({ cls: 'jf-status-edit-subsection' })
@@ -601,7 +600,7 @@ function renderBorderSection(
     onChange: (next) => {
       if (next && status.shell.border) {
         // noinspection JSIgnoredPromiseFromCall
-        deps.updateStatus({
+        void deps.updateStatus({
           shell: {
             ...status.shell,
             border: { ...status.shell.border, color: next },

@@ -29,6 +29,18 @@ release flow, and design decisions behind shipped features.
     out (as `task-range-cap.ts`, `reference-range.ts`, `build-task-model.ts` do)
     so it's testable even when the surrounding surface is DOM-bound. Don't report
     work done on the strength of a CLI screenshot alone.
+- **Lint with the Obsidian community ruleset before releasing.** `npm run lint`
+  runs `eslint-plugin-obsidianmd` (flat config in `eslint.config.mjs`) — the
+  *same* ruleset the community-review scanner runs against a submitted release,
+  type-checked against `tsconfig.json` (scoped to `src`; tests are excluded from
+  the tsconfig so the type-aware rules don't choke on them). Run it before
+  tagging so the public review has no surprises. A handful of its warnings target
+  *deliberate* choices here and should stay suppressed/justified rather than
+  "fixed": the calendar `!important` colour-lock, the declarative `:has`
+  config-note hiding, and the duck-typed `as unknown as TFile` synthetic notes
+  (the real `TFile` constructor crashes — see the convention below). Prefer an
+  inline `// eslint-disable-next-line <rule> -- <why>` with a reason over
+  loosening the rule globally.
 - **Prefer robust / theme-stable solutions over pixel-perfect cosmetics, and
   surface the tradeoffs before implementing.** The maintainer explicitly dislikes
   "works on my setup, breaks on yours" fragility. Reach for solutions that

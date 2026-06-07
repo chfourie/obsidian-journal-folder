@@ -6,6 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"lint": "eslint src",
+		"lint:fix": "eslint src --fix",
 		"push": "node scripts/deploy-plugin.mjs",
 		"deploy": "npm run build && node scripts/deploy-plugin.mjs",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
@@ -19,6 +21,10 @@
 	"author": "Charl Fourie",
 	"license": "GPL-3.0",
 	"devDependencies": {
+		"@codemirror/state": "^6.5.0",
+		"@codemirror/view": "^6.38.6",
+		"@eslint/js": "^9.39.4",
+		"@eslint/json": "^0.14.0",
 		"@tsconfig/svelte": "^5.0.8",
 		"@types/node": "^25.8.0",
 		"@typescript-eslint/eslint-plugin": "^8.59.3",
@@ -26,6 +32,7 @@
 		"builtin-modules": "^5.2.0",
 		"esbuild": "^0.28.0",
 		"esbuild-svelte": "^0.9.5",
+		"eslint-plugin-obsidianmd": "^0.3.0",
 		"jsdom": "^29.1.1",
 		"obsidian": "latest",
 		"prettier": "^3.8.3",
@@ -33,6 +40,7 @@
 		"svelte-preprocess": "^6.0.3",
 		"tslib": "^2.8.1",
 		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.60.1",
 		"vitest": "^4.1.6"
 	}
 }

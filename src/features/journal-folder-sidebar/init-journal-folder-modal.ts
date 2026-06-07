@@ -27,7 +27,7 @@ export class InitJournalFolderModal extends FuzzySuggestModal<TFolder> {
   constructor(
     app: App,
     private readonly candidates: TFolder[],
-    private readonly onPick: (folder: TFolder) => void
+    private readonly onPick: (folder: TFolder) => void | Promise<void>
   ) {
     super(app)
     this.setPlaceholder(
@@ -46,6 +46,6 @@ export class InitJournalFolderModal extends FuzzySuggestModal<TFolder> {
   }
 
   onChooseItem(folder: TFolder): void {
-    this.onPick(folder)
+    void this.onPick(folder)
   }
 }

@@ -74,14 +74,16 @@ export class FolderSettingsResolver {
   }
 
   private getFolderConfig(file: TFile | null): Partial<JournalFolderSettings> {
-    const config = {}
+    const config: Record<string, unknown> = {}
     const frontMatter = this.getFrontMatterCache(this.getFolderConfigFile(file))
 
     Object.keys(frontMatter).forEach((key) => {
       const configKey = camelCase(key) as keyof JournalFolderSettings
       if (GLOBAL_ONLY_FIELDS.has(configKey)) return
-      // @ts-ignore
-      config[configKey] = frontMatter[key]
+      // Front-matter values are untyped (`FrontMatterCache` is `any`-indexed);
+      // they're carried through as-is and consumed by callers that know the
+      // expected per-field shape.
+      config[configKey] = frontMatter[key] as unknown
     })
 
     return config

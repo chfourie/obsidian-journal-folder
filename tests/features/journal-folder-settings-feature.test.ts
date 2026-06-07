@@ -93,8 +93,12 @@ describe('JournalFolderSettingsFeature', () => {
     expect(propagated.at(-1)?.journalFolderTitle).toBe('First')
 
     // External change happens (e.g. settings file edited from another vault).
+    // `onExternalSettingsChange` is fire-and-forget (the base hook returns
+    // void and the feature multiplexer never awaits it), so flush the async
+    // re-pull on a macrotask boundary before asserting.
     stored = { journalFolderTitle: 'Second' }
-    await feature.onExternalSettingsChange()
+    feature.onExternalSettingsChange()
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(propagated.at(-1)?.journalFolderTitle).toBe('Second')
   })

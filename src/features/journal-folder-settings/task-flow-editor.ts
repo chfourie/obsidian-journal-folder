@@ -231,7 +231,7 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
             'are eligible.'
     )
     .addDropdown((dd) => {
-      dd.addOption('', '(none — migration disabled)')
+      dd.addOption('', '(None — migration disabled)')
       for (const s of inactiveStatuses) dd.addOption(s.id, s.label || s.id)
       const current =
         flow.migratedStatus && inactiveStatuses.some((s) => s.id === flow.migratedStatus)
@@ -328,7 +328,7 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
       const flowCount = Object.keys(settings.taskFlows).length
       btn
         .setButtonText('Delete')
-        .setWarning()
+        .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
         .setDisabled(flowCount <= 1 || isDefault)
         .setTooltip(
           isDefault
@@ -341,7 +341,8 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
         .onClick(() => {
           const usages = findFoldersUsingTaskFlow(app, flowName)
           new ConfirmDeleteFlowModal(app, flowName, usages, async () => {
-            const { [flowName]: _omit, ...rest } = settings.taskFlows
+            const rest = { ...settings.taskFlows }
+            delete rest[flowName]
             await saveSettings({ ...settings, taskFlows: rest })
             onFlowDeleted()
           }).open()
@@ -518,14 +519,16 @@ function renderStatusRow(config: StatusRowConfig): void {
   rowEl.addEventListener('dragleave', () => {
     rowEl.removeClass('is-drop-target')
   })
-  rowEl.addEventListener('drop', async (evt) => {
+  rowEl.addEventListener('drop', (evt) => {
     evt.preventDefault()
     const from = dragState.fromIndex
     dragState.fromIndex = null
     rowEl.removeClass('is-drop-target')
     if (from === null || from === index) return
-    await updateFlow(reorder(flowStatuses, from, index))
-    rerender()
+    void (async () => {
+      await updateFlow(reorder(flowStatuses, from, index))
+      rerender()
+    })()
   })
 
   const handleEl = rowEl.createSpan({ cls: 'jf-status-handle' })
@@ -668,7 +671,7 @@ function paintStatusPreview(
 ): void {
   while (el.firstChild) el.removeChild(el.firstChild)
   if (rendering === 'theme') {
-    const input = document.createElement('input')
+    const input = activeDocument.createElement('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
     input.setAttribute('data-task', status.char)
@@ -677,7 +680,7 @@ function paintStatusPreview(
     el.appendChild(input)
     return
   }
-  const iconShell = document.createElement('span')
+  const iconShell = activeDocument.createElement('span')
   iconShell.className = 'jf-task-status'
   el.appendChild(iconShell)
   // The model is only consulted for its `id` (stamped as a data attr
@@ -721,7 +724,7 @@ class AddFlowModal extends Modal {
           'value of `task-flow:` on folder configs that want to point at it.'
       )
       .addText((text) => {
-        text.setPlaceholder('e.g. Project work').onChange((value) => {
+        text.setPlaceholder('E.g. Project work').onChange((value) => {
           this.name = value.trim()
         })
       })
@@ -781,7 +784,7 @@ class SaveAsFlowModal extends Modal {
       .setName('New flow name')
       .setDesc('Must be unique across all flows.')
       .addText((text) => {
-        text.setPlaceholder('e.g. Project work').onChange((value) => {
+        text.setPlaceholder('E.g. Project work').onChange((value) => {
           this.name = value.trim()
         })
       })
@@ -886,7 +889,7 @@ class ConfirmDeleteFlowModal extends Modal {
     })
     new ButtonComponent(buttons)
       .setButtonText('Delete')
-      .setWarning()
+      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(async () => {
         await this.onConfirm()
         this.close()
@@ -921,7 +924,7 @@ class ConfirmRemoveStatusModal extends Modal {
     })
     new ButtonComponent(buttons)
       .setButtonText('Remove')
-      .setWarning()
+      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(async () => {
         await this.onConfirm()
         this.close()

@@ -35,7 +35,7 @@ export function renderSignifierIcon(el: HTMLElement, icon: IconSpec): void {
   el.classList.add('jf-signifier-icon')
   const color = colorRefToCss(icon.color)
   if (color) el.style.color = color
-  else el.style.color = ''
+  else el.style.removeProperty('color')
 
   const src = icon.source
   if (src.kind === 'lucide') {
@@ -43,14 +43,14 @@ export function renderSignifierIcon(el: HTMLElement, icon: IconSpec): void {
   } else if (src.kind === 'emoji') {
     el.textContent = src.emoji
   } else if (src.kind === 'image') {
-    const img = document.createElement('img')
+    const img = activeDocument.createElement('img')
     img.src = src.url
     img.alt = ''
     el.appendChild(img)
   } else if (src.kind === 'svg') {
     const cleaned = sanitizeSvg(src.markup)
     if (cleaned) {
-      const imported = document.importNode(cleaned, true)
+      const imported = activeDocument.importNode(cleaned, true)
       imported.removeAttribute('width')
       imported.removeAttribute('height')
       imported.setAttribute('width', '100%')

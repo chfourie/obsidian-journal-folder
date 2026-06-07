@@ -182,7 +182,7 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
           ? signifier.tags.map((t) => `#${t}`).join(' ')
           : '(no tags — won’t match anything)'
       )
-    const icon = document.createElement('span')
+    const icon = activeDocument.createElement('span')
     icon.className = 'jf-signifier'
     renderSignifierIcon(icon, signifier.icon)
     setting.nameEl.prepend(icon)
@@ -302,7 +302,7 @@ export function renderCategoriesSection(config: CategorySectionConfig): void {
           : tagsDesc
       )
     if (category.icon) {
-      const icon = document.createElement('span')
+      const icon = activeDocument.createElement('span')
       icon.className = 'jf-signifier'
       renderSignifierIcon(icon, category.icon)
       setting.nameEl.prepend(icon)
@@ -425,7 +425,7 @@ function renderIconEditor(
 ): void {
   host.empty()
 
-  const preview = document.createElement('span')
+  const preview = activeDocument.createElement('span')
   preview.className = 'jf-signifier'
   const repaint = () => renderSignifierIcon(preview, getIcon())
   repaint()
@@ -517,7 +517,7 @@ class SignifierEditModal extends Modal {
         '“Modify signifiers on line” command inserts.')
       .addText((text) =>
         text
-          .setPlaceholder('important priority')
+          .setPlaceholder('Important priority')
           .setValue(this.working.tags.map((t) => `#${t}`).join(' '))
           .onChange((value) => {
             this.working.tags = parseTags(value)
@@ -573,7 +573,7 @@ class CategoryEditModal extends Modal {
         'are listed under this category.')
       .addText((text) =>
         text
-          .setPlaceholder('important urgent')
+          .setPlaceholder('Important urgent')
           .setValue(this.working.tags.map((t) => `#${t}`).join(' '))
           .onChange((value) => {
             this.working.tags = parseTags(value)

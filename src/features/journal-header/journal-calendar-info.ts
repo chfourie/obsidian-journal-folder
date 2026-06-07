@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { moment } from 'obsidian'
+import { moment } from '../../data-access'
 import type { JournalNote, JournalTimeUnit } from '../../data-access'
 
 export type CalendarCell = {

@@ -73,9 +73,6 @@ class LivePreviewPlugin implements PluginValue {
     private readonly view: EditorView,
     private readonly ctx: LivePreviewTaskContext
   ) {
-    this.onMouseDown = this.onMouseDown.bind(this)
-    this.onClick = this.onClick.bind(this)
-    this.onContextMenu = this.onContextMenu.bind(this)
     // We cycle on `mousedown`, not `click`: capture-phase so we run
     // before CM's own pointer handling and can cancel the editor's
     // default (caret placement / widget selection). The paired `click`
@@ -103,7 +100,9 @@ class LivePreviewPlugin implements PluginValue {
   // Swallows the single `click` that follows a status-cycling
   // `mousedown` so Obsidian's native checkbox handler can't toggle the
   // status we just wrote.
-  private onClick(evt: MouseEvent): void {
+  // Arrow-bound so it can be added/removed as an event listener with a
+  // stable `this`.
+  private onClick = (evt: MouseEvent): void => {
     if (!this.suppressClick) return
     this.suppressClick = false
     evt.preventDefault()
@@ -112,7 +111,7 @@ class LivePreviewPlugin implements PluginValue {
 
   // ---------- pointer / context-menu ------------------------------
 
-  private onMouseDown(evt: MouseEvent): void {
+  private onMouseDown = (evt: MouseEvent): void => {
     // Fresh per pointer interaction — re-armed below only when we
     // actually handle a cycle, so a `mousedown` with no following
     // `click` (e.g. a drag) can't leave the suppressor latched and
@@ -142,7 +141,7 @@ class LivePreviewPlugin implements PluginValue {
     this.applyStatus(mutation, model.nextStatus(mutation.status), model)
   }
 
-  private onContextMenu(evt: MouseEvent): void {
+  private onContextMenu = (evt: MouseEvent): void => {
     if (!this.ctx.isEnabled()) return
     const input = this.taskCheckboxTarget(evt.target)
     if (!input) return
@@ -198,7 +197,7 @@ class LivePreviewPlugin implements PluginValue {
   ): HTMLInputElement | null {
     if (!(eventTarget instanceof Element)) return null
     if (
-      eventTarget instanceof HTMLInputElement &&
+      eventTarget.instanceOf(HTMLInputElement) &&
       eventTarget.classList.contains('task-list-item-checkbox')
     ) {
       return eventTarget
@@ -274,7 +273,7 @@ class LivePreviewPlugin implements PluginValue {
       }
     }
     // noinspection JSIgnoredPromiseFromCall
-    setTaskStatus(this.ctx.app, target, nextStatus, model)
+    void setTaskStatus(this.ctx.app, target, nextStatus, model)
   }
 
   // Finds the Obsidian `Editor` whose underlying CodeMirror `EditorView`
@@ -307,7 +306,7 @@ class LivePreviewPlugin implements PluginValue {
   private scheduleScan(): void {
     if (this.scanScheduled) return
     this.scanScheduled = true
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       this.scanScheduled = false
       this.scan()
     })
@@ -351,7 +350,6 @@ class LivePreviewPlugin implements PluginValue {
           next instanceof HTMLElement && next.hasAttribute(ICON_ATTR)
         if (!hasIcon) {
           input.removeAttribute(SWAPPED_ATTR)
-          input.style.display = ''
           input.removeAttribute('aria-hidden')
         }
       })
@@ -384,7 +382,6 @@ class LivePreviewPlugin implements PluginValue {
       if (existingIcon) existingIcon.remove()
       if (input.hasAttribute(SWAPPED_ATTR)) {
         input.removeAttribute(SWAPPED_ATTR)
-        input.style.display = ''
         input.removeAttribute('aria-hidden')
       }
       return
@@ -409,7 +406,6 @@ class LivePreviewPlugin implements PluginValue {
 
     if (existingIcon) existingIcon.remove()
     input.setAttribute(SWAPPED_ATTR, '')
-    input.style.display = 'none'
     input.setAttribute('aria-hidden', 'true')
     const icon = this.buildIcon(parsed.status, model)
     icon.setAttribute(ICON_STATUS_ATTR, parsed.status)
@@ -418,7 +414,7 @@ class LivePreviewPlugin implements PluginValue {
   }
 
   private buildIcon(statusId: TaskStatusId, model: TaskModel): HTMLElement {
-    const span = document.createElement('span')
+    const span = activeDocument.createElement('span')
     span.setAttribute(ICON_ATTR, '')
     // Purely decorative: a mouse affordance only, so it's `aria-hidden`
     // and not focusable. It deliberately does NOT carry `role="button"`
@@ -440,7 +436,6 @@ class LivePreviewPlugin implements PluginValue {
     this.view.dom
       .querySelectorAll<HTMLInputElement>(`input[${SWAPPED_ATTR}]`)
       .forEach((input) => {
-        input.style.display = ''
         input.removeAttribute('aria-hidden')
         input.removeAttribute(SWAPPED_ATTR)
       })

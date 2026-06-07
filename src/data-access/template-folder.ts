@@ -16,7 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, moment, TFile, TFolder } from 'obsidian'
+import { type App, TFile, TFolder } from 'obsidian'
+import { moment } from './moment'
 import type { JournalFolderSettings } from './journal-folder-settings.type'
 import {
   isJournalFileBasename,
@@ -136,7 +137,7 @@ export function templateCandidatePaths(opts: {
   overrideName: string
   globalTemplateFolder: string
   tier: JournalTimeUnit
-}): { override: string[]; global: string[] } {
+}): { override: string[]; globalPaths: string[] } {
   const { journalFolderPath, overrideName, globalTemplateFolder, tier } = opts
   const tierFile = `${TEMPLATE_FILENAMES[tier]}.md`
   const defaultFile = `${DEFAULT_TEMPLATE_FILENAME}.md`
@@ -144,7 +145,7 @@ export function templateCandidatePaths(opts: {
   const globalDir = trimSlashes(globalTemplateFolder)
   return {
     override: [`${overrideDir}/${tierFile}`, `${overrideDir}/${defaultFile}`],
-    global: globalDir
+    globalPaths: globalDir
       ? [`${globalDir}/${tierFile}`, `${globalDir}/${defaultFile}`]
       : [],
   }
@@ -164,7 +165,6 @@ export function firstNonEmptyTemplate(
 
 // Today's basename for a tier, formatted with that tier's file pattern.
 export function currentPeriodBasename(tier: JournalTimeUnit): string {
-  // @ts-ignore — moment is the bundled obsidian export.
   return moment().format(FILE_PATTERN_BY_TIER[tier])
 }
 
@@ -183,12 +183,17 @@ export function buildTemplatePreviewNote(
 ): JournalNote | null {
   const basename = currentPeriodBasename(tier)
   if (!isJournalFileBasename(basename, !!settings.quartersEnabled)) return null
+  // A duck-typed synthetic TFile is intentional: `new TFile()` wires `path`
+  // through an internal `setPath` that crashes on post-construction assignment,
+  // and this template-preview note never exists on disk, so `instanceof TFile`
+  // can't apply.
   const synthetic = {
     basename,
     name: `${basename}.md`,
     path: `${folder.path}/${basename}.md`,
     extension: 'md',
     parent: folder,
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- see comment above
   } as unknown as TFile
   try {
     return journalNoteFactoryWithSettings(settings)(synthetic)

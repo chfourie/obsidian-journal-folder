@@ -29,6 +29,7 @@ import {
   findJournalFolderPaths,
   FolderSettingsResolver,
   type JournalFolderSettings,
+  openPluginSettings,
 } from '../../data-access'
 import {
   isTemplateableNote,
@@ -96,8 +97,7 @@ export type SidebarMenuItem =
   | { kind: 'separator' }
 
 export class JournalFolderSidebarView extends ItemView {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  #component: any = null
+  #component: ReturnType<typeof mount> | null = null
   #api: SidebarUpdateApi | null = null
   readonly #resolver: FolderSettingsResolver
 
@@ -118,6 +118,7 @@ export class JournalFolderSidebarView extends ItemView {
   }
 
   getDisplayText(): string {
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
     return 'Journal Folder'
   }
 
@@ -143,7 +144,7 @@ export class JournalFolderSidebarView extends ItemView {
           this.#api = api
           // Kick off an initial scan once the component has wired up.
           // noinspection JSIgnoredPromiseFromCall
-          this.refreshTaskPanel()
+          void this.refreshTaskPanel()
         },
         openPluginSettings: () => this.openPluginSettings(),
         onInitJournalFolder: () => this.openInitFolderPicker(),
@@ -165,7 +166,7 @@ export class JournalFolderSidebarView extends ItemView {
           // `openLinkText` resolves relative-ish links against a source
           // path. Use the selected folder's `journal-folder.md` as the
           // source so the link's folder context matches the calendar's.
-          this.plugin.app.workspace.openLinkText(
+          void this.plugin.app.workspace.openLinkText(
             url,
             configPathFor(sourceFolderPath),
             false
@@ -194,7 +195,7 @@ export class JournalFolderSidebarView extends ItemView {
         this.#api?.setActiveFile(this.snapshotActiveFile())
         // Dynamic-reference scope follows the active leaf, so refresh.
         // noinspection JSIgnoredPromiseFromCall
-        this.refreshTaskPanel()
+        void this.refreshTaskPanel()
       })
     )
 
@@ -204,7 +205,7 @@ export class JournalFolderSidebarView extends ItemView {
     this.registerEvent(
       this.plugin.app.vault.on('modify', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refreshTaskPanel()
+        void this.refreshTaskPanel()
       })
     )
   }
@@ -213,7 +214,7 @@ export class JournalFolderSidebarView extends ItemView {
     this.registry.unregister(this)
     if (this.#component) {
       try {
-        unmount(this.#component)
+        void unmount(this.#component)
       } catch {
         // Svelte sometimes throws on unmount during plugin teardown when
         // the host element has already been detached — safe to ignore.
@@ -226,7 +227,7 @@ export class JournalFolderSidebarView extends ItemView {
   onSettingsChanged(settings: JournalFolderSettings): void {
     this.#api?.setSettings(settings)
     // noinspection JSIgnoredPromiseFromCall
-    this.refreshTaskPanel()
+    void this.refreshTaskPanel()
   }
 
   private async refreshTaskPanel(): Promise<void> {
@@ -255,11 +256,7 @@ export class JournalFolderSidebarView extends ItemView {
   }
 
   private openPluginSettings(): void {
-    // @ts-ignore — `setting` is on the runtime App object but not in the
-    // public TypeScript surface.
-    this.plugin.app.setting?.open?.()
-    // @ts-ignore
-    this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
+    openPluginSettings(this.plugin.app, this.plugin.manifest.id)
   }
 
   private refreshKnownFolders(): void {
@@ -270,7 +267,7 @@ export class JournalFolderSidebarView extends ItemView {
     this.refreshKnownFolders()
     this.#api?.bumpVault()
     // noinspection JSIgnoredPromiseFromCall
-    this.refreshTaskPanel()
+    void this.refreshTaskPanel()
   }
 
   private openFolderConfigModal(folderPath: string): void {

@@ -16,13 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  MarkdownRenderChild,
-  MarkdownView,
-  moment,
-  type Plugin,
-  TFile,
-} from 'obsidian'
+import { MarkdownRenderChild, MarkdownView, type Plugin, TFile } from 'obsidian'
 import { mount, unmount } from 'svelte'
 import { SvelteSet } from 'svelte/reactivity'
 import {
@@ -31,6 +25,8 @@ import {
   type JournalNote,
   type JournalTask,
   journalNoteFactoryWithSettings,
+  moment,
+  openPluginSettings,
   PluginFeature,
 } from '../../data-access'
 import { ErrorMessage } from '../../ui'
@@ -128,7 +124,7 @@ export class JournalTasksFeature extends PluginFeature {
         const file = ctx.file
         if (!file) return
         // noinspection JSIgnoredPromiseFromCall
-        migrateInteractive(this.migrationContext(), file, editor)
+        void migrateInteractive(this.migrationContext(), file, editor)
       },
     })
 
@@ -155,7 +151,7 @@ export class JournalTasksFeature extends PluginFeature {
         const file = this.plugin.app.workspace.getActiveFile()
         if (!file) return
         // noinspection JSIgnoredPromiseFromCall
-        migrateTasksFromNote(this.migrationContext(), file)
+        void migrateTasksFromNote(this.migrationContext(), file)
       },
     })
     this.plugin.addCommand({
@@ -165,7 +161,7 @@ export class JournalTasksFeature extends PluginFeature {
         const file = this.plugin.app.workspace.getActiveFile()
         if (!file) return
         // noinspection JSIgnoredPromiseFromCall
-        migrateTasksToNote(this.migrationContext(), file)
+        void migrateTasksToNote(this.migrationContext(), file)
       },
     })
 
@@ -279,7 +275,7 @@ export class JournalTasksFeature extends PluginFeature {
         try {
           await this.renderBlock(source, el, ctx)
         } catch (error) {
-          this.mountError(el, ctx, `${error}`)
+          this.mountError(el, ctx, String(error))
         }
       }
     )
@@ -321,7 +317,6 @@ export class JournalTasksFeature extends PluginFeature {
     el: HTMLElement,
     ctx: { sourcePath: string; addChild: (c: MarkdownRenderChild) => void }
   ): Promise<void> {
-    const settings = this.globalSettings
     const blockConfig = parseJournalTasksBlock(source)
 
     const hostFile = this.plugin.app.vault.getAbstractFileByPath(
@@ -428,7 +423,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       })
     )
     // noinspection JSIgnoredPromiseFromCall
-    this.render()
+    void this.render()
   }
 
   onunload(): void {
@@ -450,10 +445,10 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
   private scheduleRender(): void {
     if (this.renderScheduled) return
     this.renderScheduled = true
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       this.renderScheduled = false
       // noinspection JSIgnoredPromiseFromCall
-      this.render()
+      void this.render()
     })
   }
 
@@ -495,8 +490,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
     // falls back to today/day with no floor.
     const capBase = activeNote
       ? activeNote.getMoment()
-      : // @ts-ignore — obsidian re-exports moment.
-        moment()
+      : moment()
     const capFilter = makeRangeCapFilter({
       base: capBase,
       listUnit: activeNote ? activeNote.getTimeUnit() : 'day',
@@ -554,13 +548,10 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
         onToggleShowCompleted: () => {
           this.showCompleted = !this.showCompleted
           // noinspection JSIgnoredPromiseFromCall
-          this.render()
+          void this.render()
         },
         onOpenSettings: () => {
-          // @ts-ignore — Obsidian's setting API is private.
-          this.plugin.app.setting?.open?.()
-          // @ts-ignore
-          this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
+          openPluginSettings(this.plugin.app, this.plugin.manifest.id)
         },
       },
     })
@@ -569,7 +560,7 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
   private tearDownComponent(): void {
     if (!this.component) return
     try {
-      unmount(this.component)
+      void unmount(this.component)
     } catch {
       // Already torn down.
     }
@@ -587,7 +578,7 @@ class SvelteRenderChild extends MarkdownRenderChild {
 
   onunload(): void {
     try {
-      unmount(this.component)
+      void unmount(this.component)
     } catch {
       // Already torn down.
     }

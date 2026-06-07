@@ -59,7 +59,7 @@ function appendMarker(wrapper: HTMLElement, marker: string): void {
     const icon = wrapper.createSpan({ cls: 'jf-migration-ref-icon' })
     setIcon(icon, name)
   } else {
-    wrapper.appendChild(document.createTextNode(marker))
+    wrapper.appendChild(activeDocument.createTextNode(marker))
   }
 }
 
@@ -100,11 +100,11 @@ export function processMigrationReferences(
     // Keep the label text in place; move the marker + link into the
     // dimmed inline wrapper.
     prev.textContent = text.slice(0, match.index)
-    const ref = document.createElement('span')
+    const ref = activeDocument.createElement('span')
     ref.className = 'jf-migration-ref'
     ref.style.setProperty('--jf-migration-ref-opacity', String(opacity / 100))
     appendMarker(ref, match.marker)
-    ref.appendChild(document.createTextNode(' '))
+    ref.appendChild(activeDocument.createTextNode(' '))
     parent.insertBefore(ref, link)
     ref.appendChild(link)
   }

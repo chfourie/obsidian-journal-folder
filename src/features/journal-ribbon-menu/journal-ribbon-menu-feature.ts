@@ -48,8 +48,7 @@ export type RibbonMenuActions = {
 export class JournalRibbonMenuFeature extends PluginFeature {
   #api: RibbonMenuApi | null = null
   #host: HTMLElement | null = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  #component: any = null
+  #component: ReturnType<typeof mount> | null = null
   #ribbonEl: HTMLElement | null = null
 
   constructor(
@@ -62,7 +61,7 @@ export class JournalRibbonMenuFeature extends PluginFeature {
   async load(): Promise<void> {
     // The panel lives in a detached host and portals itself to <body>; it is
     // driven imperatively through the registered api.
-    const host = document.createElement('div')
+    const host = activeDocument.createElement('div')
     this.#host = host
     this.#component = mount(RibbonMenuPanel, {
       target: host,
@@ -76,13 +75,14 @@ export class JournalRibbonMenuFeature extends PluginFeature {
 
     this.#ribbonEl = this.plugin.addRibbonIcon(
       'notebook-text',
+      // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
       'Journal Folder menu',
       () => this.#api?.toggle(this.#ribbonEl)
     )
 
     this.plugin.addCommand({
       id: 'open-journal-menu',
-      name: 'Open Journal Folder menu',
+      name: 'Open menu',
       // No anchor → the panel opens centred (mobile / palette has no ribbon).
       callback: () => this.#api?.toggle(null),
     })
@@ -92,7 +92,7 @@ export class JournalRibbonMenuFeature extends PluginFeature {
     this.#api?.close()
     if (this.#component) {
       try {
-        unmount(this.#component)
+        void unmount(this.#component)
       } catch {
         // Svelte can throw on unmount during teardown once the host has been
         // detached — safe to ignore (mirrors the sidebar view's handling).

@@ -130,7 +130,7 @@ function migrateInto(
   const settings = ctx.getSettingsFor(destFile)
   const model = resolveTaskModel(settings)
   // noinspection JSIgnoredPromiseFromCall
-  migrateTasks({
+  void migrateTasks({
     app: ctx.app,
     destFile,
     tasks,
@@ -233,7 +233,7 @@ export function appendNoteMigrationItems(
       .setIcon('arrow-right-from-line')
       .onClick(() => {
         // noinspection JSIgnoredPromiseFromCall
-        runFromNoteFlow(ctx, file, resolved)
+        void runFromNoteFlow(ctx, file, resolved)
       })
   })
   menu.addItem((item) => {
@@ -242,7 +242,7 @@ export function appendNoteMigrationItems(
       .setIcon('arrow-right-to-line')
       .onClick(() => {
         // noinspection JSIgnoredPromiseFromCall
-        runToNoteFlow(ctx, file, resolved)
+        void runToNoteFlow(ctx, file, resolved)
       })
   })
 }
@@ -402,14 +402,14 @@ export async function migrateInteractive(
       title: `Migrate tasks from this note (${active.length} active)`,
       run: () => {
         // noinspection JSIgnoredPromiseFromCall
-        runFromNoteFlow(ctx, file, resolved)
+        void runFromNoteFlow(ctx, file, resolved)
       },
     }),
     to: () => ({
       title: 'Migrate tasks to this note',
       run: () => {
         // noinspection JSIgnoredPromiseFromCall
-        runToNoteFlow(ctx, file, resolved)
+        void runToNoteFlow(ctx, file, resolved)
       },
     }),
   }

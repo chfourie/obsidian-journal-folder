@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { normalizePath, type TFile } from 'obsidian'
 import type { JournalFolderSettings, Link } from './index'
-import { moment } from 'obsidian'
+import { moment } from './moment'
 
 export type JournalTimeUnit = 'day' | 'week' | 'month' | 'quarter' | 'year'
 

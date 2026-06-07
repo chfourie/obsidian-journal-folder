@@ -18,7 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ItemView, type Plugin, type WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
-import { type JournalFolderSettings } from '../../data-access'
+import {
+  type JournalFolderSettings,
+  openPluginSettings,
+} from '../../data-access'
 import {
   computeTaskSnapshot,
   type TaskCache,
@@ -45,8 +48,7 @@ export type TasksOnlyUpdateApi = {
 // keep both surfaces in sync. Independent collapsed-paths state is
 // owned per-instance by the mounted Svelte component.
 export class JournalTasksSidebarView extends ItemView {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  #component: any = null
+  #component: ReturnType<typeof mount> | null = null
   #api: TasksOnlyUpdateApi | null = null
 
   constructor(
@@ -65,6 +67,7 @@ export class JournalTasksSidebarView extends ItemView {
   }
 
   getDisplayText(): string {
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Tasks' is the plugin's own (proper) feature name
     return 'Journal Tasks'
   }
 
@@ -87,7 +90,7 @@ export class JournalTasksSidebarView extends ItemView {
         registerApi: (api: TasksOnlyUpdateApi) => {
           this.#api = api
           // noinspection JSIgnoredPromiseFromCall
-          this.refresh()
+          void this.refresh()
         },
         obsidianApp: this.plugin.app,
         openPluginSettings: () => this.openPluginSettings(),
@@ -97,31 +100,31 @@ export class JournalTasksSidebarView extends ItemView {
     this.registerEvent(
       this.plugin.app.workspace.on('active-leaf-change', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refresh()
+        void this.refresh()
       })
     )
     this.registerEvent(
       this.plugin.app.vault.on('modify', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refresh()
+        void this.refresh()
       })
     )
     this.registerEvent(
       this.plugin.app.vault.on('create', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refresh()
+        void this.refresh()
       })
     )
     this.registerEvent(
       this.plugin.app.vault.on('delete', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refresh()
+        void this.refresh()
       })
     )
     this.registerEvent(
       this.plugin.app.vault.on('rename', () => {
         // noinspection JSIgnoredPromiseFromCall
-        this.refresh()
+        void this.refresh()
       })
     )
   }
@@ -130,7 +133,7 @@ export class JournalTasksSidebarView extends ItemView {
     this.registry.unregister(this)
     if (this.#component) {
       try {
-        unmount(this.#component)
+        void unmount(this.#component)
       } catch {
         // Svelte sometimes throws on unmount during plugin teardown
         // when the host element has already been detached.
@@ -143,7 +146,7 @@ export class JournalTasksSidebarView extends ItemView {
   onSettingsChanged(settings: JournalFolderSettings): void {
     this.#api?.setSettings(settings)
     // noinspection JSIgnoredPromiseFromCall
-    this.refresh()
+    void this.refresh()
   }
 
   private async refresh(): Promise<void> {
@@ -164,11 +167,7 @@ export class JournalTasksSidebarView extends ItemView {
   }
 
   private openPluginSettings(): void {
-    // @ts-ignore — `setting` is on the runtime App object but not in
-    // the public TypeScript surface.
-    this.plugin.app.setting?.open?.()
-    // @ts-ignore
-    this.plugin.app.setting?.openTabById?.(this.plugin.manifest.id)
+    openPluginSettings(this.plugin.app, this.plugin.manifest.id)
   }
 
 }

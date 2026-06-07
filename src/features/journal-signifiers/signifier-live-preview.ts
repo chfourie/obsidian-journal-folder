@@ -513,7 +513,7 @@ function applyContentReserve(
   reserve: number | null
 ): void {
   if (reserve === null || reserve <= 0) {
-    content.style.paddingInlineStart = ''
+    content.style.removeProperty('padding-inline-start')
     cmAppliedShortfall.set(content, 0)
     return
   }
@@ -579,14 +579,14 @@ class SignifierWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const marker = document.createElement('span')
+    const marker = activeDocument.createElement('span')
     marker.className = `${this.className} jf-signifier-live`
     marker.setAttribute('aria-hidden', 'true')
     if (this.depth !== null) {
       marker.style.setProperty('--jf-sig-depth', String(this.depth))
     }
     for (const signifier of this.signifiers) {
-      const icon = document.createElement('span')
+      const icon = activeDocument.createElement('span')
       icon.className = 'jf-signifier'
       icon.dataset.sigId = signifier.id
       renderSignifierIcon(icon, signifier.icon)
@@ -619,13 +619,13 @@ class SignifierAddWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const marker = document.createElement('span')
+    const marker = activeDocument.createElement('span')
     marker.className = `${this.className} jf-signifier-add-gutter jf-signifier-live`
     marker.setAttribute('aria-label', 'Edit signifiers on this line')
     if (this.depth !== null) {
       marker.style.setProperty('--jf-sig-depth', String(this.depth))
     }
-    const add = document.createElement('span')
+    const add = activeDocument.createElement('span')
     add.className = 'jf-signifier jf-signifier-add'
     setIcon(add, 'plus')
     marker.appendChild(add)

@@ -117,7 +117,7 @@ describe('templateFileTier', () => {
 
 describe('templateCandidatePaths', () => {
   it('lists override files then global files for a tier', () => {
-    const { override, global } = templateCandidatePaths({
+    const { override, globalPaths } = templateCandidatePaths({
       journalFolderPath: 'Journal',
       overrideName: 'Templates',
       globalTemplateFolder: 'Templates/journal-folder',
@@ -127,20 +127,20 @@ describe('templateCandidatePaths', () => {
       'Journal/Templates/monthly-template.md',
       'Journal/Templates/default-template.md',
     ])
-    expect(global).toEqual([
+    expect(globalPaths).toEqual([
       'Templates/journal-folder/monthly-template.md',
       'Templates/journal-folder/default-template.md',
     ])
   })
 
   it('omits global paths when no global folder is configured', () => {
-    const { global } = templateCandidatePaths({
+    const { globalPaths } = templateCandidatePaths({
       journalFolderPath: 'Journal',
       overrideName: 'Templates',
       globalTemplateFolder: '',
       tier: 'day',
     })
-    expect(global).toEqual([])
+    expect(globalPaths).toEqual([])
   })
 })
 

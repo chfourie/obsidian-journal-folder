@@ -81,7 +81,7 @@ export class JournalTasksSidebarFeature extends PluginFeature {
     const ws = this.plugin.app.workspace
     const existing = ws.getLeavesOfType(VIEW_TYPE_JOURNAL_TASKS_SIDEBAR)
     if (existing.length > 0) {
-      ws.revealLeaf(existing[0])
+      void ws.revealLeaf(existing[0])
       return
     }
     const leaf: WorkspaceLeaf | null = ws.getRightLeaf(false)
@@ -90,6 +90,6 @@ export class JournalTasksSidebarFeature extends PluginFeature {
       type: VIEW_TYPE_JOURNAL_TASKS_SIDEBAR,
       active: true,
     })
-    ws.revealLeaf(leaf)
+    void ws.revealLeaf(leaf)
   }
 }

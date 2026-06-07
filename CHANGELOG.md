@@ -7,6 +7,30 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.1]
+
+Maintenance release — code-quality and tooling work, no new features and no
+behaviour changes for users on a supported Obsidian.
+
+### Changed
+- **Raised `minAppVersion` to 1.7.2** to honestly reflect the Obsidian APIs the
+  plugin already uses (e.g. `Workspace.revealLeaf`). Installs on older Obsidian
+  were already relying on newer-than-declared APIs; this just makes the manifest
+  truthful.
+
+### Internal
+- Adopted **`eslint-plugin-obsidianmd`** — the same ruleset the community-review
+  scanner runs — as standard tooling (`npm run lint`), and cleaned the codebase
+  to **zero** lint problems. This addresses the automated-scan cautions on the
+  community plugins page.
+- Hardened against unhandled promise rejections (`void`/await on fire-and-forget
+  calls), and switched DOM access to `activeDocument` / `activeWindow` for
+  popout-window compatibility.
+- Introduced a typed `moment` wrapper so date code is fully type-checked.
+- Moved hard-coded inline styles (task-status icon shapes, checkbox swapping,
+  settings inputs, colour-swatch states) into stylesheet rules — rendering is
+  unchanged, verified in live Obsidian.
+
 ## [3.1.0]
 
 ### Changed

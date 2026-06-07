@@ -230,6 +230,9 @@ function renderCustomEditor(
 
   const textInput = row.createEl('input', {
     cls: 'jf-color-custom-text',
+    // '#rrggbb' is a hex format placeholder, not prose — capitalising the
+    // first hex digit would be wrong.
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- hex format placeholder
     attr: { type: 'text', placeholder: '#rrggbb or any CSS colour' },
   })
   textInput.value = current?.kind === 'literal' ? current.value : ''
@@ -242,17 +245,15 @@ function renderCustomEditor(
 }
 
 function paintSwatch(el: HTMLElement, value: ColorRef | undefined): void {
+  // The frame and the "no colour" diagonal-hatch indicator are static and
+  // live in CSS (`.jf-color-picker-current .jf-color-swatch[.is-empty]`); only
+  // the resolved colour is dynamic, so that alone stays inline.
   if (!value) {
-    el.style.background = 'transparent'
-    el.style.backgroundImage =
-      'linear-gradient(135deg, transparent calc(50% - 1px), ' +
-      'var(--text-faint) calc(50% - 1px), var(--text-faint) calc(50% + 1px), ' +
-      'transparent calc(50% + 1px))'
-    el.style.border = '1px dashed var(--text-faint)'
+    el.classList.add('is-empty')
+    el.style.removeProperty('background')
     return
   }
-  el.style.backgroundImage = ''
-  el.style.border = '1px solid var(--background-modifier-border)'
+  el.classList.remove('is-empty')
   el.style.background =
     value.kind === 'token' ? `var(${value.var})` : value.value
 }

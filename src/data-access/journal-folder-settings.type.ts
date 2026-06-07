@@ -321,7 +321,7 @@ export const MIGRATION_REFERENCE_PRESETS: Record<
 // icon, while editing/source view shows the readable token.
 export const LUCIDE_MARKER_PREFIX = 'lucide:'
 
-import type { TaskFlow, TaskStatus } from './task-model.type'
+import type { TaskFlow } from './task-model.type'
 import type { Signifier, TaskCategory } from './signifier.type'
 import {
   BUILTIN_TEMPLATES,

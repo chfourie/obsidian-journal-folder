@@ -71,7 +71,7 @@ export function findFoldersUsingTaskFlow(
     if (!(file instanceof TFile)) continue
     const fm = app.metadataCache.getFileCache(file)?.frontmatter
     if (!fm) continue
-    const value = fm['task-flow']
+    const value = fm['task-flow'] as unknown
     if (typeof value === 'string' && value.trim() === flowName) {
       matches.push(folderPath)
     }

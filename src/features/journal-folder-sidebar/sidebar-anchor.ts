@@ -16,7 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, moment, TFile, TFolder } from 'obsidian'
+import { type App, TFile, TFolder } from 'obsidian'
+import { moment } from '../../data-access'
 import {
   isJournalFileBasename,
   type JournalFolderSettings,
@@ -28,7 +29,6 @@ import {
 // the default anchor for the sidebar calendar when there's no active
 // journal note to follow.
 export function todayDailyBasename(): string {
-  // @ts-ignore — moment is the bundled obsidian export.
   return moment().format('YYYY-MM-DD')
 }
 
@@ -66,12 +66,16 @@ export function buildAnchorNote(
   // bypasses that machinery entirely. We intentionally don't add the
   // synthetic file to the folder's children, because if it doesn't exist
   // on disk we don't want it counted as an "existing" note.
+  // A duck-typed synthetic TFile is intentional: `new TFile()` wires `path`
+  // through an internal `setPath` that crashes on post-construction assignment,
+  // and this anchor note never exists on disk, so `instanceof TFile` can't apply.
   const synthetic = {
     basename: anchorBasename,
     name: `${anchorBasename}.md`,
     path: `${folder.path}/${anchorBasename}.md`,
     extension: 'md',
     parent: folder,
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- see comment above
   } as unknown as TFile
   try {
     return journalNoteFactoryWithSettings(settings)(synthetic)

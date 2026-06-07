@@ -113,8 +113,10 @@ describe('processDocumentTasks', () => {
     expect(inputs.length).toBe(2)
     inputs.forEach((input) => {
       expect(input.getAttribute('aria-hidden')).toBe('true')
-      expect(input.style.opacity).toBe('0')
-      expect(input.style.pointerEvents).toBe('none')
+      // Hiding (opacity/pointer-events) is applied via CSS keyed on this
+      // marker attribute, not inline styles — assert the attribute that drives
+      // `styles.css input[data-jf-doc-swapped]`.
+      expect(input.hasAttribute('data-jf-doc-swapped')).toBe(true)
     })
   })
 

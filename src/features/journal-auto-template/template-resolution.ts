@@ -72,7 +72,7 @@ export async function resolveNoteTemplate(
   const config = app.vault.getAbstractFileByPath(configPathFor(file.parent.path))
   if (!(config instanceof TFile)) return null
 
-  const { override, global } = templateCandidatePaths({
+  const { override, globalPaths } = templateCandidatePaths({
     journalFolderPath: file.parent.path,
     overrideName: settings.templateOverrideFolderName,
     globalTemplateFolder: settings.templateFolder,
@@ -86,7 +86,7 @@ export async function resolveNoteTemplate(
   // legacy config-note body is front-matter-stripped.
   const overrideContents = await Promise.all(override.map(readIfExists))
   const body = stripFrontMatter(await app.vault.read(config))
-  const globalContents = await Promise.all(global.map(readIfExists))
+  const globalContents = await Promise.all(globalPaths.map(readIfExists))
   return firstNonEmptyTemplate(
     [...overrideContents, body, ...globalContents],
     DEFAULT_AUTO_TEMPLATE
