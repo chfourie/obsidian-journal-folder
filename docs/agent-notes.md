@@ -250,9 +250,11 @@ suite. Run `npm run test:e2e:build`; full docs in
   `Unexpected end of JSON input` from `evalJSON`. This bit the report run: the
   extra `dev:screenshot` focus churn raced the *next* test's first `eval` and
   failed ~3 scattered tests in <300ms (far faster than a real render). Fixed in
-  `cli.mjs`: `evalRaw` now refocuses + retries **once on empty stdout** (the
-  previous single retry only covered timeouts), and the reporter sleeps ~250ms
-  after each screenshot. With both, the full suite is green in report mode.
+  `cli.mjs`: `evalRaw` now refocuses + **retries on empty stdout with escalating
+  backoff** (`[300,500,800,1200]`ms — the previous single retry only covered
+  timeouts, and one quick retry wasn't enough when a setting toggle rebuilds every
+  view), and the reporter sleeps ~250ms after each screenshot. With both, the full
+  suite runs green in report mode.
 - **The fixtures are date-pinned to 2026-06-06 — date-sensitive tests rot by the
   day.** The vault's "today" is `2026-06-06` (the daily note, the nav assertions).
   The sidebar **task panel** is the fragile spot: its baseline scope is

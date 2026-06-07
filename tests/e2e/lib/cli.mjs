@@ -102,13 +102,16 @@ async function obsWithRetry(args, opts) {
 // same single-retry posture as the timeout path in obsWithRetry.
 export async function evalRaw(code, opts) {
   const args = [`vault=${VAULT}`, 'eval', `code=${oneLine(code)}`]
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Backoff between empty-stdout retries. A heavy re-render (e.g. toggling a
+  // setting that rebuilds every view) can keep the window busy across more than
+  // one quick retry, so escalate the wait rather than giving up after one.
+  const backoff = [300, 500, 800, 1200]
+  for (let attempt = 0; ; attempt++) {
     const stripped = stripMarker(await obsWithRetry(args, opts))
-    if (stripped !== '' || attempt === 1) return stripped
+    if (stripped !== '' || attempt >= backoff.length) return stripped
     refocus()
-    await sleep(400)
+    await sleep(backoff[attempt])
   }
-  return ''
 }
 
 // `eval` JS that produces a JSON-encodable value (or a Promise of one) and
