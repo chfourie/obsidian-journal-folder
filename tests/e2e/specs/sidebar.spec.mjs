@@ -30,6 +30,8 @@ function setting(ctx, key) {
 
 export const suite = {
   name: 'sidebar',
+  description:
+    'The journal sidebar, your home base for picking a folder, browsing the calendar, and reaching secondary actions. It shows the active folder and mode, and in dynamic mode follows whichever journal note you open.',
   settings: {},
   after: async (ctx) => ctx.closeSidebar(),
   tests: [
@@ -38,6 +40,7 @@ export const suite = {
       async (ctx) => {
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
+        ctx.step('Open a daily note and the sidebar; it shows the Journal folder and Dynamic mode.')
         ctx.assert.ok(await ctx.exists(ROOT), 'sidebar mounted')
         ctx.assert.contains(
           await ctx.text(`${ROOT} .jf-sidebar-label-mode`),
@@ -49,6 +52,9 @@ export const suite = {
           'Journal',
           'selected folder label'
         )
+        await ctx.shot('Sidebar with folder label and mode tag', {
+          rect: "bodyRect('[data-jf-sidebar-root]')",
+        })
       },
     ],
     [
@@ -58,11 +64,15 @@ export const suite = {
         await ctx.openSidebar()
         await ctx.click(FOLDER_BTN, { settleMs: 300 })
         await ctx.click('[data-jf-menu-panel] [data-jf-menu-item-title="Work"]', { settleMs: 400 })
+        ctx.step('Use the folder picker to switch the sidebar to the Work journal folder.')
         ctx.assert.contains(
           await ctx.text(`${FOLDER_BTN} .jf-sidebar-folder-button-label`),
           'Work',
           'folder label updated to Work'
         )
+        await ctx.shot('Sidebar showing the Work folder selected', {
+          rect: "bodyRect('[data-jf-sidebar-root]')",
+        })
       },
     ],
     [
@@ -71,6 +81,7 @@ export const suite = {
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         await ctx.click(MORE_TRIGGER, { settleMs: 300 })
+        ctx.step('Open the sidebar More… menu to reveal its secondary actions.')
         ctx.assert.ok(await ctx.exists('[data-jf-menu-panel]'), 'More menu open')
         ctx.assert.ok(
           await ctx.exists(
@@ -82,6 +93,9 @@ export const suite = {
           await ctx.exists('[data-jf-menu-panel] [data-jf-menu-item-title="Switch to static"]'),
           'mode-toggle action present'
         )
+        await ctx.shot('Sidebar More… menu actions', {
+          rect: "bodyRect('[data-jf-menu-panel]')",
+        })
       },
     ],
     [
@@ -90,6 +104,10 @@ export const suite = {
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         await ctx.click(MORE_TRIGGER, { settleMs: 300 })
+        ctx.step('Choose Switch to static from the More… menu to change the sidebar mode.')
+        await ctx.shot('Mode toggle in the More… menu', {
+          rect: "bodyRect('[data-jf-menu-panel]')",
+        })
         await ctx.click('[data-jf-menu-panel] [data-jf-menu-item-title="Switch to static"]', {
           settleMs: 400,
         })
@@ -105,11 +123,15 @@ export const suite = {
         // Opening a Work journal note should switch the sidebar selection.
         await ctx.openNote('Work/2026-06-06', 'preview')
         await ctx.sleep(500)
+        ctx.step('In dynamic mode, opening a Work note makes the sidebar follow it to the Work folder.')
         ctx.assert.contains(
           await ctx.text(`${FOLDER_BTN} .jf-sidebar-folder-button-label`),
           'Work',
           'selection followed the active note (dynamic mode)'
         )
+        await ctx.shot('Sidebar following the active note', {
+          rect: "bodyRect('[data-jf-sidebar-root]')",
+        })
       },
     ],
   ],

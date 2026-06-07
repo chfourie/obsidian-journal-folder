@@ -35,12 +35,15 @@ async function openPicker(ctx) {
 
 export const suite = {
   name: 'task-migration',
+  description:
+    'Task migration moves unfinished tasks forward between journal notes in the same folder. You pick tasks from sibling notes in a picker; the origin is marked as migrated and linked to its new home, and a fresh copy lands in the destination note with a link back.',
   settings: {},
   tests: [
     [
       'the migrate picker lists active tasks from sibling notes',
       async (ctx) => {
         await openPicker(ctx)
+        ctx.step('From a destination note, run "Migrate tasks to this note" to open the picker, which groups the still-open tasks from sibling notes ready to pull forward.')
         ctx.assert.ok(await ctx.exists('[data-jf-migrate-picker]'), 'picker modal open')
         ctx.assert.ok(
           await ctx.exists(`[data-jf-migrate-group="${SRC}"]`),
@@ -56,6 +59,7 @@ export const suite = {
           '',
           'confirm disabled until a task is picked'
         )
+        await ctx.shot('Migration picker grouping open tasks by note', { rect: "bodyRect('[data-jf-migrate-picker]')" })
         await ctx.click('[data-jf-migrate-cancel]', { settleMs: 200 })
       },
     ],
@@ -63,8 +67,10 @@ export const suite = {
       'migrating stamps the origin and copies the task to the destination',
       async (ctx) => {
         await openPicker(ctx)
+        ctx.step('Tick the task you want and confirm; the origin is stamped as migrated and a copy is written into the note you ran the command from.')
         // Tick a single task (clicking the label toggles its checkbox).
         await ctx.click(`[data-jf-migrate-task="${SRC}:7"]`, { settleMs: 300 })
+        await ctx.shot('Task selected, ready to migrate', { rect: "bodyRect('[data-jf-migrate-picker]')" })
         await ctx.click('[data-jf-migrate-confirm]', { settleMs: 800 })
         const stamped = await ctx.waitFor(() => /- \[>\] ship the release notes/.test(ctx.readNote(SRC)))
 
@@ -80,12 +86,15 @@ export const suite = {
         // destination day, destination links back to the origin day.
         ctx.assert.contains(src, '2026-06-06', 'origin carries a forward reference to the destination')
         ctx.assert.contains(dest, '2026-06-05', 'destination carries a back reference to the origin')
+        await ctx.openNote('Work/2026-06-06', 'preview')
+        await ctx.shot('Destination note with the migrated task copied in')
       },
     ],
     [
       'cancelling the picker changes nothing',
       async (ctx) => {
         await openPicker(ctx)
+        ctx.step('Cancelling the picker leaves every note exactly as it was, so opening it to browse never changes anything.')
         const before = ctx.readNote(SRC)
         await ctx.click('[data-jf-migrate-cancel]', { settleMs: 400 })
         await ctx.sleep(300)

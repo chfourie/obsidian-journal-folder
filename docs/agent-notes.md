@@ -244,6 +244,15 @@ suite. Run `npm run test:e2e:build`; full docs in
 - **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is
   `"{}"`; the helper wraps as `Promise.resolve(x).then(JSON.stringify)` so the CLI
   awaits first.
+- **Empty `eval` stdout is a transient, not a result** — a blank reply (the CLI
+  prints `=> <value>` for *every* expression, even `undefined`) means the bound
+  window was mid-repaint / busy when the call landed; downstream it surfaces as
+  `Unexpected end of JSON input` from `evalJSON`. This bit the report run: the
+  extra `dev:screenshot` focus churn raced the *next* test's first `eval` and
+  failed ~3 scattered tests in <300ms (far faster than a real render). Fixed in
+  `cli.mjs`: `evalRaw` now refocuses + retries **once on empty stdout** (the
+  previous single retry only covered timeouts), and the reporter sleeps ~250ms
+  after each screenshot. With both, the full suite is green in report mode.
 - **The fixtures are date-pinned to 2026-06-06 — date-sensitive tests rot by the
   day.** The vault's "today" is `2026-06-06` (the daily note, the nav assertions).
   The sidebar **task panel** is the fragile spot: its baseline scope is
@@ -366,24 +375,90 @@ Release notes come from `CHANGELOG.md`; the workflow
 (`.github/workflows/release.yml`) extracts the section between `## [<tag>]` and
 the next `## [` via `awk` and passes it to `gh release create --notes-file`.
 
-1. Add a `## [x.y.z]` section to `CHANGELOG.md` (heading format must match
-   exactly — the awk extractor depends on it). Commit the feature work first
+### Preferred: `npm run release -- <patch|minor|major>`
+
+`scripts/release.mjs` runs the whole local pipeline in order, halting on the
+first failure (so nothing that gates a release can be silently skipped):
+
+> preconditions (clean tree + `## [<next>]` CHANGELOG section) → `npm run lint` →
+> `npm test` → `npm run build` → **E2E with the verification report**
+> (`node tests/e2e/run.mjs --report`) → `npm run screenshots` → commit the
+> generated docs → `npm version <type>` (commit + unprefixed tag) → `npm run
+> deploy` → commit the demo-vault artifact bump → **confirm** → push branch + tag.
+
+The tag push triggers the workflow, which builds and creates a **draft** GitHub
+release; that draft is the safety net for the otherwise-automated flow — review
+and publish it manually (`gh release edit <tag> --draft=false`).
+
+- **It needs a local, running, VISIBLE Obsidian** — both the E2E suite and the
+  screenshot harness drive the real app via the CLI, so the pipeline can't run on
+  CI. The E2E step targets `jf-e2e-vault`; the screenshots step targets
+  `demo-vault`. Keep the relevant window focused + visible during each step.
+- Flags: `--dry-run` validates preconditions and prints the plan without changing
+  anything (works even on a dirty tree — it reports blockers instead of running);
+  `--yes` skips the confirm before the outward push; `--skip-screenshots` skips
+  only the screenshot regen (the verification report is never skipped).
+- Still **add the `## [x.y.z]` CHANGELOG section first** — the script's
+  precondition check refuses to proceed without it (heading format must match
+  exactly; the awk extractor depends on it).
+
+### Manual equivalent (if you need to run a step by hand)
+
+1. Add a `## [x.y.z]` section to `CHANGELOG.md`. Commit feature work first
    (`npm version` refuses a dirty tree).
 2. `npm version <patch|minor|major>` — runs `version-bump.mjs` to sync
    `manifest.json` + `versions.json`, then commits (message = the bare version,
    e.g. `2.4.3`) and creates an unprefixed tag (`.npmrc` sets
    `tag-version-prefix=""`).
-3. `npm run deploy` to rebuild + push the new build into the demo vault and deploy
-   targets, then commit the demo-vault artifact bump (`docs/demo-vault/.../
-   manifest.json` + `styles.css`) as a follow-up — message `Bump demo-vault plugin
-   to x.y.z` (mirrors the established history; demo `main.js` is git-ignored).
+3. `npm run deploy` to rebuild + push into the demo vault and deploy targets, then
+   commit the demo-vault artifact bump (`docs/demo-vault/.../manifest.json` +
+   `styles.css`) — message `Bump demo-vault plugin to x.y.z` (demo `main.js` is
+   git-ignored).
 4. `git push origin master` and `git push origin <tag>`. The workflow builds,
-   extracts the changelog section, and creates a **draft** GitHub release with
-   `main.js` / `manifest.json` / `styles.css` attached.
+   extracts the changelog section, and creates a **draft** release with `main.js`
+   / `manifest.json` / `styles.css` attached.
 5. Review and **publish** the draft (`gh release edit <tag> --draft=false`).
 
 If the workflow logs "No CHANGELOG.md section found" and uses a `Release <tag>`
-placeholder body, you forgot step 1.
+placeholder body, you forgot the CHANGELOG section.
+
+### The verification report (`docs/test-reports/`)
+
+A committed, end-user-facing artifact regenerated on every release: a step log of
+every E2E scenario plus a screenshot for each visible one — both evidence of what
+was verified and a feature gallery. Referenced from the README.
+
+- **Off by default.** A normal `npm run test:e2e` records nothing and captures no
+  screenshots; `ctx.step` / `ctx.shot` are no-ops (the harness passes
+  `nullReporter`). Only `--report` mode (the release pipeline, or `npm run
+  test:e2e:report`) builds a real reporter and captures.
+- **Pieces:** `tests/e2e/lib/report.mjs` is the pure model + markdown renderer
+  (unit-tested in `tests/e2e/report.test.ts` — vitest picks up `tests/**/*.test.ts`
+  and can import the `.mjs`). `tests/e2e/lib/reporter.mjs` is the I/O wrapper that
+  binds the model to the screenshots harness' `screenshotFull`/`cropFrom`
+  (`scripts/screenshots/lib/capture.mjs`) and writes `docs/test-reports/README.md`
+  + PNGs under `docs/test-reports/assets/<suite>/NN-<caption>.png` (committed).
+- **Authoring in specs:** give each suite a `description`; in each test call
+  `ctx.step('plain prose for an end user')` and `ctx.shot('Caption', { rect })`.
+  `rect` is a measure-expression string (same helpers as the screenshot scenes —
+  `rectOf`/`bodyRect`/`union`/`bodyUnion`/`_r`); omit opts for the active reading
+  view, `{ full: true }` for the whole window. **Place `ctx.shot` BEFORE anything
+  that dismisses the captured UI** (before `closeSidebar`/`closeSettings`, before
+  a modal's confirm click). A failed capture degrades to a noted step — it never
+  fails the test — so a slightly-off `rect` is safe to fix after the first live
+  run.
+- **Light mode + framed shots.** `run.mjs` forces the light scheme for the whole
+  report run (`app.changeTheme('moonstone')`, saving/restoring the user's scheme)
+  because the captures read better light — same call the screenshot harness uses.
+  The `ribbon-theme` light/dark-toggle spec needs no special-casing: it already
+  saves `before = app.getTheme()` and restores it in `finally`, so it flips
+  light→dark→light within the run. Each crop is then run through
+  `decorateShot` (`capture.mjs`) so it stands out from the page: a **soft drop
+  shadow** when ImageMagick (`magick`/`convert`) is on PATH, else a **thin neutral
+  border** via the always-present `sips` (baked into the PNG — GitHub strips inline
+  `<img>` styles, so a CSS shadow wouldn't survive). The README link to the report
+  carries a copy-pasteable bare URL because links don't open from inside Obsidian's
+  plugin-settings README viewer.
 
 ---
 

@@ -28,37 +28,48 @@ const OPEN_ICON = `${RV} li[data-jf-doc-line="11"] [data-jf-doc-icon]`
 
 export const suite = {
   name: 'task-status',
+  description:
+    'Clicking a task’s status icon cycles it through the active flow (open → in-progress → done) and writes the change straight back to the note on disk; right-clicking opens an in-house status picker for jumping to any status, including cancelled. The same works from the sidebar panel.',
   settings: {},
   tests: [
     [
       'left-click cycles open → in-progress and writes to disk',
       async (ctx) => {
         await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Open the daily note Journal/2026-06-06 with its open task on line 11.')
         ctx.assert.contains(ctx.readNote('Journal/2026-06-06.md'), '- [ ] open task one', 'precondition')
         await ctx.click(OPEN_ICON, { settleMs: 600 })
         const ok = await ctx.waitFor(() =>
           ctx.readNote('Journal/2026-06-06.md').includes('- [/] open task one')
         )
         ctx.assert.ok(ok, 'status advanced to in-progress on disk')
+        ctx.step('Left-clicking the icon cycles the task to in-progress and saves it to disk.')
+        await ctx.shot('Task cycled to in-progress')
       },
     ],
     [
       'right-click opens the status picker',
       async (ctx) => {
         await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Open the daily note and right-click the open task’s status icon.')
         await ctx.dispatch(OPEN_ICON, 'contextmenu', { settleMs: 400 })
         ctx.assert.ok(await ctx.exists('[data-jf-status-picker]'), 'picker portaled open')
         ctx.assert.ok(
           (await ctx.count('[data-jf-status-picker] [data-jf-status-option]')) >= 3,
           'picker lists the flow statuses'
         )
+        ctx.step('The status picker opens listing every status in the flow.')
+        await ctx.shot('Status picker', { rect: "bodyRect('[data-jf-status-picker]')" })
       },
     ],
     [
       'choosing a status from the picker persists it',
       async (ctx) => {
         await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Open the daily note and right-click the task to open the status picker.')
         await ctx.dispatch(OPEN_ICON, 'contextmenu', { settleMs: 400 })
+        ctx.step('Choose Cancelled from the picker.')
+        await ctx.shot('Choosing Cancelled', { rect: "bodyRect('[data-jf-status-picker]')" })
         await ctx.click('[data-jf-status-picker] [data-jf-status-option="cancelled"]', { settleMs: 600 })
         ctx.assert.ok(
           await ctx.waitFor(() =>
@@ -66,6 +77,7 @@ export const suite = {
           ),
           'cancelled status written to disk'
         )
+        ctx.step('The cancelled status is written back to the note on disk.')
       },
     ],
     [
@@ -76,12 +88,15 @@ export const suite = {
         await ctx.applySettings({ tasksSidebarAnchor: 'note' })
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
+        ctx.step('Anchor on the active note and open the sidebar task panel.')
         const icon =
           '[data-jf-task-list="sidebar"] [data-jf-task-item][data-jf-task-line="11"] [data-jf-status-icon]'
         ctx.assert.ok(
           await ctx.waitFor(() => ctx.exists(icon)),
           'open task present in sidebar panel'
         )
+        ctx.step('Click the open task’s status icon in the sidebar.')
+        await ctx.shot('Cycling a task from the sidebar', { rect: "bodyRect('[data-jf-task-list=\"sidebar\"]')" })
         await ctx.click(icon, { settleMs: 600 })
         ctx.assert.ok(
           await ctx.waitFor(() =>
@@ -89,6 +104,7 @@ export const suite = {
           ),
           'sidebar cycle advanced the status on disk'
         )
+        ctx.step('Cycling from the sidebar advances the status and saves it to disk.')
         await ctx.closeSidebar()
       },
     ],
@@ -102,6 +118,7 @@ export const suite = {
         flows[name] = { ...flows[name], rendering: 'theme' }
         await ctx.applySettings({ taskFlows: flows })
         await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Switch the active flow to theme rendering and reopen the daily note.')
         ctx.assert.ok(
           (await ctx.count(`${RV} li.task-list-item input.task-list-item-checkbox`)) >= 1,
           'native checkbox present under theme rendering'
@@ -111,6 +128,8 @@ export const suite = {
           0,
           'no plugin icon swap under theme rendering'
         )
+        ctx.step('Under theme rendering the note keeps Obsidian’s native checkboxes, with no plugin icon swap.')
+        await ctx.shot('Native checkboxes under theme rendering')
       },
     ],
   ],

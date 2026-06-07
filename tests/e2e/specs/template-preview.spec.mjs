@@ -37,6 +37,8 @@ async function ensureFolder(ctx, path) {
 
 export const suite = {
   name: 'template-preview',
+  description:
+    'A standardized template note previews as the current-period entry: it shows a corner TEMPLATE ribbon and its header chips and calendar cells are display-only, pointing back at the template file rather than at real journal notes.',
   settings: {
     autoTemplateEnabled: true,
     templateFolder: GLOBAL_DIR,
@@ -53,6 +55,7 @@ export const suite = {
       'a template note renders the header with a TEMPLATE ribbon',
       async (ctx) => {
         await ctx.openNote(MONTHLY, 'preview')
+        ctx.step('Open the monthly template note and confirm it previews as a live entry with a TEMPLATE ribbon.')
         ctx.assert.ok(
           await ctx.exists(`${RV} .journal-folder-header`),
           'header renders in the template note'
@@ -63,6 +66,9 @@ export const suite = {
         )
         const ribbon = await ctx.text(`${RV} [data-jf-template-ribbon]`)
         ctx.assert.eq(ribbon.trim(), 'TEMPLATE', 'ribbon reads TEMPLATE')
+        await ctx.shot('Template note preview with TEMPLATE ribbon', {
+          rect: "rectOf('.journal-folder-header')",
+        })
       },
     ],
     [
@@ -72,6 +78,7 @@ export const suite = {
         // (next month) is always present; the backward chip is folded out when
         // the previous month is past+missing, so assert on forward.
         await ctx.openNote(MONTHLY, 'preview')
+        ctx.step('Confirm the header navigation chips link to the template file instead of real month notes.')
         const fwd = await ctx.attr(`${RV} [data-jf-id="nav-forward"]`, 'href')
         ctx.assert.ok(fwd, 'forward chip present')
         ctx.assert.contains(
@@ -89,10 +96,14 @@ export const suite = {
       'calendar cells are display-only but still report their real date',
       async (ctx) => {
         await ctx.openNote(MONTHLY, 'preview')
+        ctx.step('Confirm the preview calendar cells are display-only but still carry their real dates.')
         ctx.assert.ok(
           await ctx.exists(`${RV} .journal-folder-calendar`),
           'calendar renders in the preview'
         )
+        await ctx.shot('Template preview calendar', {
+          rect: "rectOf('.journal-folder-calendar')",
+        })
         const href = await ctx.attr(`${RV} [data-jf-cell="day"]`, 'href')
         ctx.assert.contains(
           href,
@@ -110,6 +121,7 @@ export const suite = {
       'a real journal note has no TEMPLATE ribbon',
       async (ctx) => {
         await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Open a real journal note and confirm it has no TEMPLATE ribbon.')
         ctx.assert.ok(
           await ctx.exists(`${RV} .journal-folder-header`),
           'header renders on the real note'
@@ -118,6 +130,9 @@ export const suite = {
           !(await ctx.exists(`${RV} [data-jf-template-ribbon]`)),
           'no ribbon on a real journal note'
         )
+        await ctx.shot('Real journal note header (no ribbon)', {
+          rect: "rectOf('.journal-folder-header')",
+        })
       },
     ],
   ],

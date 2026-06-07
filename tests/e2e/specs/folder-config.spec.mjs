@@ -30,6 +30,8 @@ async function openMore(ctx) {
 
 export const suite = {
   name: 'folder-config',
+  description:
+    'Per-folder configuration from the sidebar: turning a plain folder into a journal folder, and editing a folder’s own settings so they override the global defaults.',
   settings: {},
   after: async (ctx) => ctx.closeSidebar(),
   tests: [
@@ -44,8 +46,12 @@ export const suite = {
           '[data-jf-menu-panel] [data-jf-menu-item-title="Initialise a new journal folder"]',
           { settleMs: 400 }
         )
+        ctx.step('Choose Initialise a new journal folder and pick the Inbox folder.')
         // Drive the fuzzy folder picker: type, then Enter to choose the match.
         await ctx.setValue('.prompt-input', 'Inbox', { settleMs: 400 })
+        await ctx.shot('Folder picker for initialising a journal folder', {
+          rect: "bodyRect('.modal-container .prompt')",
+        })
         await ctx.eval(
           `(()=>{const i=document.querySelector('.prompt-input'); ` +
             `i&&i.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'Enter'})); return 'ok'})()`
@@ -67,6 +73,7 @@ export const suite = {
           '[data-jf-menu-panel] [data-jf-menu-item-title="Edit folder configuration"]',
           { settleMs: 500 }
         )
+        ctx.step('Open Edit folder configuration to get the folder’s own settings form.')
         ctx.assert.ok(
           await ctx.exists('.modal-container [data-jf-settings-tab]'),
           'folder-config modal opened with the settings form'
@@ -78,6 +85,10 @@ export const suite = {
           '[folder]D',
           { settleMs: 400 }
         )
+        ctx.step('Override the daily-note title pattern for this folder only.')
+        await ctx.shot('Folder-config modal with an overridden pattern', {
+          rect: "bodyRect('.journal-folder-config-modal-wrap')",
+        })
         const wrote = await ctx.waitFor(() =>
           ctx.readNote('Journal/journal-folder.md').includes('daily-note-short-title-pattern')
         )

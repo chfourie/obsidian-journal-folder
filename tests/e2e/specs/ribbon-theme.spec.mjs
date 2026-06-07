@@ -29,12 +29,15 @@ async function openRibbonMenu(ctx) {
 
 export const suite = {
   name: 'ribbon-theme',
+  description:
+    'The master journal menu, opened from the ribbon (and the main entry point on mobile), and the light/dark theme toggle it hosts for switching Obsidian’s colour scheme.',
   settings: {},
   tests: [
     [
       'the ribbon menu command opens the panel with actions',
       async (ctx) => {
         await openRibbonMenu(ctx)
+        ctx.step('Open the journal ribbon menu and confirm it lists its actions.')
         ctx.assert.ok(await ctx.exists('[data-jf-ribbon-menu]'), 'ribbon menu panel open')
         ctx.assert.ok(
           (await ctx.count('[data-jf-ribbon-menu] [data-jf-menu-item]')) >= 2,
@@ -44,6 +47,9 @@ export const suite = {
           await ctx.exists('[data-jf-ribbon-menu] [data-jf-menu-item-title^="Switch to"]'),
           'theme-toggle action present'
         )
+        await ctx.shot('Ribbon menu panel', {
+          rect: "bodyRect('[data-jf-ribbon-menu]')",
+        })
         // Dismiss the menu.
         await ctx.eval(`(()=>{document.body.click(); return 'ok'})()`)
       },
@@ -54,6 +60,10 @@ export const suite = {
         const before = await ctx.eval(`app.getTheme()`)
         try {
           await openRibbonMenu(ctx)
+          ctx.step('Use the ribbon menu’s theme toggle to flip Obsidian’s colour scheme.')
+          await ctx.shot('Theme toggle in the ribbon menu', {
+            rect: "bodyRect('[data-jf-ribbon-menu]')",
+          })
           await ctx.click('[data-jf-ribbon-menu] [data-jf-menu-item-title^="Switch to"]', {
             settleMs: 500,
           })

@@ -62,6 +62,8 @@ async function clickModalButton(ctx, label) {
 
 export const suite = {
   name: 'template-repopulate',
+  description:
+    'The sidebar More... menu offers "Re-populate note from template", a destructive action that overwrites the active journal note with its resolved template after a confirmation. The item only shows for journal notes with templating enabled, and cancelling leaves the note untouched.',
   settings: {
     autoTemplateEnabled: true,
     templateFolder: GLOBAL_DIR,
@@ -78,10 +80,14 @@ export const suite = {
           'precondition: note does not already match the template'
         )
         await openMore(ctx)
+        ctx.step('Open the sidebar More... menu over a journal note and find the re-populate action.')
         ctx.assert.ok(
           await ctx.waitFor(() => ctx.exists(REPOP_ITEM)),
           're-populate item present for a journal note'
         )
+        await ctx.shot('Sidebar More... menu with re-populate action', {
+          rect: "bodyRect('[data-jf-menu-panel]')",
+        })
         await ctx.click(REPOP_ITEM, { settleMs: 400 })
         // Confirm the destructive modal.
         ctx.assert.ok(
@@ -90,6 +96,10 @@ export const suite = {
           ),
           'confirmation modal opened'
         )
+        ctx.step('Confirm the destructive overwrite and verify the note is replaced with the template.')
+        await ctx.shot('Re-populate confirmation modal', {
+          rect: "bodyRect('.modal-container .modal')",
+        })
         await clickModalButton(ctx, 'Replace')
         ctx.assert.ok(
           await ctx.waitFor(() =>
@@ -106,12 +116,16 @@ export const suite = {
         await writeDailyTemplate(ctx)
         const before = ctx.readNote(`${NOTE}.md`)
         await openMore(ctx)
+        ctx.step('Open the re-populate confirmation and cancel it, expecting the note to be left alone.')
         ctx.assert.ok(await ctx.waitFor(() => ctx.exists(REPOP_ITEM)), 'item present')
         await ctx.click(REPOP_ITEM, { settleMs: 400 })
         ctx.assert.ok(
           await ctx.waitFor(() => ctx.exists('.modal-container button.mod-warning')),
           'modal opened'
         )
+        await ctx.shot('Re-populate confirmation before cancelling', {
+          rect: "bodyRect('.modal-container .modal')",
+        })
         await clickModalButton(ctx, 'Cancel')
         await ctx.sleep(400)
         ctx.assert.eq(
@@ -127,11 +141,15 @@ export const suite = {
       async (ctx) => {
         await writeDailyTemplate(ctx)
         await openMore(ctx, 'Misc/not-a-journal')
+        ctx.step('Open the More... menu over a non-journal note and confirm the re-populate action is absent.')
         ctx.assert.ok(await ctx.exists('[data-jf-menu-panel]'), 'menu open')
         ctx.assert.ok(
           !(await ctx.exists(REPOP_ITEM)),
           'no re-populate item outside a journal note'
         )
+        await ctx.shot('More... menu on a non-journal note (no re-populate)', {
+          rect: "bodyRect('[data-jf-menu-panel]')",
+        })
         await ctx.closeSidebar()
       },
     ],
@@ -141,11 +159,15 @@ export const suite = {
         await writeDailyTemplate(ctx)
         await ctx.applySettings({ autoTemplateEnabled: false })
         await openMore(ctx)
+        ctx.step('Disable auto-templating, open the More... menu, and confirm the re-populate action is hidden.')
         ctx.assert.ok(await ctx.exists('[data-jf-menu-panel]'), 'menu open')
         ctx.assert.ok(
           !(await ctx.exists(REPOP_ITEM)),
           'no re-populate item when auto-template is off'
         )
+        await ctx.shot('More... menu with templating disabled (no re-populate)', {
+          rect: "bodyRect('[data-jf-menu-panel]')",
+        })
         await ctx.closeSidebar()
       },
     ],

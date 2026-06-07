@@ -7,6 +7,26 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.2]
+
+Maintenance release — release-tooling and documentation work only. No new
+features, no behaviour changes, and the shipped plugin (`main.js`) is unchanged
+from 3.1.1.
+
+### Internal
+- Added a **release verification report**: the end-to-end test suite now runs in a
+  `--report` mode that records each scenario and captures a screenshot from the
+  live Obsidian run, producing a committed, browsable document
+  (`docs/test-reports/`, linked from the README) — both evidence of what each
+  release verified and a guided tour of the plugin in action. Off by default, so
+  ordinary test runs stay fast.
+- Added a **local release pipeline** (`npm run release`) that runs lint, unit
+  tests, build, the E2E suite with the verification report, screenshots, the
+  version bump, deploy, and the tagged push in one halt-on-failure sequence; the
+  tag still produces a draft GitHub release to review and publish.
+- Hardened the E2E CLI transport against empty-stdout transients (a focus race the
+  screenshot step exposed), so the live suite runs green in report mode.
+
 ## [3.1.1]
 
 Maintenance release — code-quality and tooling work, no new features and no

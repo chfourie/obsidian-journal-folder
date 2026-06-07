@@ -93,9 +93,22 @@ async function obsWithRetry(args, opts) {
 
 // `eval` a raw JS expression in the app, returning the printed result string.
 // `app` is in scope; promises are awaited by the CLI.
+//
+// Empty stdout is a transient, not a real result: the CLI prints `=> <value>`
+// for every expression (even `undefined`), so a blank reply means the bound
+// window was mid-repaint / busy when the eval landed (e.g. just after a
+// `dev:screenshot` focus change). An empty parse then surfaces downstream as
+// "Unexpected end of JSON input". Refocus and retry once before giving up — the
+// same single-retry posture as the timeout path in obsWithRetry.
 export async function evalRaw(code, opts) {
-  const out = await obsWithRetry([`vault=${VAULT}`, 'eval', `code=${oneLine(code)}`], opts)
-  return stripMarker(out)
+  const args = [`vault=${VAULT}`, 'eval', `code=${oneLine(code)}`]
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const stripped = stripMarker(await obsWithRetry(args, opts))
+    if (stripped !== '' || attempt === 1) return stripped
+    refocus()
+    await sleep(400)
+  }
+  return ''
 }
 
 // `eval` JS that produces a JSON-encodable value (or a Promise of one) and

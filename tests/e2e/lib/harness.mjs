@@ -27,6 +27,7 @@ import * as page from './page.mjs'
 import * as vault from './vault.mjs'
 import * as dates from './dates.mjs'
 import { assert, AssertionError } from './assert.mjs'
+import { nullReporter } from './reporter.mjs'
 
 const C = {
   reset: '\x1b[0m',
@@ -39,8 +40,15 @@ const C = {
 
 // The context object passed to every test body. One flat surface so specs
 // read declaratively: ctx.openNote(...), ctx.text(...), ctx.assert.eq(...).
-function makeContext() {
+// `reporter` is the release-report recorder (nullReporter when not in --report
+// mode, so ctx.step / ctx.shot are cheap no-ops in a normal run).
+function makeContext(reporter) {
   return {
+    // Release report (no-ops unless `npm run test:e2e -- --report`).
+    // ctx.step(text) records a narrative step; ctx.shot(caption, opts) captures
+    // a screenshot for the report. Both are no-ops in a normal run.
+    step: (text) => reporter.step(text),
+    shot: (caption, opts) => reporter.shot(caption, opts),
     // CLI / eval
     eval: cli.evalRaw,
     evalJSON: cli.evalJSON,
@@ -89,9 +97,10 @@ function makeContext() {
   }
 }
 
-// Run the given suites. `opts`: { filter, bail, list }.
+// Run the given suites. `opts`: { filter, bail, list, reporter }.
 export async function runSuites(suites, opts = {}) {
-  const ctx = makeContext()
+  const reporter = opts.reporter || nullReporter
+  const ctx = makeContext(reporter)
   let passed = 0
   let failed = 0
   const failures = []
@@ -112,9 +121,11 @@ export async function runSuites(suites, opts = {}) {
     }
 
     console.log(`\n${C.cyan}${C.bold}▸ ${suite.name}${C.reset}`)
+    reporter.beginSuite(suite.name, suite.description || '')
 
     for (const [name, fn] of tests) {
       const started = Date.now()
+      reporter.beginTest(name)
       try {
         // Close any modal / transient panel a previous test (or run) left
         // open — a stray modal sits over the reading view and breaks unrelated
@@ -127,12 +138,15 @@ export async function runSuites(suites, opts = {}) {
         await fn(ctx)
         const ms = Date.now() - started
         console.log(`  ${C.green}✓${C.reset} ${name} ${C.dim}(${ms}ms)${C.reset}`)
+        reporter.endTest('passed', null, ms)
         passed++
       } catch (e) {
+        const ms = Date.now() - started
         failed++
         const where = e instanceof AssertionError ? 'assertion' : 'error'
         console.log(`  ${C.red}✗ ${name}${C.reset}`)
         console.log(`    ${C.red}${where}: ${e.message}${C.reset}`)
+        reporter.endTest('failed', `${where}: ${e.message}`, ms)
         failures.push(`${suite.name} › ${name} — ${e.message}`)
         if (opts.bail) break
       }

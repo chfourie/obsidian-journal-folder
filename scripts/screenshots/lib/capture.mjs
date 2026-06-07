@@ -26,6 +26,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // the MEASURE_PREAMBLE helpers in scope (rectOf / union / bodyRect / bodyUnion).
 
 import { execFileSync } from 'node:child_process'
+import { renameSync } from 'node:fs'
 import { evalRaw, command, oneLine } from '../../../tests/e2e/lib/cli.mjs'
 
 // Helpers injected before every measure expression. Collapsed to one line by
@@ -99,6 +100,76 @@ export function cropFrom(fullPath, outPath, rect, pad = 14) {
     { stdio: 'ignore' }
   )
   return crop
+}
+
+// --- Decorating a cropped shot so it stands out from the page background ----
+// Documentation screenshots are captured in light mode, so a near-white app
+// frame blends into GitHub's white page. We separate it with a soft DROP SHADOW
+// when ImageMagick is available, and fall back to a thin neutral BORDER via the
+// always-present `sips` otherwise. Both are baked into the PNG (GitHub strips
+// inline <img> styles, so CSS shadows wouldn't survive there). Idempotent-ish:
+// run once per freshly-cropped file.
+
+let _magickTool
+function magickTool() {
+  if (_magickTool !== undefined) return _magickTool
+  for (const t of ['magick', 'convert']) {
+    try {
+      execFileSync(t, ['-version'], { stdio: 'ignore' })
+      _magickTool = t
+      return t
+    } catch {
+      /* not installed */
+    }
+  }
+  _magickTool = null
+  return null
+}
+
+// Returns the mode used: 'shadow' | 'border' | 'none'.
+export function decorateShot(path) {
+  const tmp = `${path}.framed.png`
+  const tool = magickTool()
+  if (tool) {
+    try {
+      // Soft drop shadow on a transparent canvas (adapts to light/dark pages).
+      execFileSync(
+        tool,
+        [
+          path, '(', '+clone', '-background', '#00000066', '-shadow', '55x8+0+5', ')',
+          '+swap', '-background', 'none', '-layers', 'merge', '+repage',
+          tmp,
+        ],
+        { stdio: 'ignore' }
+      )
+      renameSync(tmp, path)
+      return 'shadow'
+    } catch {
+      /* fall through to the sips border */
+    }
+  }
+  try {
+    // Thin neutral frame (GitHub's border grey) — visible on white and dark.
+    const read = (k) =>
+      Number(execFileSync('sips', ['-g', k, path], { encoding: 'utf8' }).trim().split(/\s+/).pop())
+    const w = read('pixelWidth')
+    const h = read('pixelHeight')
+    if (!w || !h) return 'none'
+    const b = 4 // device px (~2 CSS px at dpr 2)
+    execFileSync(
+      'sips',
+      [
+        '--padToHeightWidth', String(h + b * 2), String(w + b * 2),
+        '--padColor', 'd0d7de',
+        path, '--out', tmp,
+      ],
+      { stdio: 'ignore' }
+    )
+    renameSync(tmp, path)
+    return 'border'
+  } catch {
+    return 'none'
+  }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))

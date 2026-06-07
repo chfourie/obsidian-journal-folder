@@ -41,6 +41,8 @@ async function writeTemplate(ctx, relPath, content) {
 
 export const suite = {
   name: 'auto-template',
+  description:
+    'When auto-templating is on, a newly created journal note is pre-filled from the matching template note (with per-folder overrides and a default fallback); notes outside a journal folder and notes created with the feature off stay empty.',
   settings: {
     autoTemplateEnabled: true,
     templateFolder: GLOBAL_DIR,
@@ -56,6 +58,7 @@ export const suite = {
         await writeTemplate(ctx, `${GLOBAL_DIR}/daily-template.md`, '## Daily log\n\n- \n')
         const path = 'Journal/2026-06-12.md'
         ctx.assert.ok(!ctx.noteExists(path), 'precondition: note absent')
+        ctx.step('Create a new daily note and confirm it is pre-filled from the daily template.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(600)
         ctx.assert.contains(
@@ -70,6 +73,7 @@ export const suite = {
       async (ctx) => {
         await writeTemplate(ctx, `${GLOBAL_DIR}/default-template.md`, '# Fallback body\n')
         const path = 'Journal/2026-W24.md'
+        ctx.step('Create a weekly note with no weekly template and confirm it falls back to the default template.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(600)
         ctx.assert.contains(
@@ -85,6 +89,7 @@ export const suite = {
         await writeTemplate(ctx, `${GLOBAL_DIR}/monthly-template.md`, '# Global monthly\n')
         await writeTemplate(ctx, 'Journal/Templates/monthly-template.md', '# Override monthly\n')
         const path = 'Journal/2026-07.md'
+        ctx.step('Create a monthly note and confirm the per-folder override template wins over the global one.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(600)
         const body = ctx.readNote(path)
@@ -101,6 +106,7 @@ export const suite = {
           '---\ntags: [journal]\n---\n# Daily\n'
         )
         const path = 'Journal/2026-06-13.md'
+        ctx.step('Create a note from a template that has front matter and confirm the front matter is copied verbatim.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(600)
         const body = ctx.readNote(path)
@@ -112,6 +118,7 @@ export const suite = {
       async (ctx) => {
         await writeTemplate(ctx, `${GLOBAL_DIR}/daily-template.md`, '## Daily log\n')
         const path = 'Misc/2026-06-12-scratch.md'
+        ctx.step('Create a note outside any journal folder and confirm it is left empty.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(500)
         ctx.assert.ok(
@@ -126,6 +133,7 @@ export const suite = {
         await writeTemplate(ctx, `${GLOBAL_DIR}/daily-template.md`, '## Daily log\n')
         await ctx.applySettings({ autoTemplateEnabled: false })
         const path = 'Journal/2026-06-12.md'
+        ctx.step('Turn auto-templating off, create a daily note, and confirm it stays empty.')
         await ctx.createNoteViaApp(path, '')
         await ctx.sleep(500)
         ctx.assert.ok(
