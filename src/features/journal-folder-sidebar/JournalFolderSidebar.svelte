@@ -58,6 +58,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi: (api: SidebarUpdateApi) => void
     onInitJournalFolder: () => void
     onEditFolderConfig: (folderPath: string) => void
+    onRepopulateFromTemplate: (filePath: string) => void
     openPluginSettings: () => void
     buildAnchorNote: (
       folderPath: string,
@@ -78,6 +79,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     registerApi,
     onInitJournalFolder,
     onEditFolderConfig,
+    onRepopulateFromTemplate,
     openPluginSettings,
     buildAnchorNote,
     confirmCreate,
@@ -342,6 +344,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       icon: 'folder-plus',
       onClick: onInitJournalFolder,
     })
+
+    // Re-populate the current note from its template — only when the active
+    // file is a journal note in a templating-enabled folder. Destructive, so
+    // the action itself confirms before overwriting.
+    if (activeFile?.repopulatable) {
+      const file = activeFile
+      items.push({ kind: 'separator' })
+      items.push({
+        kind: 'item',
+        title: 'Re-populate note from template',
+        icon: 'file-stack',
+        onClick: () => onRepopulateFromTemplate(file.path),
+      })
+    }
 
     return items
   }

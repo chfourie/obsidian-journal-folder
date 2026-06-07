@@ -18,3 +18,4 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 export { default as ErrorMessage } from './ErrorMessage.svelte'
 export { default as NoteLink } from './NoteLink.svelte'
+export { confirmModal, type ConfirmOptions } from './confirm-modal'

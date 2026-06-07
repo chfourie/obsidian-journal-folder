@@ -16,13 +16,26 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ItemView, type Plugin, TFile, type WorkspaceLeaf } from 'obsidian'
+import {
+  ItemView,
+  Notice,
+  type Plugin,
+  TFile,
+  type WorkspaceLeaf,
+} from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
   configPathFor,
   findJournalFolderPaths,
+  FolderSettingsResolver,
   type JournalFolderSettings,
 } from '../../data-access'
+import {
+  isTemplateableNote,
+  isTruthySetting,
+  resolveNoteTemplate,
+} from '../journal-auto-template'
+import { confirmModal } from '../../ui'
 import {
   computeTaskSnapshot,
   type TaskCache,
@@ -65,6 +78,9 @@ export type ActiveFileSnapshot = {
   path: string
   basename: string
   parentPath: string
+  // True when the active file is a journal note in a templating-enabled
+  // journal folder — gates the *Re-populate from template* menu item.
+  repopulatable: boolean
 }
 
 // Items the Svelte component renders in its `<body>`-portaled menu /
@@ -83,6 +99,7 @@ export class JournalFolderSidebarView extends ItemView {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   #component: any = null
   #api: SidebarUpdateApi | null = null
+  readonly #resolver: FolderSettingsResolver
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -93,6 +110,7 @@ export class JournalFolderSidebarView extends ItemView {
     private readonly registry: ViewRegistry
   ) {
     super(leaf)
+    this.#resolver = new FolderSettingsResolver(plugin)
   }
 
   getViewType(): string {
@@ -131,6 +149,8 @@ export class JournalFolderSidebarView extends ItemView {
         onInitJournalFolder: () => this.openInitFolderPicker(),
         onEditFolderConfig: (folderPath: string) =>
           this.openFolderConfigModal(folderPath),
+        onRepopulateFromTemplate: (filePath: string) =>
+          this.repopulateFromTemplate(filePath),
         buildAnchorNote: (folderPath: string, anchorBasename: string) =>
           buildAnchorNote(
             this.plugin.app,
@@ -292,6 +312,49 @@ export class JournalFolderSidebarView extends ItemView {
       path: file.path,
       basename: file.basename,
       parentPath: file.parent?.path ?? '',
+      repopulatable: this.canRepopulate(file),
     }
+  }
+
+  // Per-folder-resolved settings for a file (honours `journal-folder.md`
+  // front-matter overrides for `quartersEnabled` / `autoTemplateEnabled`).
+  private resolveFileSettings(file: TFile): JournalFolderSettings {
+    return this.#resolver.resolve(this.getSettings(), file, '')
+  }
+
+  // Whether the *Re-populate from template* action applies to `file`:
+  // templating is enabled (global or per-folder) and the file is a journal
+  // note in a journal folder.
+  private canRepopulate(file: TFile): boolean {
+    const settings = this.resolveFileSettings(file)
+    if (!isTruthySetting(settings.autoTemplateEnabled)) return false
+    return isTemplateableNote(this.plugin.app, file, settings)
+  }
+
+  // Overwrites the note with its resolved template, after a destructive
+  // confirmation. Re-checks eligibility (the active file may have changed
+  // since the menu opened) and resolves the template through the same path the
+  // auto-template create listener uses.
+  private async repopulateFromTemplate(filePath: string): Promise<void> {
+    const file = this.plugin.app.vault.getAbstractFileByPath(filePath)
+    if (!(file instanceof TFile)) return
+    const settings = this.resolveFileSettings(file)
+    if (!isTruthySetting(settings.autoTemplateEnabled)) return
+    const template = await resolveNoteTemplate(this.plugin.app, file, settings)
+    if (template === null) {
+      new Notice('No template is available for this note.')
+      return
+    }
+    const confirmed = await confirmModal(this.plugin.app, {
+      title: 'Re-populate from template?',
+      message:
+        `This replaces the entire contents of "${file.basename}" with its ` +
+        `template. This can't be undone.`,
+      confirmText: 'Replace',
+      destructive: true,
+    })
+    if (!confirmed) return
+    await this.plugin.app.vault.modify(file, template)
+    new Notice(`Re-populated "${file.basename}" from its template.`)
   }
 }

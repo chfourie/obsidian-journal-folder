@@ -34,7 +34,7 @@ A template note's body — **front matter included** — is copied verbatim into
 
 ## Resolution precedence
 
-`resolveTemplate` (in `journal-auto-template-feature.ts`) reads candidates in order and seeds the first whose content is non-empty (`firstNonEmptyTemplate` in `src/data-access/template-folder.ts`):
+`resolveNoteTemplate` (in `template-resolution.ts`, shared by the create listener and the sidebar's *Re-populate note from template* action) reads candidates in order and returns the first whose content is non-empty (`firstNonEmptyTemplate` in `src/data-access/template-folder.ts`), or null when the file isn't a templateable journal note:
 
 1. `<journalFolder>/<override>/<tier>-template.md` — per-journal override
 2. `<journalFolder>/<override>/default-template.md`
@@ -70,5 +70,10 @@ The settings tab grows a **Create template files** button (`scaffoldTemplateFile
 - `DEFAULT_AUTO_TEMPLATE` — the built-in fallback.
 - `src/data-access/template-folder.ts` — `TEMPLATE_FILENAMES`, `DEFAULT_TEMPLATE_FILENAME`, `isTemplateBasename`, `templatePreviewTier`, `templateFileTier`, `templateCandidatePaths`, `firstNonEmptyTemplate`, `currentPeriodBasename`, `buildTemplatePreviewNote`, `overrideFolderPath`.
 - `migrate-inline-templates.ts` — `collectMigrationWrites`, `ensureFolderExists`, `runInlineTemplateMigration`.
+- `template-resolution.ts` — `isTemplateableNote`, `resolveNoteTemplate` (the resolution path shared by the create listener and the sidebar *Re-populate note from template* action).
 
-Unit tests: `tests/data-access/template-folder.test.ts`, `tests/features/migrate-inline-templates.test.ts`, `tests/features/auto-template-content.test.ts`, and the end-to-end create-event flow in `tests/features/journal-auto-template-feature.test.ts`.
+## Re-populating a note on demand
+
+Beyond seeding on create, the sidebar **More...** menu offers **Re-populate note from template** when the active file is a journal note in a templating-enabled folder (`JournalFolderSidebarView.canRepopulate` → `isTemplateableNote` + resolved `autoTemplateEnabled`, surfaced as `ActiveFileSnapshot.repopulatable`). It re-runs `resolveNoteTemplate` for the note and **overwrites** its contents, after a destructive `confirmModal` (`src/ui/confirm-modal.ts`). Because it discards existing content it always confirms first; cancelling (or Esc / click-outside) is a no-op.
+
+Unit tests: `tests/data-access/template-folder.test.ts`, `tests/features/migrate-inline-templates.test.ts`, `tests/features/template-resolution.test.ts`, `tests/features/auto-template-content.test.ts`, and the end-to-end create-event flow in `tests/features/journal-auto-template-feature.test.ts`.

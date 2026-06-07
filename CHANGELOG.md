@@ -30,6 +30,10 @@ release body).
   to the template note itself instead of navigating to real journal notes).
 - **Create template files** button in the settings tab scaffolds any missing
   standardized template notes.
+- **Re-populate note from template** — a new action in the sidebar **More...**
+  menu (shown only when the active note is a journal note in a
+  templating-enabled folder) re-applies the note's template, overwriting its
+  contents. It asks for confirmation first, since it's destructive.
 
 ## [3.0.1]
 

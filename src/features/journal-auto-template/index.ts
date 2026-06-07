@@ -28,3 +28,7 @@ export {
   runInlineTemplateMigration,
   type TemplateWrite,
 } from './migrate-inline-templates'
+export {
+  isTemplateableNote,
+  resolveNoteTemplate,
+} from './template-resolution'

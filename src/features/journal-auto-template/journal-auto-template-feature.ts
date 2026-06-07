@@ -19,20 +19,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import {
   configPathFor,
   FOLDER_CONFIG_FILENAME,
-  firstNonEmptyTemplate,
   type JournalFolderSettings,
-  type JournalTimeUnit,
   journalUnitForBasename,
   PluginFeature,
-  templateCandidatePaths,
 } from 'src/data-access'
 import { Notice, TFile, type Plugin, type TAbstractFile } from 'obsidian'
-import {
-  DEFAULT_AUTO_TEMPLATE,
-  isTruthySetting,
-  stripFrontMatter,
-} from './auto-template-content'
+import { isTruthySetting } from './auto-template-content'
 import { runInlineTemplateMigration } from './migrate-inline-templates'
+import { resolveNoteTemplate } from './template-resolution'
 
 export class JournalAutoTemplateFeature extends PluginFeature {
   constructor(
@@ -109,54 +103,9 @@ export class JournalAutoTemplateFeature extends PluginFeature {
     const existing = await this.plugin.app.vault.read(file)
     if (existing.length > 0) return
 
-    const template = await this.resolveTemplate(
-      file,
-      unit,
-      settings,
-      folderConfigFile
-    )
+    const template = await resolveNoteTemplate(this.plugin.app, file, settings)
+    if (template === null) return
     await this.plugin.app.vault.modify(file, template)
-  }
-
-  // Resolution precedence (first non-empty wins):
-  //   1. `<folder>/<override>/<tier>.md`   per-journal override
-  //   2. `<folder>/<override>/default.md`
-  //   3. body of `journal-folder.md`       legacy per-folder template
-  //   4. `<templateFolder>/<tier>.md`      global
-  //   5. `<templateFolder>/default.md`
-  //   6. built-in DEFAULT_AUTO_TEMPLATE
-  // Template *files* are copied verbatim (front matter included); only the
-  // legacy config-note body is front-matter-stripped.
-  private async resolveTemplate(
-    file: TFile,
-    unit: JournalTimeUnit,
-    settings: JournalFolderSettings,
-    folderConfigFile: TFile
-  ): Promise<string> {
-    const { override, global } = templateCandidatePaths({
-      journalFolderPath: file.parent?.path ?? '',
-      overrideName: settings.templateOverrideFolderName,
-      globalTemplateFolder: settings.templateFolder,
-      tier: unit,
-    })
-    const overrideContents = await Promise.all(
-      override.map((p) => this.readFileIfExists(p))
-    )
-    const body = stripFrontMatter(
-      await this.plugin.app.vault.read(folderConfigFile)
-    )
-    const globalContents = await Promise.all(
-      global.map((p) => this.readFileIfExists(p))
-    )
-    return firstNonEmptyTemplate(
-      [...overrideContents, body, ...globalContents],
-      DEFAULT_AUTO_TEMPLATE
-    )
-  }
-
-  private async readFileIfExists(path: string): Promise<string | null> {
-    const f = this.plugin.app.vault.getAbstractFileByPath(path)
-    return f instanceof TFile ? this.plugin.app.vault.read(f) : null
   }
 
   private getFolderConfigFile(file: TFile): TFile | null {
