@@ -64,7 +64,7 @@ Once you have one journal folder, repeat the *Initialise* step for any other fol
 
 ## Working with other plugins and themes
 
-- **Themes that style task checkboxes** (Minimal, Things, AnuPpuccin, Border, …) coexist via per-status *theme* rendering. [Read more →](#using-with-a-theme-that-styles-tasks)
+- **Themes that style task checkboxes** (Minimal, Things, AnuPpuccin, Border, …) coexist via a flow's *Theme checkbox* rendering mode. [Read more →](#using-with-a-theme-that-styles-tasks)
 - **The Obsidian Tasks plugin** shares the same checkbox alphabet; keep `task-interaction-scope` on `lists` so both plugins stay out of each other's way. [Read more →](#using-with-the-obsidian-tasks-plugin)
 - **Templater** with *Folder Templates* is the cleanest way to inject the `journal-header` block automatically if you'd rather not use the plugin's built-in auto-template.
 
@@ -453,8 +453,10 @@ A **task flow** is a named ordered set of statuses. Each status has:
 - A **label** (e.g. *Open*, *In progress*, *Done*).
 - A **character** used inside `[ ]` on disk (e.g. ` `, `/`, `x`).
 - A **next** target — what the left-click cycle moves to. Point it at the status *itself* to open the [status picker](#the-status-picker) on click instead of cycling.
-- A **rendering** choice — either let the active Obsidian theme draw the checkbox, or have the plugin paint a custom shell + icon + colour.
+- An **appearance** — a custom shell (shape, background, border, colour) and inner icon, used when the flow renders with plugin icons.
 - An `isDone` flag that drives the *Hide completed* filter.
+
+The flow as a whole has a single **rendering mode** — *Plugin icons* (the plugin paints the shell + icon) or *Theme checkbox* (Obsidian's native checkbox, styled by your theme). It applies to every status in the flow; see [Using with a theme that styles tasks](#using-with-a-theme-that-styles-tasks).
 
 Four **built-in templates** ship as read-only starting points — apply one to seed or reset a flow:
 
@@ -706,35 +708,35 @@ interactive.
 
 ## Using with a theme that styles tasks
 
-Several popular Obsidian themes — **Minimal**, **Things**, **AnuPpuccin**, **Border**, and others — ship custom checkbox styling that recognises the community-conventional alphabet (`[ ]`, `[/]`, `[x]`, `[>]`, `[-]`, sometimes `[d]` / `[?]`). Journal Folder is designed to coexist with these themes; you can pick per-status which side draws the checkbox.
+Several popular Obsidian themes — **Minimal**, **Things**, **AnuPpuccin**, **Border**, and others — ship custom checkbox styling that recognises the community-conventional alphabet (`[ ]`, `[/]`, `[x]`, `[>]`, `[-]`, sometimes `[d]` / `[?]`). Journal Folder is designed to coexist with these themes; you pick — per flow — which side draws the checkbox.
 
 ### The two rendering modes
 
-Every status in a task flow has a **rendering** field:
+Each task flow has a single **rendering** mode that applies to all of its statuses:
 
-- **`theme`** — the plugin emits Obsidian's native `<input type="checkbox" data-task="…">` element and lets the active theme's CSS do the styling. This is the right choice for any status whose character your theme already handles.
-- **`plugin`** — the plugin paints a custom shell (shape, background, border, colour) and inner glyph (Lucide icon, emoji, image URL, or sanitised inline SVG). This is the right choice for statuses your theme doesn't know about, or when you want a specific look regardless of theme.
+- **Theme checkbox** (`theme`) — the plugin emits Obsidian's native `<input type="checkbox" data-task="…">` element and lets the active theme's CSS do the styling. Choose this when your theme already handles every character in the flow's alphabet.
+- **Plugin icons** (`plugin`) — the plugin paints a custom shell (shape, background, border, colour) and inner glyph (Lucide icon, emoji, image URL, or sanitised inline SVG) for each status. Choose this when the flow uses characters your theme doesn't know about, or when you want a specific look regardless of theme.
 
-The choice is **per-status**, not per-flow — a single flow can mix theme-styled and plugin-painted rows. That's exactly what you want when a theme supports `[ ]` `[/]` `[x]` but not your custom `[d]` / `[?]`: leave the supported chars on `theme`, let the plugin paint the rest.
+The mode is **per-flow, not per-status** — mixing theme-styled and plugin-painted rows inside one nested list doesn't paint reliably across themes, so a flow always renders one way. If your theme styles some of your characters but not others (say it supports `[ ]` `[/]` `[x]` but not your custom `[d]` / `[?]`), keep the flow on **Plugin icons** so every status looks right, or use a flow whose alphabet your theme fully supports on **Theme checkbox**.
 
-The rendering field lives in *Settings → Community plugins → Journal Folder → Tasks → \<flow\> → \<status\> → Basics*.
+The rendering mode lives in *Settings → Community plugins → Journal Folder → Tasks → \<flow\>* (the flow editor).
 
 ### Recommended starting point
 
 1. Apply the built-in template that matches your workflow as a starting flow (Simple / Kanban / Bullet Journal / GTD).
-2. Switch each status's *Rendering* to **theme** if your theme already styles its character.
-3. Leave statuses your theme doesn't recognise on **plugin** rendering and pick a shell + icon that fits.
+2. If your theme already styles every character in that flow, set the flow's *Rendering* to **Theme checkbox** and let the theme draw them.
+3. Otherwise leave the flow on **Plugin icons** and give each status a shell + icon that fits — it looks consistent regardless of the active theme.
 
 ### Scope of interaction
 
 If you only want the plugin's task surfaces (sidebar panel, `journal-tasks` blocks) to use your configured rendering — and want document-body checkboxes left entirely to Obsidian / your theme — leave **`task-interaction-scope`** on its default value of **`lists`**. This is the default for fresh installs and is the safest mode when you're relying on a theme to drive visuals.
 
-If you'd rather have the plugin's rendering apply uniformly to every task checkbox in the vault (so the configured plugin-painted shells appear in regular notes too, not just journal surfaces), switch the scope to **`everywhere`**. Note that this competes with theme CSS — anywhere you've set a status to `plugin` rendering, the theme's checkbox styling for that character will be overridden by the plugin's shell.
+If you'd rather have the plugin's rendering apply uniformly to every task checkbox in the vault (so the configured plugin-painted shells appear in regular notes too, not just journal surfaces), switch the scope to **`everywhere`**. Note that this competes with theme CSS — for any flow set to **Plugin icons**, the theme's checkbox styling is overridden by the plugin's shell wherever those tasks appear.
 
 ### Caveats
 
-- **Custom characters your theme doesn't know about** render as plain checkboxes in theme-styled documents. The plugin's own surfaces (sidebar, `journal-tasks` blocks) stay accurate either way.
-- **Theme CSS targeting `input[type="checkbox"]`** only applies to statuses with `rendering: theme`. Plugin-painted rows are real DOM `<span>` shells and won't be touched by checkbox-selector CSS.
+- **Custom characters your theme doesn't know about** render as plain checkboxes under **Theme checkbox** rendering. Switch the flow to **Plugin icons** (or rely on the plugin's own surfaces — sidebar, `journal-tasks` blocks — which stay accurate either way).
+- **Theme CSS targeting `input[type="checkbox"]`** only applies to flows using **Theme checkbox** rendering. **Plugin icons** rows are real DOM `<span>` shells and won't be touched by checkbox-selector CSS.
 - **`is-checked` class.** Some themes change their styling based on Obsidian's `is-checked` class, which is only added to native checkboxes whose status is `[x]`. For other "done" characters (`[>]`, `[-]`), the plugin still treats them as done for filtering but the theme may not.
 
 ---
