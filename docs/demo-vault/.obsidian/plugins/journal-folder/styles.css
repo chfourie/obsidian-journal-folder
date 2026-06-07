@@ -412,7 +412,13 @@
 }
 
 .journal-folder-calendar-cell.is-current,
-.journal-folder-calendar-cell.is-current:hover {
+.journal-folder-calendar-cell.is-current:hover,
+/* The Sunday rule above (`.day.is-sunday`, 3 classes + !important) would
+   otherwise out-specify the 2-class current rule and keep accent-coloured
+   text on the accent background, making a current Sunday unreadable. This
+   4-class selector wins it back so every current cell uses on-accent text. */
+.journal-folder-calendar-cell.day.is-sunday.is-current,
+.journal-folder-calendar-cell.day.is-sunday.is-current:hover {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent) !important;
 	font-weight: 600;
