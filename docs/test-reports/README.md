@@ -4,7 +4,7 @@
 
 | | |
 | --- | --- |
-| **Plugin version** | 3.1.1 |
+| **Plugin version** | 3.1.2 |
 | **Obsidian** | unknown |
 | **Generated** | 2026-06-07 |
 | **Suites** | 16 |
@@ -36,11 +36,11 @@
 
 Baseline checks that the plugin loads and that a journal note renders its header while a non-journal note stays untouched.
 
-### ✓ plugin is loaded and exposes settings _(726ms)_
+### ✓ plugin is loaded and exposes settings _(689ms)_
 
 1. Confirm the Journal Folder plugin is installed and active.
 
-### ✓ daily note renders the journal header _(3022ms)_
+### ✓ daily note renders the journal header _(3048ms)_
 
 1. Open a daily note and check the journal header appears.
 
@@ -48,7 +48,7 @@ Baseline checks that the plugin loads and that a journal note renders its header
 
 *Daily note journal header*
 
-### ✓ header is a no-op in a non-journal note _(1734ms)_
+### ✓ header is a no-op in a non-journal note _(1767ms)_
 
 1. Open an ordinary note and confirm no journal header is added.
 
@@ -58,7 +58,7 @@ Baseline checks that the plugin loads and that a journal note renders its header
 
 The in-note journal header rendered by the `journal-header` code block — the folder title, the entry’s H1, the back / Today / forward navigation row, and the “More…” popover that hosts the calendar toggle and secondary links.
 
-### ✓ daily note renders the folder title and H1 title _(2731ms)_
+### ✓ daily note renders the folder title and H1 title _(2892ms)_
 
 1. Open the daily note Journal/2026-06-06 in reading view.
 2. Header shows the folder title “Journal” and the entry’s H1.
@@ -67,7 +67,7 @@ The in-note journal header rendered by the `journal-header` code block — the f
 
 *Daily note header*
 
-### ✓ backward navigation link targets the previous day _(2609ms)_
+### ✓ backward navigation link targets the previous day _(2764ms)_
 
 1. The ‹‹ back link on 2026-06-06 resolves to the previous day, 2026-06-05.
 
@@ -75,7 +75,7 @@ The in-note journal header rendered by the `journal-header` code block — the f
 
 *Navigation row (back / Today / forward)*
 
-### ✓ More popover opens and shows a calendar toggle _(3052ms)_
+### ✓ More popover opens and shows a calendar toggle _(3234ms)_
 
 1. Click “More…” to open the secondary popover (portaled to <body>).
 
@@ -83,7 +83,7 @@ The in-note journal header rendered by the `journal-header` code block — the f
 
 *“More…” popover with the calendar toggle*
 
-### ✓ monthly note renders a header too _(2701ms)_
+### ✓ monthly note renders a header too _(2825ms)_
 
 1. Open the monthly note Journal/2026-06 — the header adapts to the month tier.
 
@@ -91,7 +91,7 @@ The in-note journal header rendered by the `journal-header` code block — the f
 
 *Monthly note header*
 
-### ✓ a past note links forward to the next day _(2846ms)_
+### ✓ a past note links forward to the next day _(2799ms)_
 
 1. On the past note 2026-06-05 the ›› forward link points at the next day.
 
@@ -105,7 +105,7 @@ The in-note journal header rendered by the `journal-header` code block — the f
 
 The in-note calendar shows the current month as a grid of day cells, marks which days already have notes, lets you jump around with arrows and a Year/Month picker, and creates a missing entry when you click an empty day.
 
-### ✓ calendar renders day cells and a weekday header _(3825ms)_
+### ✓ calendar renders day cells and a weekday header _(2831ms)_
 
 1. Open the daily note Journal/2026-06-06 in reading view.
 2. The calendar shows the month grid with 92 day cells.
@@ -114,7 +114,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Month calendar*
 
-### ✓ an existing day cell is marked exists; a missing one is marked missing _(2882ms)_
+### ✓ an existing day cell is marked exists; a missing one is marked missing _(2756ms)_
 
 1. Open the daily note Journal/2026-06-06 in reading view.
 2. Days with a note are styled as existing; empty days are styled as missing.
@@ -123,7 +123,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Existing vs missing day cells*
 
-### ✓ Year/Month picker opens with a month grid _(3144ms)_
+### ✓ Year/Month picker opens with a month grid _(3114ms)_
 
 1. Open the daily note and click the Year/Month picker trigger.
 2. The picker opens with a year selector and twelve month options.
@@ -132,7 +132,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Year/Month picker*
 
-### ✓ clicking a past empty day cell creates the note after confirmation _(4143ms)_
+### ✓ clicking a past empty day cell creates the note after confirmation _(4100ms)_
 
 1. Click the past, empty day cell for 2026-06-04.
 2. A confirmation modal asks before creating the missing note.
@@ -142,7 +142,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Create-missing-note confirmation*
 
-### ✓ prev / next arrows change the visible months _(4309ms)_
+### ✓ prev / next arrows change the visible months _(4334ms)_
 
 1. Open the daily note, then click the next arrow to advance a month.
 2. The next arrow scrolls July into view.
@@ -152,7 +152,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Next month in view*
 
-### ✓ the Current link jumps back to today’s month _(4252ms)_
+### ✓ the Current link jumps back to today’s month _(4245ms)_
 
 1. Open the daily note and scroll two months ahead so the Current link appears.
 2. Clicking Current jumps the calendar back to today’s month.
@@ -161,7 +161,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 *Back to current month*
 
-### ✓ quarter cell appears only when quarters are enabled _(4260ms)_
+### ✓ quarter cell appears only when quarters are enabled _(4214ms)_
 
 1. With quarters off (baseline), the calendar shows no quarter cell.
 2. Enabling quarters adds a quarter cell to the calendar.
@@ -176,7 +176,7 @@ The in-note calendar shows the current month as a grid of day cells, marks which
 
 Tasks appear in two places: an in-note journal-tasks block that aggregates tasks for the note’s period, and a sidebar task panel. Both render custom status icons, group tasks by source note and category, and show a truncation footer when the item limit is reached.
 
-### ✓ in-note journal-tasks block renders task rows _(2852ms)_
+### ✓ in-note journal-tasks block renders task rows _(2823ms)_
 
 1. Open the daily note Journal/2026-06-06 in reading view.
 2. The in-note journal-tasks block lists 7 task rows.
@@ -185,7 +185,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *In-note task block*
 
-### ✓ plugin-rendered status icons are present (Bullet Journal flow) _(2777ms)_
+### ✓ plugin-rendered status icons are present (Bullet Journal flow) _(2768ms)_
 
 1. Open the daily note in reading view.
 2. Each task row shows a custom Bullet Journal status icon.
@@ -194,7 +194,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *Bullet Journal status icons*
 
-### ✓ document-body checkboxes get the plugin swap marker _(3111ms)_
+### ✓ document-body checkboxes get the plugin swap marker _(3058ms)_
 
 1. Open the daily note and inspect the raw task lines in the note body.
 2. Native checkboxes in the note body are swapped for the plugin’s status icons.
@@ -203,7 +203,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *Document body status icons*
 
-### ✓ sidebar task panel renders with a scope trigger _(3892ms)_
+### ✓ sidebar task panel renders with a scope trigger _(3874ms)_
 
 1. Open the daily note and reveal the sidebar task panel.
 2. The sidebar panel lists tasks with a Scope opener for narrowing the view.
@@ -212,7 +212,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *Sidebar task panel*
 
-### ✓ tasks are grouped under their source note _(3769ms)_
+### ✓ tasks are grouped under their source note _(3760ms)_
 
 1. Open the daily note and reveal the sidebar task panel.
 2. Tasks in the sidebar are grouped under the note they came from.
@@ -221,7 +221,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *Tasks grouped by source note*
 
-### ✓ tasks matching a category appear in a category section _(4244ms)_
+### ✓ tasks matching a category appear in a category section _(4235ms)_
 
 1. Anchor the panel on the active note and open the sidebar task panel.
 2. A task tagged #important surfaces under its Important category section.
@@ -230,7 +230,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 *Important category section*
 
-### ✓ the truncation footer appears when the item cap is hit _(4224ms)_
+### ✓ the truncation footer appears when the item cap is hit _(4237ms)_
 
 1. Set the item limit to 1 and open the sidebar task panel on the note.
 2. When the cap is exceeded, a truncation footer offers to raise the limit.
@@ -245,7 +245,7 @@ Tasks appear in two places: an in-note journal-tasks block that aggregates tasks
 
 Clicking a task’s status icon cycles it through the active flow (open → in-progress → done) and writes the change straight back to the note on disk; right-clicking opens an in-house status picker for jumping to any status, including cancelled. The same works from the sidebar panel.
 
-### ✓ left-click cycles open → in-progress and writes to disk _(3750ms)_
+### ✓ left-click cycles open → in-progress and writes to disk _(3716ms)_
 
 1. Open the daily note Journal/2026-06-06 with its open task on line 11.
 2. Left-clicking the icon cycles the task to in-progress and saves it to disk.
@@ -254,7 +254,7 @@ Clicking a task’s status icon cycles it through the active flow (open → in-p
 
 *Task cycled to in-progress*
 
-### ✓ right-click opens the status picker _(3287ms)_
+### ✓ right-click opens the status picker _(3296ms)_
 
 1. Open the daily note and right-click the open task’s status icon.
 2. The status picker opens listing every status in the flow.
@@ -263,7 +263,7 @@ Clicking a task’s status icon cycles it through the active flow (open → in-p
 
 *Status picker*
 
-### ✓ choosing a status from the picker persists it _(3793ms)_
+### ✓ choosing a status from the picker persists it _(3831ms)_
 
 1. Open the daily note and right-click the task to open the status picker.
 2. Choose Cancelled from the picker.
@@ -273,7 +273,7 @@ Clicking a task’s status icon cycles it through the active flow (open → in-p
 
 *Choosing Cancelled*
 
-### ✓ cycling from the sidebar panel also writes to disk _(4982ms)_
+### ✓ cycling from the sidebar panel also writes to disk _(5011ms)_
 
 1. Anchor on the active note and open the sidebar task panel.
 2. Click the open task’s status icon in the sidebar.
@@ -283,7 +283,7 @@ Clicking a task’s status icon cycles it through the active flow (open → in-p
 
 *Cycling a task from the sidebar*
 
-### ✓ theme-rendering flow keeps the native checkbox (no plugin icon swap) _(3444ms)_
+### ✓ theme-rendering flow keeps the native checkbox (no plugin icon swap) _(3555ms)_
 
 1. Switch the active flow to theme rendering and reopen the daily note.
 2. Under theme rendering the note keeps Obsidian’s native checkboxes, with no plugin icon swap.
@@ -298,7 +298,7 @@ Clicking a task’s status icon cycles it through the active flow (open → in-p
 
 Task migration moves unfinished tasks forward between journal notes in the same folder. You pick tasks from sibling notes in a picker; the origin is marked as migrated and linked to its new home, and a fresh copy lands in the destination note with a link back.
 
-### ✓ the migrate picker lists active tasks from sibling notes _(3977ms)_
+### ✓ the migrate picker lists active tasks from sibling notes _(3995ms)_
 
 1. From a destination note, run "Migrate tasks to this note" to open the picker, which groups the still-open tasks from sibling notes ready to pull forward.
 
@@ -306,7 +306,7 @@ Task migration moves unfinished tasks forward between journal notes in the same 
 
 *Migration picker grouping open tasks by note*
 
-### ✓ migrating stamps the origin and copies the task to the destination _(7187ms)_
+### ✓ migrating stamps the origin and copies the task to the destination _(7229ms)_
 
 1. Tick the task you want and confirm; the origin is stamped as migrated and a copy is written into the note you ran the command from.
 
@@ -318,7 +318,7 @@ Task migration moves unfinished tasks forward between journal notes in the same 
 
 *Destination note with the migrated task copied in*
 
-### ✓ cancelling the picker changes nothing _(3288ms)_
+### ✓ cancelling the picker changes nothing _(3316ms)_
 
 1. Cancelling the picker leaves every note exactly as it was, so opening it to browse never changes anything.
 
@@ -328,7 +328,7 @@ Task migration moves unfinished tasks forward between journal notes in the same 
 
 The sidebar task panel gathers tasks from your journal and lets you narrow what it shows along four axes — anchor, time range, folders, and a completed filter. Your choices are remembered, and the quarter range only appears when quarterly notes are enabled.
 
-### ✓ scope summary reflects the baseline scope _(3877ms)_
+### ✓ scope summary reflects the baseline scope _(3860ms)_
 
 1. Open the sidebar task panel; a one-line summary at the top tells you the current scope at a glance.
 
@@ -336,7 +336,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *Task panel with its scope summary*
 
-### ✓ scope panel opens with all four axes _(4434ms)_
+### ✓ scope panel opens with all four axes _(4444ms)_
 
 1. Click Scope to open the panel, which exposes all four axes: anchor, time range, folders, and the completed filter.
 
@@ -344,7 +344,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *Scope panel showing all four axes*
 
-### ✓ changing the range persists to settings _(4679ms)_
+### ✓ changing the range persists to settings _(4691ms)_
 
 1. Pick a wider time range, such as Week, and the panel remembers it across sessions.
 
@@ -352,7 +352,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *Week range selected in the scope panel*
 
-### ✓ changing the anchor persists to settings _(4638ms)_
+### ✓ changing the anchor persists to settings _(4667ms)_
 
 1. Switch the anchor to the current note so the task list follows whichever journal note you are viewing, and that choice is saved.
 
@@ -360,7 +360,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *Current-note anchor selected*
 
-### ✓ selecting all-folders persists to settings _(4682ms)_
+### ✓ selecting all-folders persists to settings _(4696ms)_
 
 1. Choose All journal folders to pull tasks from every journal at once, and the panel keeps that setting.
 
@@ -368,7 +368,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *All-folders scope selected*
 
-### ✓ toggling show-completed persists to settings _(4687ms)_
+### ✓ toggling show-completed persists to settings _(4745ms)_
 
 1. Toggle the completed filter to show or hide finished tasks; the preference is remembered for next time.
 
@@ -376,7 +376,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 *Completed-tasks filter toggled*
 
-### ✓ the quarter range option is gated by quartersEnabled _(7281ms)_
+### ✓ the quarter range option is gated by quartersEnabled _(7233ms)_
 
 1. The Quarter range only shows up once quarterly notes are enabled; with quarters off it is absent, and after turning them on it appears among the range options.
 
@@ -390,7 +390,7 @@ The sidebar task panel gathers tasks from your journal and lets you narrow what 
 
 Signifiers turn tags into small icons drawn in a left-margin gutter beside your journal entries, hiding the underlying tag text. You can line every icon up in one far-left column or hang each icon next to its own entry, in both reading view and live preview.
 
-### ✓ reading view renders signifier icons in a gutter _(3167ms)_
+### ✓ reading view renders signifier icons in a gutter _(3095ms)_
 
 1. Open a daily note in reading view; tagged lines show their signifier icons in the left-margin gutter instead of the raw tags.
 
@@ -398,7 +398,7 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 *Signifier icons in the reading-view gutter*
 
-### ✓ matched tag text is hidden in reading view _(3074ms)_
+### ✓ matched tag text is hidden in reading view _(3051ms)_
 
 1. With the icon shown in the gutter, the original tag text is hidden in reading view so the entry reads cleanly.
 
@@ -406,7 +406,7 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 *Matched tag hidden in reading view*
 
-### ✓ margin-column placement adds the column modifier _(3066ms)_
+### ✓ margin-column placement adds the column modifier _(3059ms)_
 
 1. Under the default margin-column placement, every icon lines up in one far-left column like the rule down a physical journal page.
 
@@ -414,7 +414,7 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 *Icons aligned in a single far-left column*
 
-### ✓ switching to per-row margin drops the column modifier _(3511ms)_
+### ✓ switching to per-row margin drops the column modifier _(3461ms)_
 
 1. Switching to per-row margin placement hangs each icon just left of its own entry, indented to follow the line it belongs to.
 
@@ -422,7 +422,7 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 *Icons hung next to each entry (per-row margin)*
 
-### ✓ live preview renders a gutter marker _(3055ms)_
+### ✓ live preview renders a gutter marker _(3081ms)_
 
 1. Signifiers also render while editing: live preview shows the same gutter icons as you type.
 
@@ -430,7 +430,7 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 *Signifier gutter in live preview*
 
-### ✓ live preview reveals the tag on the active line, hides it elsewhere _(4105ms)_
+### ✓ live preview reveals the tag on the active line, hides it elsewhere _(4100ms)_
 
 1. When you place the cursor on a line, its tag is revealed for editing while signifier tags on other lines stay hidden behind their icons.
 
@@ -444,27 +444,27 @@ Signifiers turn tags into small icons drawn in a left-margin gutter beside your 
 
 When auto-templating is on, a newly created journal note is pre-filled from the matching template note (with per-folder overrides and a default fallback); notes outside a journal folder and notes created with the feature off stay empty.
 
-### ✓ a new journal note is seeded from the matching tier template file _(2288ms)_
+### ✓ a new journal note is seeded from the matching tier template file _(2313ms)_
 
 1. Create a new daily note and confirm it is pre-filled from the daily template.
 
-### ✓ a tier with no dedicated file falls back to default-template.md _(2326ms)_
+### ✓ a tier with no dedicated file falls back to default-template.md _(2330ms)_
 
 1. Create a weekly note with no weekly template and confirm it falls back to the default template.
 
-### ✓ a per-folder override file beats the global template file _(2873ms)_
+### ✓ a per-folder override file beats the global template file _(2854ms)_
 
 1. Create a monthly note and confirm the per-folder override template wins over the global one.
 
-### ✓ a template file keeps its front matter verbatim _(2305ms)_
+### ✓ a template file keeps its front matter verbatim _(2328ms)_
 
 1. Create a note from a template that has front matter and confirm the front matter is copied verbatim.
 
-### ✓ a non-journal note is not seeded _(2219ms)_
+### ✓ a non-journal note is not seeded _(2224ms)_
 
 1. Create a note outside any journal folder and confirm it is left empty.
 
-### ✓ with auto-template disabled the note stays empty _(2614ms)_
+### ✓ with auto-template disabled the note stays empty _(2627ms)_
 
 1. Turn auto-templating off, create a daily note, and confirm it stays empty.
 
@@ -474,7 +474,7 @@ When auto-templating is on, a newly created journal note is pre-filled from the 
 
 A standardized template note previews as the current-period entry: it shows a corner TEMPLATE ribbon and its header chips and calendar cells are display-only, pointing back at the template file rather than at real journal notes.
 
-### ✓ a template note renders the header with a TEMPLATE ribbon _(3474ms)_
+### ✓ a template note renders the header with a TEMPLATE ribbon _(3510ms)_
 
 1. Open the monthly template note and confirm it previews as a live entry with a TEMPLATE ribbon.
 
@@ -482,11 +482,11 @@ A standardized template note previews as the current-period entry: it shows a co
 
 *Template note preview with TEMPLATE ribbon*
 
-### ✓ navigation chips are display-only — they link to the template itself _(2340ms)_
+### ✓ navigation chips are display-only — they link to the template itself _(2334ms)_
 
 1. Confirm the header navigation chips link to the template file instead of real month notes.
 
-### ✓ calendar cells are display-only but still report their real date _(3430ms)_
+### ✓ calendar cells are display-only but still report their real date _(3437ms)_
 
 1. Confirm the preview calendar cells are display-only but still carry their real dates.
 
@@ -494,7 +494,7 @@ A standardized template note previews as the current-period entry: it shows a co
 
 *Template preview calendar*
 
-### ✓ a real journal note has no TEMPLATE ribbon _(3441ms)_
+### ✓ a real journal note has no TEMPLATE ribbon _(3383ms)_
 
 1. Open a real journal note and confirm it has no TEMPLATE ribbon.
 
@@ -508,7 +508,7 @@ A standardized template note previews as the current-period entry: it shows a co
 
 The sidebar More... menu offers "Re-populate note from template", a destructive action that overwrites the active journal note with its resolved template after a confirmation. The item only shows for journal notes with templating enabled, and cancelling leaves the note untouched.
 
-### ✓ the item appears for a journal note and overwrites it after confirm _(6715ms)_
+### ✓ the item appears for a journal note and overwrites it after confirm _(6692ms)_
 
 1. Open the sidebar More... menu over a journal note and find the re-populate action.
 2. Confirm the destructive overwrite and verify the note is replaced with the template.
@@ -521,7 +521,7 @@ The sidebar More... menu offers "Re-populate note from template", a destructive 
 
 *Re-populate confirmation modal*
 
-### ✓ cancelling the confirmation leaves the note unchanged _(5861ms)_
+### ✓ cancelling the confirmation leaves the note unchanged _(5830ms)_
 
 1. Open the re-populate confirmation and cancel it, expecting the note to be left alone.
 
@@ -529,7 +529,7 @@ The sidebar More... menu offers "Re-populate note from template", a destructive 
 
 *Re-populate confirmation before cancelling*
 
-### ✓ the item is absent for a non-journal note _(4885ms)_
+### ✓ the item is absent for a non-journal note _(4861ms)_
 
 1. Open the More... menu over a non-journal note and confirm the re-populate action is absent.
 
@@ -537,7 +537,7 @@ The sidebar More... menu offers "Re-populate note from template", a destructive 
 
 *More... menu on a non-journal note (no re-populate)*
 
-### ✓ the item is absent when templating is disabled _(5207ms)_
+### ✓ the item is absent when templating is disabled _(5229ms)_
 
 1. Disable auto-templating, open the More... menu, and confirm the re-populate action is hidden.
 
@@ -551,7 +551,7 @@ The sidebar More... menu offers "Re-populate note from template", a destructive 
 
 The plugin settings dialog, where you tune journalling behaviour. Its tabbed layout groups related options, and clicking a tab swaps to the matching panel.
 
-### ✓ settings tab renders the tab strip _(2483ms)_
+### ✓ settings tab renders the tab strip _(2488ms)_
 
 1. Open the Journal Folder settings dialog to reveal its tab strip.
 
@@ -559,7 +559,7 @@ The plugin settings dialog, where you tune journalling behaviour. Its tabbed lay
 
 *Settings dialog tab strip*
 
-### ✓ the expected tabs exist _(2547ms)_
+### ✓ the expected tabs exist _(2539ms)_
 
 1. Confirm the General, Tasks and Signifiers tabs are all available.
 
@@ -567,7 +567,7 @@ The plugin settings dialog, where you tune journalling behaviour. Its tabbed lay
 
 *Available settings tabs*
 
-### ✓ clicking a tab swaps the active panel _(4732ms)_
+### ✓ clicking a tab swaps the active panel _(4669ms)_
 
 1. Click the Tasks tab and confirm its panel comes to the front.
 2. Switch to the Signifiers tab and confirm its panel replaces the previous one.
@@ -586,7 +586,7 @@ The plugin settings dialog, where you tune journalling behaviour. Its tabbed lay
 
 Editing options through the settings dialog and confirming each change is saved: dropdowns, text fields, toggles, signifier and category management, and the task-flow drill-down.
 
-### ✓ start-of-week dropdown persists _(3325ms)_
+### ✓ start-of-week dropdown persists _(3371ms)_
 
 1. Set the start of the week to Monday from the General tab.
 
@@ -594,7 +594,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Start-of-week dropdown set to Monday*
 
-### ✓ a text field persists _(3339ms)_
+### ✓ a text field persists _(4780ms)_
 
 1. Type a new journal-folder title into its text field.
 
@@ -602,7 +602,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Journal-folder title text field*
 
-### ✓ a toggle persists _(3275ms)_
+### ✓ a toggle persists _(4891ms)_
 
 1. Turn on the quarterly-notes toggle from the General tab.
 
@@ -610,7 +610,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Quarterly-notes toggle switched on*
 
-### ✓ a note-title pattern persists (Patterns tab) _(3310ms)_
+### ✓ a note-title pattern persists (Patterns tab) _(4985ms)_
 
 1. Change the daily-note short title pattern on the Patterns tab.
 
@@ -618,7 +618,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Daily-note title pattern field*
 
-### ✓ adding a signifier persists and opens its editor _(3925ms)_
+### ✓ adding a signifier persists and opens its editor _(5765ms)_
 
 1. Add a new signifier, which appends it to the list and opens its editor.
 
@@ -626,7 +626,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *New signifier editor*
 
-### ✓ adding then SAVING the editor keeps the list intact (3.0.1 regression) _(4054ms)_
+### ✓ adding then SAVING the editor keeps the list intact (3.0.1 regression) _(6252ms)_
 
 1. Add a signifier and save its editor; the existing signifiers stay intact.
 
@@ -634,7 +634,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Signifier list after saving a new entry*
 
-### ✓ removing a signifier persists _(3356ms)_
+### ✓ removing a signifier persists _(4985ms)_
 
 1. Remove a signifier from the list using its Remove button.
 
@@ -642,7 +642,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Signifier list after removal*
 
-### ✓ adding and removing a category persists (Tasks tab) _(4405ms)_
+### ✓ adding and removing a category persists (Tasks tab) _(6790ms)_
 
 1. Add a task category on the Tasks tab, then remove it again.
 
@@ -650,7 +650,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 *Task category editor*
 
-### ✓ task-flow drill-down and breadcrumb navigate _(4140ms)_
+### ✓ task-flow drill-down and breadcrumb navigate _(27044ms)_
 
 1. Drill into the Bullet Journal task flow to see its detail view.
 2. Use the breadcrumb to return to the flow overview.
@@ -665,7 +665,7 @@ Editing options through the settings dialog and confirming each change is saved:
 
 The journal sidebar, your home base for picking a folder, browsing the calendar, and reaching secondary actions. It shows the active folder and mode, and in dynamic mode follows whichever journal note you open.
 
-### ✓ sidebar shows the folder label and mode tag _(3892ms)_
+### ✓ sidebar shows the folder label and mode tag _(5975ms)_
 
 1. Open a daily note and the sidebar; it shows the Journal folder and Dynamic mode.
 
@@ -673,7 +673,7 @@ The journal sidebar, your home base for picking a folder, browsing the calendar,
 
 *Sidebar with folder label and mode tag*
 
-### ✓ folder picker switches the selected folder _(4652ms)_
+### ✓ folder picker switches the selected folder _(6939ms)_
 
 1. Use the folder picker to switch the sidebar to the Work journal folder.
 
@@ -681,7 +681,7 @@ The journal sidebar, your home base for picking a folder, browsing the calendar,
 
 *Sidebar showing the Work folder selected*
 
-### ✓ More… menu lists the expected actions _(4210ms)_
+### ✓ More… menu lists the expected actions _(6139ms)_
 
 1. Open the sidebar More… menu to reveal its secondary actions.
 
@@ -689,7 +689,7 @@ The journal sidebar, your home base for picking a folder, browsing the calendar,
 
 *Sidebar More… menu actions*
 
-### ✓ toggling the mode from the menu persists it _(4528ms)_
+### ✓ toggling the mode from the menu persists it _(6762ms)_
 
 1. Choose Switch to static from the More… menu to change the sidebar mode.
 
@@ -697,7 +697,7 @@ The journal sidebar, your home base for picking a folder, browsing the calendar,
 
 *Mode toggle in the More… menu*
 
-### ✓ dynamic mode follows the active note to its folder _(5345ms)_
+### ✓ dynamic mode follows the active note to its folder _(8637ms)_
 
 1. In dynamic mode, opening a Work note makes the sidebar follow it to the Work folder.
 
@@ -711,7 +711,7 @@ The journal sidebar, your home base for picking a folder, browsing the calendar,
 
 Per-folder configuration from the sidebar: turning a plain folder into a journal folder, and editing a folder’s own settings so they override the global defaults.
 
-### ✓ Initialise a new journal folder creates a seeded journal-folder.md _(5882ms)_
+### ✓ Initialise a new journal folder creates a seeded journal-folder.md _(9380ms)_
 
 1. Choose Initialise a new journal folder and pick the Inbox folder.
 
@@ -719,7 +719,7 @@ Per-folder configuration from the sidebar: turning a plain folder into a journal
 
 *Folder picker for initialising a journal folder*
 
-### ✓ Edit folder configuration writes a kebab-case override to front matter _(6224ms)_
+### ✓ Edit folder configuration writes a kebab-case override to front matter _(10349ms)_
 
 1. Open Edit folder configuration to get the folder’s own settings form.
 2. Override the daily-note title pattern for this folder only.
@@ -734,7 +734,7 @@ Per-folder configuration from the sidebar: turning a plain folder into a journal
 
 The master journal menu, opened from the ribbon (and the main entry point on mobile), and the light/dark theme toggle it hosts for switching Obsidian’s colour scheme.
 
-### ✓ the ribbon menu command opens the panel with actions _(2326ms)_
+### ✓ the ribbon menu command opens the panel with actions _(2739ms)_
 
 1. Open the journal ribbon menu and confirm it lists its actions.
 
@@ -742,7 +742,7 @@ The master journal menu, opened from the ribbon (and the main entry point on mob
 
 *Ribbon menu panel*
 
-### ✓ the theme toggle flips Obsidian’s color scheme _(2955ms)_
+### ✓ the theme toggle flips Obsidian’s color scheme _(3925ms)_
 
 1. Use the ribbon menu’s theme toggle to flip Obsidian’s colour scheme.
 
