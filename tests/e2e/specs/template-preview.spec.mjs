@@ -68,17 +68,20 @@ export const suite = {
     [
       'navigation chips are display-only — they link to the template itself',
       async (ctx) => {
+        // The template previews as the *current* month, so its forward chip
+        // (next month) is always present; the backward chip is folded out when
+        // the previous month is past+missing, so assert on forward.
         await ctx.openNote(MONTHLY, 'preview')
-        const back = await ctx.attr(`${RV} [data-jf-id="nav-backward"]`, 'href')
-        ctx.assert.ok(back, 'backward chip present')
+        const fwd = await ctx.attr(`${RV} [data-jf-id="nav-forward"]`, 'href')
+        ctx.assert.ok(fwd, 'forward chip present')
         ctx.assert.contains(
-          back,
+          fwd,
           'monthly-template',
-          'backward chip points at the template file'
+          'forward chip points at the template file'
         )
         ctx.assert.ok(
-          !/\d{4}-\d{2}/.test(back),
-          'backward chip does NOT point at a real month note'
+          !/\d{4}-\d{2}/.test(fwd),
+          'forward chip does NOT point at a real month note'
         )
       },
     ],
