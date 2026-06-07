@@ -323,6 +323,8 @@ The note's whole body — **front matter included** — is copied verbatim into 
 
 Because templates are real notes, opening one that contains a `journal-header` block renders it **as the current period's entry** — header, calendar, and signifiers — so you see exactly what a fresh note will look like. A corner **TEMPLATE** ribbon marks the preview, and all of its navigation links and calendar cells are display-only (they point back at the template itself rather than navigating to real journal notes).
 
+![A monthly template note previewed live as the current month, with the TEMPLATE ribbon in the corner](docs/screenshots/template-preview.png)
+
 ### Template precedence
 
 For a new note the body is resolved in this order, **first non-empty wins**:
