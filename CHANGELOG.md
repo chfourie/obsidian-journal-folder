@@ -7,7 +7,7 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
-## [Unreleased]
+## [3.1.0]
 
 ### Changed
 - **Templates are now notes, not settings text.** New-note templates live as
@@ -34,6 +34,13 @@ release body).
   menu (shown only when the active note is a journal note in a
   templating-enabled folder) re-applies the note's template, overwriting its
   contents. It asks for confirmation first, since it's destructive.
+
+### Fixed
+- **Current-day calendar cell is readable on Sundays.** When the current note
+  fell on a Sunday, the cell kept the Sunday accent text colour on its accent
+  highlight background, making the date invisible. It now uses on-accent
+  (white) text like every other weekday, in both the in-note and sidebar
+  calendars.
 
 ## [3.0.1]
 
