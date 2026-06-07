@@ -232,6 +232,19 @@ suite. Run `npm run test:e2e:build`; full docs in
 - **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is
   `"{}"`; the helper wraps as `Promise.resolve(x).then(JSON.stringify)` so the CLI
   awaits first.
+- **The fixtures are date-pinned to 2026-06-06 — date-sensitive tests rot by the
+  day.** The vault's "today" is `2026-06-06` (the daily note, the nav assertions).
+  The sidebar **task panel** is the fragile spot: its baseline scope is
+  `tasksSidebarAnchor: today` + `range: day`, so on any *other* real date a
+  *daily*-note fixture's tasks drop out of scope (a monthly/yearly note whose
+  period still contains the wall-clock day takes over — e.g. on 2026-06-07 the
+  panel showed only `Journal/2026-06.md`'s task). Symptom: the category-section,
+  truncation-footer, and sidebar-row task tests fail while the scope-independent
+  sidebar tests pass. Fix already applied to those three: `applySettings({
+  tasksSidebarAnchor: 'note' })` so they scope to the *opened* note, not the
+  clock, plus `ctx.waitFor` around the cache-populated assertion. When adding a
+  task-panel test, anchor on the note (or set an explicit range) unless you are
+  specifically testing the `today` anchor on the fixture date.
 
 ---
 

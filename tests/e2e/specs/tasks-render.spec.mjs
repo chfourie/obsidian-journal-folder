@@ -90,13 +90,18 @@ export const suite = {
     [
       'tasks matching a category appear in a category section',
       async (ctx) => {
-        // Baseline has an "important" category (#important); the day's tasks
-        // include one tagged #important.
+        // Baseline has an "important" category (#important); 2026-06-06's tasks
+        // include one tagged #important. Anchor the panel on the active *note*
+        // (not wall-clock today, which is range=day in the baseline) so the
+        // fixture's tasks are in scope regardless of the date the suite runs.
+        await ctx.applySettings({ tasksSidebarAnchor: 'note' })
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         ctx.assert.ok(
-          await ctx.exists(
-            '[data-jf-task-list="sidebar"] [data-jf-task-group="category"][data-jf-group-id="important"]'
+          await ctx.waitFor(() =>
+            ctx.exists(
+              '[data-jf-task-list="sidebar"] [data-jf-task-group="category"][data-jf-group-id="important"]'
+            )
           ),
           'Important category section present'
         )
@@ -106,11 +111,15 @@ export const suite = {
     [
       'the truncation footer appears when the item cap is hit',
       async (ctx) => {
-        await ctx.applySettings({ tasksMaxItems: 1 })
+        // Note-anchored so 2026-06-06's four tasks (> the cap of 1) are in
+        // scope independent of the real date.
+        await ctx.applySettings({ tasksMaxItems: 1, tasksSidebarAnchor: 'note' })
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         ctx.assert.ok(
-          await ctx.exists('[data-jf-task-list="sidebar"] [data-jf-increase-cap]'),
+          await ctx.waitFor(() =>
+            ctx.exists('[data-jf-task-list="sidebar"] [data-jf-increase-cap]')
+          ),
           'truncation footer with increase-limit link'
         )
         await ctx.closeSidebar()

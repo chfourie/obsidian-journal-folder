@@ -71,11 +71,17 @@ export const suite = {
     [
       'cycling from the sidebar panel also writes to disk',
       async (ctx) => {
+        // Anchor on the active note so 2026-06-06's tasks are in scope whatever
+        // the wall-clock date is (the baseline anchor is today + range=day).
+        await ctx.applySettings({ tasksSidebarAnchor: 'note' })
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         const icon =
           '[data-jf-task-list="sidebar"] [data-jf-task-item][data-jf-task-line="11"] [data-jf-status-icon]'
-        ctx.assert.ok(await ctx.exists(icon), 'open task present in sidebar panel')
+        ctx.assert.ok(
+          await ctx.waitFor(() => ctx.exists(icon)),
+          'open task present in sidebar panel'
+        )
         await ctx.click(icon, { settleMs: 600 })
         ctx.assert.ok(
           await ctx.waitFor(() =>
