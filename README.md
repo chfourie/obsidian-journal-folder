@@ -325,6 +325,12 @@ Because templates are real notes, opening one that contains a `journal-header` b
 
 ![A monthly template note previewed live as the current month, with the TEMPLATE ribbon in the corner](docs/screenshots/template-preview.png)
 
+### Re-applying a template to an existing note
+
+Edited a template after you'd already created some notes? Open one of those notes and use **Re-populate note from template** in the sidebar's **More...** menu to re-apply the current template. The item only appears when the active note is a journal note in a templating-enabled folder. It **replaces the whole note**, so it asks you to confirm first — there's no undo beyond Obsidian's own.
+
+![The sidebar More... menu, with the Re-populate note from template action](docs/screenshots/sidebar-more-menu.png)
+
 ### Template precedence
 
 For a new note the body is resolved in this order, **first non-empty wins**:
