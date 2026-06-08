@@ -24,6 +24,7 @@ import { suite as calendar } from './calendar.spec.mjs'
 import { suite as tasksRender } from './tasks-render.spec.mjs'
 import { suite as taskStatus } from './task-status.spec.mjs'
 import { suite as taskMigration } from './task-migration.spec.mjs'
+import { suite as migrationReferenceRender } from './migration-reference-render.spec.mjs'
 import { suite as tasksScope } from './tasks-scope.spec.mjs'
 import { suite as signifiers } from './signifiers.spec.mjs'
 import { suite as autoTemplate } from './auto-template.spec.mjs'
@@ -42,6 +43,7 @@ export const suites = [
   tasksRender,
   taskStatus,
   taskMigration,
+  migrationReferenceRender,
   tasksScope,
   signifiers,
   autoTemplate,

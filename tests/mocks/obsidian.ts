@@ -508,6 +508,12 @@ export class MomentFormatComponent {
 // Minimal `setIcon` stub — only the call signature matters for tests.
 export function setIcon(_el: HTMLElement, _icon: string): void {}
 
+// CodeMirror StateField placeholder. The live-preview extensions import
+// it to read whether the editor is in Live Preview vs Source mode; pure
+// helpers that the unit tests exercise never touch it, so a stub keeps
+// the named import resolvable without pulling in CodeMirror.
+export const editorLivePreviewField = {} as unknown
+
 // Tests can read the most recent Notice message via `Notice.lastMessage`.
 export class Notice {
   static lastMessage: string | null = null

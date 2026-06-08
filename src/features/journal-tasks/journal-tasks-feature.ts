@@ -54,6 +54,7 @@ import {
   type MigrationMenuContext,
 } from './task-migration-menu'
 import { processMigrationReferences } from './render-migration-references'
+import { migrationReferenceLivePreviewExtension } from './migration-reference-live-preview'
 
 export class JournalTasksFeature extends PluginFeature {
   readonly #cache: TaskCache
@@ -221,6 +222,16 @@ export class JournalTasksFeature extends PluginFeature {
     // re-render).
     this.plugin.registerEditorExtension(
       documentTaskLivePreviewExtension(documentTaskCtx)
+    )
+
+    // Live-preview rendering of `lucide:` migration markers as icons
+    // (faded, full on hover) — the editing-view counterpart to the
+    // reading-view post-processor. Inert in Source mode, which keeps
+    // the raw `lucide:<name>` token visible for editing.
+    this.plugin.registerEditorExtension(
+      migrationReferenceLivePreviewExtension({
+        getSettings: () => this.globalSettings,
+      })
     )
 
     // Integrate status options into Obsidian's native editor context

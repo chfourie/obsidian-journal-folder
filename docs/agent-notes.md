@@ -73,6 +73,16 @@ release flow, and design decisions behind shipped features.
   base needs `!important` (theme rules out of our control), every override needs
   `!important` too. This rule is calendar-specific; other UI can use ordinary
   specificity.
+- **Source mode is a *raw* editing experience — no plugin enhancements there.**
+  Any CodeMirror/live-preview rendering (signifier gutter icons + tag-hiding,
+  `lucide:` migration-marker icons, future decoration extensions) must gate on
+  Obsidian's `editorLivePreviewField` and emit **no decorations in Source mode**:
+  no hidden tags, no substituted tokens, no moved/added affordances. The user
+  edits raw markdown in Source mode and expects to see it verbatim. Track the
+  live-preview flag (`lastLivePreview`) and rebuild on a Live Preview ⇄ Source
+  toggle (treat it like a settings change). Reading view + Live Preview are the
+  two *rendered* surfaces; Source mode is not. (`isLivePreview(view)` =
+  `view.state.field(editorLivePreviewField, false) ?? false`.)
 - **Update the demo vault (and deploy targets) after every source/style change.**
   Run `npm run deploy` (build + copy `main.js` / `styles.css` / `manifest.json`
   into the demo vault and every configured target). The demo-vault plugin is a

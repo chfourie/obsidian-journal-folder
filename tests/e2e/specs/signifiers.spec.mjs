@@ -90,7 +90,7 @@ export const suite = {
     [
       'live preview renders a gutter marker',
       async (ctx) => {
-        await ctx.openNote('Journal/2026-06-06', 'source')
+        await ctx.openNote('Journal/2026-06-06', 'source', { raw: false })
         ctx.step('Signifiers also render while editing: live preview shows the same gutter icons as you type.')
         ctx.assert.ok(
           await ctx.exists(`${SRC} .jf-signifier-gutter.jf-signifier-live [data-sig-id]`),
@@ -100,10 +100,30 @@ export const suite = {
       },
     ],
     [
+      'source mode is raw: no gutter icons, tags shown verbatim',
+      async (ctx) => {
+        // Raw Source mode (not Live Preview) is a plain editing experience:
+        // the extension must emit no decorations there, so no gutter icons
+        // appear and the matched tag text stays visible verbatim.
+        await ctx.openNote('Journal/2026-06-06', 'source', { raw: true })
+        ctx.step('In raw Source mode the plugin adds nothing: no gutter icons and the underlying tags are shown exactly as typed, so editing the markdown is unobstructed.')
+        ctx.assert.ok(
+          !(await ctx.exists(`${SRC} .jf-signifier-gutter`)),
+          'no signifier gutter rendered in source mode'
+        )
+        const rawTagShown = await ctx.inPage(
+          `const lines=[...document.querySelectorAll('${SRC} .cm-line')]; ` +
+            `return lines.some(e=>(e.textContent||'').includes('#important'));`
+        )
+        ctx.assert.eq(rawTagShown, true, 'the #important tag is shown verbatim')
+        await ctx.shot('Raw source mode shows tags verbatim, no gutter', { rect: "bodyRect('.workspace-leaf.mod-active .markdown-source-view')" })
+      },
+    ],
+    [
       'live preview reveals the tag on the active line, hides it elsewhere',
       async (ctx) => {
         await ctx.applySettings({ signifierShowTagsOnActiveLine: true })
-        await ctx.openNote('Journal/2026-06-06', 'source')
+        await ctx.openNote('Journal/2026-06-06', 'source', { raw: false })
         ctx.step('When you place the cursor on a line, its tag is revealed for editing while signifier tags on other lines stay hidden behind their icons.')
         // Put the cursor on the "#important idea" line (index 5).
         await ctx.eval(

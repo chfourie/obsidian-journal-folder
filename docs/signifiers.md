@@ -77,6 +77,7 @@ it) so re-applying never compounds.
 | --- | --- | --- |
 | Reading view | `processSignifiers` post-processor (`process-signifiers.ts`) inserts a `.jf-signifier-gutter` marker into the tag's nearest block ancestor (`li` / `p` / heading / …), made the positioning host | Tag hidden when `signifierHideTagInReadingView`; otherwise the tag stays too |
 | Live preview | `signifierLivePreviewExtension` CodeMirror `ViewPlugin` (`signifier-live-preview.ts`) adds a side `-1` gutter widget per line, positioned by measurement | Tag hidden when `signifierHideTagInLivePreview` (via a `replace` decoration), **revealed while the cursor / selection touches it** so it stays editable; otherwise the tag stays |
+| Source mode | **Fully inert.** The same `ViewPlugin` runs in Source mode too, but it gates on Obsidian's `editorLivePreviewField` (`isLivePreview`) and emits `Decoration.none` + releases any reserved lane — no gutter icons, no add affordance, **no tag-hiding**. Source mode is a raw editing experience; the matched tag text must stay visible. The extension rebuilds on a Live Preview ⇄ Source toggle (tracked as `lastLivePreview`, treated like a settings change) | Tag always visible (raw markdown) |
 | Plugin task lists | `TaskItem.svelte` renders `task.signifierIds` inline via `renderSignifierIcon` | Always hidden (tags stripped from `displayText` at extract time) |
 
 **Why measurement, not fixed CSS:** both modes absolutely-position the icon

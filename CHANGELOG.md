@@ -7,6 +7,18 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.4]
+
+### Fixed
+- **Source mode is now a raw editing experience.** Signifier tags were being
+  hidden (and gutter icons drawn) even in plain Source mode; now the signifier
+  rendering applies only in Live Preview and reading view, so Source mode shows
+  your markdown — tags included — exactly as typed.
+- **Migration-reference icons now render while editing.** A `lucide:` migration
+  marker (e.g. `lucide:redo-dot`) is rendered as its icon in Live Preview too
+  (previously only in reading view), and is left as the literal token in Source
+  mode for editing.
+
 ## [3.1.3]
 
 ### Changed

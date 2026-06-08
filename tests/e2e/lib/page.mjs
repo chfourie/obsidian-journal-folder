@@ -53,8 +53,19 @@ export async function inPage(body, opts) {
 // Open a note by vault-relative path (without .md) and force a view mode
 // ('preview' = reading view, 'source' = live preview / editing). Targets the
 // leaf actually showing the file so `.mod-active …` selectors stay reliable.
-export async function openNote(path, mode = 'preview', { settleMs = 700 } = {}) {
+//
+// The editing view ('source') has two sub-modes: Live Preview (rendered) and
+// raw Source mode. Pass `raw: true` to force raw Source mode or `raw: false`
+// to force Live Preview (overriding the vault's default); leave it undefined
+// to inherit the vault default.
+export async function openNote(
+  path,
+  mode = 'preview',
+  { settleMs = 700, raw } = {}
+) {
   const p = JSON.stringify(`${path}.md`)
+  const setSource =
+    raw === undefined ? '' : `s.state.source=${raw ? 'true' : 'false'};`
   await evalRaw(
     `(async()=>{` +
       `await app.workspace.openLinkText(${p}, '', false);` +
@@ -63,7 +74,7 @@ export async function openNote(path, mode = 'preview', { settleMs = 700 } = {}) 
       `const t=ls.find(l=>l.view&&l.view.file&&l.view.file.path===${p})||ls[0];` +
       `if(!t) return 'no-leaf';` +
       `app.workspace.setActiveLeaf(t,{focus:true});` +
-      `const s=t.getViewState(); s.state.mode=${JSON.stringify(mode)};` +
+      `const s=t.getViewState(); s.state.mode=${JSON.stringify(mode)};${setSource}` +
       `await t.setViewState(s);` +
       `await new Promise(r=>setTimeout(r,${settleMs}));` +
       `return 'ok'})()`

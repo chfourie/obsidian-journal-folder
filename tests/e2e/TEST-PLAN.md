@@ -68,6 +68,12 @@ in `specs/` and is wired in `specs/index.mjs`.
 | 4 | Cross-reference links written | origin→dest day, dest→origin day | ✅ |
 | — | Reference opacity styling; `migrate-task-on-line` / `from-note` flows | | ⬜ |
 
+### Migration-reference rendering — `migration-reference-render.spec.mjs`
+| # | Scenario | Assertion | Status |
+|---|----------|-----------|--------|
+| 1 | Live preview renders `lucide:` marker as icon | `.jf-migration-ref-live .jf-migration-ref-icon svg`; raw token gone | ✅ |
+| 2 | Source mode keeps the raw token | no `.jf-migration-ref-live`; `lucide:redo-dot` shown in a `.cm-line` | ✅ |
+
 ### Task scope (sidebar) — `tasks-scope.spec.mjs`
 | # | Scenario | Assertion | Status |
 |---|----------|-----------|--------|
@@ -87,7 +93,8 @@ in `specs/` and is wired in `specs/index.mjs`.
 | 3 | margin-column adds column modifier | `.jf-signifier-column` | ✅ |
 | 4 | per-row margin drops column modifier | gutter yes, column no | ✅ |
 | 5 | Live-preview gutter marker | `.jf-signifier-gutter.jf-signifier-live [data-sig-id]` | ✅ |
-| 6 | Active-line reveal (live preview) | cursor line shows tag, other line hides it | ✅ |
+| 6 | Source mode is raw (no gutter, tag verbatim) | no `.jf-signifier-gutter`, `#important` shown in a `.cm-line` | ✅ |
+| 7 | Active-line reveal (live preview) | cursor line shows tag, other line hides it | ✅ |
 | — | Reserve-gutter padding (measurement — unit-tested in computeReserve) | | ⬜ |
 
 ### Auto-template — `auto-template.spec.mjs`

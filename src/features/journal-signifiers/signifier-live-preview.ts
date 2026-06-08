@@ -26,7 +26,7 @@ import {
   ViewPlugin,
   WidgetType,
 } from '@codemirror/view'
-import { type App, setIcon } from 'obsidian'
+import { type App, editorLivePreviewField, setIcon } from 'obsidian'
 import {
   type JournalFolderSettings,
   type Signifier,
@@ -58,6 +58,16 @@ export interface SignifierLivePreviewContext {
 // line in the editor with a hover target. Pure / unit-tested.
 export function lineCanReceiveSignifier(text: string): boolean {
   return text.trim().length > 0
+}
+
+// True only when the editor is in Live Preview, false in plain Source
+// mode. Signifier icons + tag-hiding are a *rendered* affordance: in
+// Source mode the user is looking at raw markdown, so the matched tag
+// text must stay visible (and we paint no gutter icons). Obsidian's
+// `editorLivePreviewField` is the canonical flag; `false` as the
+// fallback keeps us inert if the field is ever absent.
+function isLivePreview(view: EditorView): boolean {
+  return view.state.field(editorLivePreviewField, false) ?? false
 }
 
 // A click anywhere on an editing-view signifier gutter (the icon stack on a
@@ -121,12 +131,14 @@ export function signifierLivePreviewExtension(
       private lastPlacement: SignifierPlacement
       private lastHideTag: boolean
       private lastRevealActiveLine: boolean
+      private lastLivePreview: boolean
 
       constructor(view: EditorView) {
         const s = ctx.getSettings()
         this.lastPlacement = s.signifierPlacement
         this.lastHideTag = s.signifierHideTagInLivePreview
         this.lastRevealActiveLine = s.signifierShowTagsOnActiveLine
+        this.lastLivePreview = isLivePreview(view)
         this.decorations = this.build(view)
         this.measureGutters(view)
       }
@@ -136,13 +148,15 @@ export function signifierLivePreviewExtension(
         const placement = settings.signifierPlacement
         const hideTag = settings.signifierHideTagInLivePreview
         const revealActiveLine = settings.signifierShowTagsOnActiveLine
+        const livePreview = isLivePreview(update.view)
         // A settings toggle reaches us via the reconfigure transaction
-        // (`updateOptions`); treat placement / hide-tag / reveal changes as a
-        // rebuild.
+        // (`updateOptions`); treat placement / hide-tag / reveal changes — and
+        // a Live Preview ⇄ Source mode switch — as a rebuild.
         const settingsChanged =
           placement !== this.lastPlacement ||
           hideTag !== this.lastHideTag ||
-          revealActiveLine !== this.lastRevealActiveLine
+          revealActiveLine !== this.lastRevealActiveLine ||
+          livePreview !== this.lastLivePreview
         // When tag-hiding is on, a cursor move can reveal / re-hide a tag, so
         // the decoration set must rebuild on `selectionSet` too.
         const rebuild =
@@ -174,6 +188,7 @@ export function signifierLivePreviewExtension(
         this.lastPlacement = placement
         this.lastHideTag = hideTag
         this.lastRevealActiveLine = revealActiveLine
+        this.lastLivePreview = livePreview
       }
 
       // Position the editing-view gutter markers by measurement, using
@@ -184,6 +199,12 @@ export function signifierLivePreviewExtension(
       // in one shared far-left column (single column). We also reserve a
       // left lane on `.cm-content` so the widest stack never clips.
       private measureGutters(view: EditorView): void {
+        // Source mode paints no gutter markers, so there is nothing to
+        // measure — release any lane we reserved while in Live Preview.
+        if (!isLivePreview(view)) {
+          applyContentReserve(view.contentDOM, null)
+          return
+        }
         const placement = ctx.getSettings().signifierPlacement
         const isMargin =
           placement === 'margin' || placement === 'margin-column'
@@ -236,6 +257,9 @@ export function signifierLivePreviewExtension(
       }
 
       private build(view: EditorView): DecorationSet {
+        // Source mode is a raw editing experience: no gutter icons, no
+        // add affordance, no tag-hiding. All of that is Live-Preview only.
+        if (!isLivePreview(view)) return Decoration.none
         const settings = ctx.getSettings()
         const signifiers = settings.signifiers
         if (signifiers.length === 0) return Decoration.none
