@@ -28,9 +28,9 @@ function buildDailyNote(basename = '2026-06-03') {
 describe('stripMigrationReferences', () => {
   it('removes a lucide marker and its link', () => {
     expect(
-      stripMigrationReferences('Plan hike lucide:undo [[2026-W19]]', [
-        'lucide:redo',
-        'lucide:undo',
+      stripMigrationReferences('Plan hike lucide:undo-dot [[2026-W19]]', [
+        'lucide:redo-dot',
+        'lucide:undo-dot',
       ])
     ).toBe('Plan hike')
   })

@@ -204,8 +204,8 @@
   "taskMigrationAddToReference": true,
   "taskMigrationAddFromReference": true,
   "taskMigrationReferenceStyle": "lucide",
-  "taskMigrationToMarker": "lucide:redo",
-  "taskMigrationFromMarker": "lucide:undo",
+  "taskMigrationToMarker": "lucide:redo-dot",
+  "taskMigrationFromMarker": "lucide:undo-dot",
   "taskMigrationReferenceOpacity": 30,
   "signifiers": [
     {

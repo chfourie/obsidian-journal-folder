@@ -313,7 +313,7 @@ export const MIGRATION_REFERENCE_PRESETS: Record<
 > = {
   text: { to: '→', from: '←' },
   emoji: { to: '➡️', from: '⬅️' },
-  lucide: { to: 'lucide:redo', from: 'lucide:undo' },
+  lucide: { to: 'lucide:redo-dot', from: 'lucide:undo-dot' },
 }
 
 // Prefix marking a Lucide-icon reference marker. The text after it is a
