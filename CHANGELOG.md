@@ -19,6 +19,12 @@ release body).
   (previously only in reading view), and is left as the literal token in Source
   mode for editing.
 
+### Internal
+- Removed every `!important` from `styles.css` (22 declarations), replacing them
+  with higher-specificity selectors — including the calendar colour-lock. No
+  visual change; verified against the AnuPpuccin theme. Clears the community
+  review's "Avoid `!important`" findings.
+
 ## [3.1.3]
 
 ### Changed

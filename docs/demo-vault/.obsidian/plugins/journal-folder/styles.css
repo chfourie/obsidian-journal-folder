@@ -41,7 +41,7 @@
 .journal-folder-header-title {
 	width: fit-content;
 	margin-inline: auto;
-	margin-block: .4rem !important;
+	margin-block: .4rem;
 	cursor: default;
 }
 
@@ -92,7 +92,7 @@
 	text-decoration: none;
 
 	&:link, &:visited, &:hover, &:active {
-		text-decoration: none !important;
+		text-decoration: none;
 	}
 
 	&:hover {
@@ -110,12 +110,12 @@
    journal link can appear. We restate the combined opacity (instead of
    stacking on `.is-unresolved`'s theme opacity) for the same reason the
    calendar does: CSS opacity doesn't multiply across classes on the same
-   element — the more specific declaration wins outright. `!important` is
-   needed because Obsidian's own
-   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
-   rule has higher specificity than this selector and would otherwise win. */
-.journal-folder-note-link.needs-confirmation {
-	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+   element — the more specific declaration wins outright. We out-specify
+   Obsidian's own `.markdown-rendered .internal-link.is-unresolved`
+   (specificity 0,3,0) by qualifying with the `a.internal-link` element +
+   class (0,3,1), so no `!important` is needed. */
+a.internal-link.journal-folder-note-link.needs-confirmation {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5);
 }
 
 .journal-folder-header-more {
@@ -312,20 +312,10 @@
 	color: var(--text-accent);
 }
 
-/* Calendar cells force `--text-normal` with `!important` so the theme's
-   normal text colour is what readers see for missing days — Obsidian's own
-   `a.internal-link.is-unresolved` rule (and many community themes that
-   override it) repaints unresolved links in the accent or a custom red,
-   which would otherwise leak through onto every missing day cell. We still
-   stamp `is-unresolved` ourselves (in `calendarCellClasses`) so the theme's
-   `--link-unresolved-opacity` applies — the cell is faded the way an
-   unresolved link is faded, just not recoloured. The plugin stamps
-   `is-unresolved` rather than relying on Obsidian's link-resolution pass
-   because that pass only marks cells present during the initial markdown
-   render and misses months inserted later as the ResizeObserver settles or
-   as the user scrolls. Existing cells (`.exists`) and Sunday day cells
-   (`.day.is-sunday`) override the colour back to `--text-accent` further
-   down — both with `!important` so they can win against the base. */
+/* Base layout for every calendar cell (link cells AND empty placeholder
+   <div>s). Colour + text-decoration are NOT set here — link cells get them
+   from the high-specificity rule just below, which is what lets us avoid
+   `!important`. */
 .journal-folder-calendar-cell {
 	display: flex;
 	align-items: center;
@@ -333,13 +323,28 @@
 	min-height: 1.5rem;
 	padding: .05rem .15rem;
 	border-radius: var(--radius-s, .25rem);
-	color: var(--text-normal) !important;
-	text-decoration: none !important;
 	cursor: pointer;
 	box-sizing: border-box;
 	border: solid 1px transparent;
 	user-select: none;
 	background: transparent;
+}
+
+/* Link cells (day / week / month / year — rendered as `a.internal-link`)
+   force `--text-normal` and drop the underline so the theme's unresolved-link
+   recolour can't leak onto missing days. Obsidian repaints unresolved links
+   via `.markdown-rendered .internal-link.is-unresolved` (specificity 0,3,0);
+   qualifying with the shared `.journal-folder-calendar-body` ancestor + the
+   `a.internal-link` element/class gives us (0,3,1), which wins outright —
+   no `!important` required. The plugin stamps `is-unresolved` itself (in
+   `calendarCellClasses`) so the theme's `--link-unresolved-opacity` still
+   fades missing cells; it just can't recolour them. Empty placeholder cells
+   are plain <div>s, so they don't match this rule and keep the base layout.
+   Existing cells (`.exists`) and Sunday day cells (`.day.is-sunday`) raise the
+   colour back to `--text-accent` further down via still-higher specificity. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell {
+	color: var(--text-normal);
+	text-decoration: none;
 }
 
 .journal-folder-calendar-cell:hover {
@@ -348,8 +353,8 @@
 
 .journal-folder-calendar-cell.empty {
 	cursor: default;
-	background: transparent !important;
-	border-color: transparent !important;
+	background: transparent;
+	border-color: transparent;
 }
 
 .journal-folder-calendar-cell.week {
@@ -361,20 +366,15 @@
 	font-variant-numeric: tabular-nums;
 }
 
-/* Existing cells render in the theme accent so the user can see at a glance
-   which periods already have notes. `!important` is required to win against
-   the base cell's `!important`-qualified `--text-normal`. Missing cells get
-   no colour rule here — they keep the base `--text-normal`. */
-.journal-folder-calendar-cell.exists {
-	color: var(--text-accent) !important;
+/* Existing cells render in the theme accent (and underlined) so the user can
+   see at a glance which periods already have notes — uniformly across days,
+   weeks, months, and years. Adding `.exists` to the base link selector gives
+   (0,4,1), above the base link rule (0,3,1), so it wins without `!important`.
+   Missing cells get no colour rule here — they keep the base `--text-normal`. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.exists {
+	color: var(--text-accent);
 	font-weight: 600;
-}
-
-/* Existing cells get an underline on top of the emphasis colour so the user
-   can spot at a glance which periods already have notes — applies uniformly
-   to days, weeks, months, and years. */
-.journal-folder-calendar-cell.exists {
-	text-decoration: underline !important;
+	text-decoration: underline;
 	text-underline-offset: 2px;
 }
 
@@ -386,41 +386,41 @@
    the combined value. `--link-unresolved-opacity` is Obsidian's standard
    variable for unresolved-link fading; the .7 fallback matches Obsidian's
    default theme value, so themes that don't set the variable still get a
-   sensible result. `!important` is required because Obsidian's own
-   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
-   rule has specificity (0,2,1) — higher than this selector's (0,2,0) — so
-   without it the theme's full opacity wins and past- and future-missing
-   render identically. The 0.5 multiplier was tuned by eye: 0.8 (20% lighter)
-   and 0.7 (30%) weren't pronounced enough at the small calendar cell sizes. */
-.journal-folder-calendar-cell.past-missing {
-	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+   sensible result. We out-specify Obsidian's own
+   `.markdown-rendered .internal-link.is-unresolved { opacity: … }` (0,3,0)
+   with the (0,4,1) selector below, so no `!important` is needed; without the
+   override the theme's full opacity would win and past- and future-missing
+   would render identically. The 0.5 multiplier was tuned by eye: 0.8 (20%
+   lighter) and 0.7 (30%) weren't pronounced enough at the small cell sizes. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.past-missing {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5);
 }
 
 /* Sundays render in the theme accent colour across every state — existing,
    future-missing, past-missing — so the start of the week is always easy to
-   pick out. `!important` is required because the base cell rule above
-   forces `--text-normal !important` to keep the theme's normal text colour
-   on missing days; without `!important` here, Sunday missing cells would
-   inherit that and appear in `--text-normal` instead of accent. The
-   unresolved opacity (and the past-missing fade above) still applies. */
-.journal-folder-calendar-cell.day.is-sunday {
-	color: var(--text-accent) !important;
+   pick out. Adding `.day.is-sunday` to the base link selector gives (0,5,1),
+   above both the base link rule (0,3,1) and `.exists` (0,4,1), so a Sunday
+   stays accent without `!important`. The unresolved opacity (and the
+   past-missing fade above) still applies. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday {
+	color: var(--text-accent);
 }
 
 .journal-folder-calendar-cell.is-today {
 	border-color: var(--interactive-accent);
 }
 
-.journal-folder-calendar-cell.is-current,
-.journal-folder-calendar-cell.is-current:hover,
-/* The Sunday rule above (`.day.is-sunday`, 3 classes + !important) would
-   otherwise out-specify the 2-class current rule and keep accent-coloured
-   text on the accent background, making a current Sunday unreadable. This
-   4-class selector wins it back so every current cell uses on-accent text. */
-.journal-folder-calendar-cell.day.is-sunday.is-current,
-.journal-folder-calendar-cell.day.is-sunday.is-current:hover {
+/* The Sunday rule above (`…cell.day.is-sunday`, 0,5,1) would otherwise
+   out-specify a plain current cell and keep accent-coloured text on the
+   accent background, making a current Sunday unreadable. The sunday-current
+   selector below carries `.day.is-sunday.is-current` for (0,6,1), winning it
+   back so every current cell uses on-accent text — no `!important` needed. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.is-current,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.is-current:hover,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday.is-current,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday.is-current:hover {
 	background: var(--interactive-accent);
-	color: var(--text-on-accent) !important;
+	color: var(--text-on-accent);
 	font-weight: 600;
 	border-color: var(--interactive-accent);
 }
@@ -779,7 +779,7 @@ body.journal-folder-hide-config-notes
 	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
 body.journal-folder-hide-config-notes
 	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
-	display: none !important;
+	display: none;
 }
 
 /* Sidebar view */
@@ -2099,7 +2099,7 @@ input[data-jf-task-swapped] {
  * have to fight on every level. A solid pill reads clearly against
  * any theme background. */
 .jf-settings-tabbed .jf-settings-tab-strip {
-	display: flex !important;
+	display: flex;
 	flex-wrap: wrap;
 	gap: 0.35em;
 	padding: 0.4em 0;
@@ -2108,7 +2108,7 @@ input[data-jf-task-swapped] {
 }
 
 .jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab {
-	display: inline-flex !important;
+	display: inline-flex;
 	align-items: center;
 	background: var(--background-secondary);
 	color: var(--text-muted);
@@ -2154,18 +2154,20 @@ input[data-jf-task-swapped] {
 	font-size: 0.95em;
 }
 
-/* Override Obsidian's native `<button>` chrome aggressively — inside
- * `.mod-settings` the theme paints buttons with a filled chip
- * background that's wildly out of place for breadcrumb links. */
+/* Strip Obsidian's native `<button>` chrome (filled chip background, border,
+ * shadow, padding, fixed height) — wildly out of place for a breadcrumb link.
+ * The competing rules are app.css's `button` / `button:not(.clickable-icon)`
+ * (specificity 0,0,1 / 0,1,1); our `.jf-breadcrumb button.jf-breadcrumb-link`
+ * is (0,2,1), so it wins on specificity without `!important`. */
 .jf-breadcrumb button.jf-breadcrumb-link,
 .jf-breadcrumb span.jf-breadcrumb-link {
-	background: transparent !important;
-	border: 0 !important;
-	box-shadow: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	height: auto !important;
-	min-height: 0 !important;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+	margin: 0;
+	height: auto;
+	min-height: 0;
 	color: var(--text-accent);
 	cursor: pointer;
 	font: inherit;

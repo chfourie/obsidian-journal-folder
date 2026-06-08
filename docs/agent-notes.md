@@ -34,13 +34,28 @@ release flow, and design decisions behind shipped features.
   *same* ruleset the community-review scanner runs against a submitted release,
   type-checked against `tsconfig.json` (scoped to `src`; tests are excluded from
   the tsconfig so the type-aware rules don't choke on them). Run it before
-  tagging so the public review has no surprises. A handful of its warnings target
+  tagging so the public review has no surprises. A couple of its warnings target
   *deliberate* choices here and should stay suppressed/justified rather than
-  "fixed": the calendar `!important` colour-lock, the declarative `:has`
-  config-note hiding, and the duck-typed `as unknown as TFile` synthetic notes
-  (the real `TFile` constructor crashes — see the convention below). Prefer an
-  inline `// eslint-disable-next-line <rule> -- <why>` with a reason over
-  loosening the rule globally.
+  "fixed": the declarative `:has` config-note hiding and the duck-typed
+  `as unknown as TFile` synthetic notes (the real `TFile` constructor crashes —
+  see the convention below). Prefer an inline
+  `// eslint-disable-next-line <rule> -- <why>` with a reason over loosening the
+  rule globally.
+  - **`styles.css` carries no `!important`** (the community review flags "Avoid
+    `!important`"). Every override that used to need it — including the calendar
+    colour-lock — is now won by **specificity**: qualify with a shared ancestor +
+    the element/class so you sit just above the competing rule. The competitors
+    are almost always low-specificity `app.css` rules with no `!important`
+    (probe them live: iterate `document.styleSheets`, `el.matches(sel)`, read
+    `getPropertyPriority`). The calendar's competitor is
+    `.markdown-rendered .internal-link.is-unresolved` (0,3,0); cells beat it with
+    `.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell…`
+    (0,3,1+). Caveat that makes `!important` *technically* stronger: it beats any
+    non-important rule regardless of specificity, whereas a high-specificity
+    selector only beats lower-or-equal ones — so a theme with a very specific
+    non-important unresolved-link rule could win. None of the deploy-target
+    themes (AnuPpuccin et al.) do; this was a deliberate, user-approved trade for
+    a clean stylesheet.
 - **Prefer robust / theme-stable solutions over pixel-perfect cosmetics, and
   surface the tradeoffs before implementing.** The maintainer explicitly dislikes
   "works on my setup, breaks on yours" fragility. Reach for solutions that
@@ -65,14 +80,14 @@ release flow, and design decisions behind shipped features.
   the older `docs/tasks-design.md` "labels describe the action" line.
 - **"Themable" / "theme default colour" means *CSS variables*, not delegating to
   Obsidian's link-resolution pass.** The plugin makes the accent-vs-normal call
-  itself and reads colours from theme tokens. Calendar specifics: missing day
-  cells (`.journal-folder-calendar-cell.missing`) lock colour to `--text-normal
-  !important` to defeat any theme's `a.internal-link.is-unresolved` recolour
-  (opacity from `is-unresolved` may still come through — no `!important` on
-  opacity); existing cells and Sundays get `--text-accent !important`. Because the
-  base needs `!important` (theme rules out of our control), every override needs
-  `!important` too. This rule is calendar-specific; other UI can use ordinary
-  specificity.
+  itself and reads colours from theme tokens. Calendar specifics: link day cells
+  lock colour to `--text-normal` to defeat any theme's
+  `a.internal-link.is-unresolved` recolour (opacity from `is-unresolved` still
+  comes through); existing cells and Sundays get `--text-accent`. This is won by
+  **specificity, not `!important`** — see the lint bullet above for the selector
+  pattern (`.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell…`)
+  and the specificity ladder (base 0,3,1 → exists 0,4,1 → sunday 0,5,1 →
+  sunday-current 0,6,1).
 - **Source mode is a *raw* editing experience — no plugin enhancements there.**
   Any CodeMirror/live-preview rendering (signifier gutter icons + tag-hiding,
   `lucide:` migration-marker icons, future decoration extensions) must gate on
@@ -352,10 +367,14 @@ suite. Run `npm run test:e2e:build`; full docs in
   `src/features/journal-tasks/task-models/task-model.type.ts`).
 - **`.mod-settings` paints `<button>` as chunky pill chips.** Inside the settings
   tab or any settings-skinned modal, custom controls that shouldn't look like
-  buttons (breadcrumb links, inline triggers, tab strips) need raised specificity
-  **and** `!important` on `background`/`border`/`box-shadow`/`padding`/`margin`/
-  `height`/`min-height` before layering your own style. For controls that *should*
-  look like Obsidian buttons, use `ButtonComponent` (it cooperates with the skin).
+  buttons (breadcrumb links, inline triggers, tab strips) must reset
+  `background`/`border`/`box-shadow`/`padding`/`margin`/`height`/`min-height`
+  before layering your own style. The competing rules are app.css `button` /
+  `button:not(.clickable-icon)` (0,0,1 / 0,1,1) with **no `!important`**, so a
+  two-class selector like `.jf-breadcrumb button.jf-breadcrumb-link` (0,2,1) wins
+  on **specificity alone** — don't reach for `!important` (`styles.css` carries
+  none; see the lint bullet). For controls that *should* look like Obsidian
+  buttons, use `ButtonComponent` (it cooperates with the skin).
 - **Settings-dialog skin for a custom `Modal`:** `this.modalEl.addClass(
   'mod-settings', '<wrap>')` + `this.contentEl.addClass('vertical-tab-content',
   '<inner>')` gives the wide settings layout; hide the empty
