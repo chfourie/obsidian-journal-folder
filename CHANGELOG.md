@@ -16,6 +16,18 @@ release body).
   signifier icons — the icon was positioned off-screen and its tag hidden, so
   nothing showed. Such vaults now migrate automatically to the default
   single-column placement on load, and the icons reappear.
+- **Signifiers on headings no longer float above the text.** A heading line
+  carries extra top-padding (Obsidian gives headings `padding-top` in the
+  editor; some themes add more), and the margin icon was anchored to the top of
+  that padded box, so it hovered ~16px above the heading. The icon's vertical
+  position is now measured from the line's actual text, so it sits centred on
+  the heading in both Live Preview and reading view.
+- **Per-entry signifiers line up with the bullet under the Outliner plugin.**
+  In the per-entry (`margin`) placement the Live Preview icon was anchored to a
+  text coordinate that sits ~one indent step right of the rendered bullet
+  (further off when Outliner restyles lists), so the icon drifted away from its
+  entry. It now anchors on the bullet itself and hangs a consistent gap to its
+  left at every nesting depth.
 
 ## [3.1.5]
 

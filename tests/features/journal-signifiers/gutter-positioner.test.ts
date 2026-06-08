@@ -26,6 +26,7 @@ import {
   computeReserve,
   computeRowLeft,
   maxGutterReserve,
+  positionReadingGutters,
   scheduleReadingGutters,
 } from '../../../src/features/journal-signifiers/gutter-positioner'
 
@@ -95,6 +96,43 @@ describe('maxGutterReserve', () => {
     const clamped = Math.min(corruptDeficit, maxGutterReserve(48))
     expect(clamped).toBe(48 + ROW_GAP_PX + COLUMN_INSET_PX + EDGE_MARGIN_PX)
     expect(clamped).toBeLessThan(100)
+  })
+})
+
+describe('positionReadingGutters — vertical anchor', () => {
+  // Builds a container holding one gutter marker inside a host with the given
+  // top padding, runs the positioner, and returns the marker so the test can
+  // assert its written `top`. (jsdom returns 0-rects for layout, so we only
+  // exercise the padding-driven vertical write here, not the horizontal math.)
+  function place(hostPaddingTop: string): HTMLElement {
+    const container = document.createElement('div')
+    const host = document.createElement('div')
+    host.className = 'jf-signifier-host'
+    host.style.paddingTop = hostPaddingTop
+    const marker = document.createElement('span')
+    marker.className = 'jf-signifier-gutter'
+    host.appendChild(marker)
+    container.appendChild(host)
+    document.body.appendChild(container)
+    positionReadingGutters(container, 'margin-column', false)
+    return marker
+  }
+
+  afterEach(() => {
+    document.body.replaceChildren()
+  })
+
+  it('drops the marker by the host top-padding so it clears the padding strip', () => {
+    // A heading-like host padded at the top (Obsidian/theme heading spacing):
+    // the icon must be pushed down by that padding, not left at top:0.
+    const marker = place('16px')
+    expect(marker.style.top).toBe('16px')
+    expect(marker.classList.contains('jf-positioned')).toBe(true)
+  })
+
+  it('leaves the marker at the line top for an unpadded host (inert)', () => {
+    const marker = place('0px')
+    expect(marker.style.top).toBe('0px')
   })
 })
 

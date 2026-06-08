@@ -104,6 +104,21 @@ interface GutterRead {
   hostLeft: number
   rowStartLeft: number
   width: number
+  topOffset: number
+}
+
+// The host's top padding (px). The gutter marker is absolutely positioned with
+// `top:0`, which resolves to the host's PADDING-box top. On a block whose theme
+// / Obsidian core pads the top — most visibly headings (Obsidian gives heading
+// lines `padding-top: var(--p-spacing)` in the editor, ~16px; some themes pad
+// headings in reading view too) — `top:0` lands ABOVE the first glyph, in the
+// padding strip, so the centred-in-`1lh` icon floats above the text. We measure
+// that padding and push the marker down by it (written as inline `top`) so
+// `height:1lh; align-items:center` centres on the actual text line. 0 for
+// unpadded blocks (the common case), so this is inert wherever it already
+// aligned. Measured here in the READ phase to preserve the single-reflow pass.
+function hostPaddingTop(host: HTMLElement): number {
+  return parseFloat(getComputedStyle(host).paddingTop) || 0
 }
 
 // The container's own CSS padding-inline-start (px), cached the first time we
@@ -211,6 +226,7 @@ export function positionReadingGutters(
       hostLeft,
       rowStartLeft: rowStartLeftOf(host, hostLeft),
       width: rect.width,
+      topOffset: hostPaddingTop(host),
     }
   })
   const columnX =
@@ -230,7 +246,7 @@ export function positionReadingGutters(
         : computeRowLeft(r.hostLeft, r.rowStartLeft)
     const iconLeft = r.hostLeft + left - r.width
     if (iconLeft < minIconLeft) minIconLeft = iconLeft
-    return { marker: r.marker, left }
+    return { marker: r.marker, left, top: r.topOffset }
   })
 
   // Reserve only the deficit by which the leftmost icon would clip past the
@@ -265,6 +281,10 @@ export function positionReadingGutters(
   // one-frame flash before the first measurement lands.
   for (const p of placed) {
     p.marker.style.left = `${p.left}px`
+    // Push the marker down past any host top-padding so it centres on the text
+    // line, not the padded box (see `hostPaddingTop`). Inert (`0`) when the host
+    // is unpadded.
+    p.marker.style.top = `${p.top}px`
     p.marker.classList.add('jf-positioned')
   }
   if (shortfall > 0) {

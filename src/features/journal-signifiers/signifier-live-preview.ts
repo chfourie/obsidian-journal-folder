@@ -247,8 +247,11 @@ export function signifierLivePreviewExtension(
             return { lefts, reserve }
           },
           write: ({ lefts, reserve }, v) => {
-            for (const { marker, left } of lefts) {
+            for (const { marker, left, top } of lefts) {
               marker.style.left = `${left}px`
+              // Drop the marker past any host line top-padding (heading lines)
+              // so it centres on the text, not the padded box. 0 elsewhere.
+              marker.style.top = `${top}px`
               marker.classList.add('jf-positioned')
             }
             applyContentReserve(v.contentDOM, reserve)
@@ -420,7 +423,7 @@ function measureGutterLefts(
   view: EditorView,
   placement: 'margin' | 'margin-column'
 ): {
-  lefts: { marker: HTMLElement; left: number }[]
+  lefts: { marker: HTMLElement; left: number; top: number }[]
   minIconLeft: number
   maxWidth: number
 } {
@@ -431,6 +434,18 @@ function measureGutterLefts(
     line: { from: number; text: string }
     hostLeft: number
     width: number
+    // The host line's top padding (px). Obsidian gives heading lines
+    // `padding-top: var(--p-spacing)` (~16px) in the editor, so the `top:0`
+    // gutter would float in that padding strip ABOVE the heading text; we push
+    // the marker down by it (written as inline `top`). 0 for body / list lines.
+    top: number
+    // The left edge (viewport px) of the line's RENDERED list marker, when the
+    // line has one. `coordsAtPos` at the marker character lands ~one indent step
+    // RIGHT of the visible bullet in Live Preview (measured ~12px, widened
+    // further by the Outliner plugin), so the per-row icon drifts off its entry;
+    // anchoring on the real bullet keeps it a fixed gap left of the bullet.
+    // `null` for non-list lines (paragraphs / headings) → fall back to coords.
+    bulletLeft: number | null
     // The faint add affordance on a line with no signifier yet. It still gets
     // positioned (so it lands in the gutter column), but it must not influence
     // the reserved lane — an invisible hover target should never push content.
@@ -449,11 +464,14 @@ function measureGutterLefts(
       continue
     }
     const line = view.state.doc.lineAt(pos)
+    const bullet = lineEl.querySelector<HTMLElement>('.cm-formatting-list')
     rows.push({
       marker,
       line,
       hostLeft: lineEl.getBoundingClientRect().left,
       width: marker.getBoundingClientRect().width,
+      top: parseFloat(getComputedStyle(lineEl).paddingTop) || 0,
+      bulletLeft: bullet ? bullet.getBoundingClientRect().left : null,
       isAdd: marker.classList.contains('jf-signifier-add-gutter'),
     })
   }
@@ -467,16 +485,17 @@ function measureGutterLefts(
     (m, r) => (r.isAdd ? m : Math.max(m, r.width)),
     0
   )
-  const lefts: { marker: HTMLElement; left: number }[] = []
+  const lefts: { marker: HTMLElement; left: number; top: number }[] = []
   let minIconLeft = Infinity
   const push = (
     marker: HTMLElement,
     left: number,
+    top: number,
     hostLeft: number,
     w: number,
     isAdd: boolean
   ) => {
-    lefts.push({ marker, left })
+    lefts.push({ marker, left, top })
     if (isAdd) return
     const iconLeft = hostLeft + left - w
     if (iconLeft < minIconLeft) minIconLeft = iconLeft
@@ -497,22 +516,30 @@ function measureGutterLefts(
     if (columnX === null) return { lefts: [], minIconLeft, maxWidth }
     const target = columnX - COLUMN_INSET_PX
     for (const r of rows)
-      push(r.marker, target - r.hostLeft, r.hostLeft, r.width, r.isAdd)
+      push(r.marker, target - r.hostLeft, r.top, r.hostLeft, r.width, r.isAdd)
     return { lefts, minIconLeft, maxWidth }
   }
 
-  // Per-row: just left of each line's list marker — past the leading
-  // indentation but BEFORE the bullet / checkbox — so the icon hangs in the
-  // margin indented with nesting (CSS `translateX(-100%)` shifts it left of
-  // this point by its own width).
+  // Per-row: just left of each line's list marker so the icon hangs in the
+  // margin indented with nesting (CSS `translateX(-100%)` shifts it left of the
+  // anchor by its own width). Prefer the RENDERED bullet's left edge — in Live
+  // Preview `coordsAtPos` at the marker character sits ~one indent step right of
+  // the visible bullet (worse under Outliner), so the icon drifts off its entry.
+  // Non-list lines (paragraphs / headings) have no bullet → anchor on the line's
+  // content coordinate past the leading indentation.
   for (const r of rows) {
-    const markStart = view.coordsAtPos(
-      r.line.from + leadingWhitespaceLength(r.line.text)
-    )
-    if (!markStart) continue
+    let anchorLeft = r.bulletLeft
+    if (anchorLeft === null) {
+      const markStart = view.coordsAtPos(
+        r.line.from + leadingWhitespaceLength(r.line.text)
+      )
+      if (!markStart) continue
+      anchorLeft = markStart.left
+    }
     push(
       r.marker,
-      markStart.left - ROW_GAP_PX - r.hostLeft,
+      anchorLeft - ROW_GAP_PX - r.hostLeft,
+      r.top,
       r.hostLeft,
       r.width,
       r.isAdd

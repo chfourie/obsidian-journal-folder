@@ -34,10 +34,20 @@ global `signifierPlacement` setting. Both values are left-margin gutters
 
 Both modes make the entry's content host / line a positioning context
 (`.jf-signifier-host`) and absolutely position the marker, vertically centred
-on the line (`top: 0; bottom: 0; align-items: center`). Their **horizontal**
-position is set by **measurement, not CSS constants** — that's what makes them
-theme-robust, where the old fixed `translateX(-100%)` offset overlapped
-restyled bullets/checkboxes (e.g. under AnuPpuccin).
+on the line (`height: 1lh; align-items: center`). **Both axes are measured, not
+CSS constants** — that's what makes them theme-robust, where a fixed offset
+overlapped restyled bullets/checkboxes (e.g. under AnuPpuccin) or floated above
+padded headings.
+
+- **Horizontal** — the old fixed `translateX(-100%)` offset overlapped restyled
+  bullets, so `left` is measured (see below).
+- **Vertical** — CSS `top: 0` resolves to the host's **padding-box** top, which
+  on a padded block (Obsidian gives heading lines `padding-top: var(--p-spacing)`
+  in the editor; some themes pad headings in reading view) sits well above the
+  first glyph — so the centred-in-`1lh` icon floated in that padding strip. The
+  positioner now measures the host's top-padding and writes it as inline `top`,
+  dropping the icon onto the actual text line. `0` for unpadded blocks (the
+  common case), so it's inert wherever signifiers already aligned.
 
 **Why measurement is robust *and* cheap:** a marker's `left = targetX −
 hostLeft`, and both are page coordinates of elements inside the same
@@ -53,7 +63,12 @@ intrinsic layout metrics change (theme, font, the DOM itself).
   leftmost entry across the note.
 - **Live preview** — the `ViewPlugin` measures with CodeMirror's `coordsAtPos`
   inside a batched `view.requestMeasure`, driven by `update()` on
-  `docChanged / viewportChanged / geometryChanged` (the last covers resize).
+  `docChanged / viewportChanged / geometryChanged` (the last covers resize). For
+  the per-row (`margin`) target it anchors on the line's **rendered bullet**
+  (`.cm-formatting-list`) rather than `coordsAtPos`, because the marker
+  character's coordinate sits ~one indent step right of the visible bullet
+  (further off when the Outliner plugin restyles lists); non-list lines fall back
+  to the content coordinate.
 
 There is **no scroll recompute** (the offset is scroll-invariant). Markers are
 `visibility: hidden` until their first measurement reveals them

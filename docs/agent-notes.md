@@ -621,6 +621,33 @@ WeakMap-cached base padding and live-inline-padding read-back to prevent
 oscillation. Implementation and all the recompute triggers are documented in depth
 in `CLAUDE.md` (signifiers section), `docs/signifiers.md`, and `gutter-positioner.ts`.
 
+**Vertical anchor must also be measured, not `top:0` (fixed in 3.1.6).** The
+marker was vertically positioned with pure CSS (`top:0; height:1lh;
+align-items:center`). `top:0` resolves to the host's **padding-box** top — fine
+for body text, but Obsidian core gives heading lines `padding-top:var(--p-spacing)`
+(~16px) **in the editor** (`.cm-s-obsidian .cm-line.HyperMD-header`, in `app.css`,
+so it's theme-independent and reproduces in vanilla Live Preview), and some themes
+pad headings in reading view. The icon then centred inside a `1lh` band pinned to
+the top of that padding strip, floating ~16px **above** the heading (measured
+−15.5px on a real note). Fix: both positioners read `getComputedStyle(host)
+.paddingTop` in the read phase and write it as inline `top`. `0` for unpadded
+blocks → byte-identical to the old behaviour everywhere it already aligned, so
+near-zero regression risk. **Lesson: the same "measure, don't hardcode CSS"
+rule that governs the horizontal axis governs the vertical one — `top:0` was the
+last fixed-CSS assumption and it broke for exactly the predicted reason.**
+
+**Per-row (`margin`) live-preview anchor must use the rendered bullet, not
+`coordsAtPos` (fixed in 3.1.6).** `view.coordsAtPos(line.from + leadingWhitespace)`
+(the marker character) lands ~one indent step **right** of the visible bullet in
+Live Preview — measured 12px on a plain list, and the **Outliner** plugin's
+hanging-indent restyling widens it — so the per-entry icon drifts off its entry.
+Fix: anchor on the line's rendered `.cm-formatting-list` element's left edge when
+present (non-list lines fall back to the content coordinate). After the fix every
+entry sits a constant 12px (`ROW_GAP_PX`) left of its bullet at all nesting
+depths. Column mode is untouched (it anchors `coordsAtPos(line.from)` and takes a
+min, so the consistent skew cancels). Outliner is in the real deploy targets but
+**not** the demo vault — verify per-entry placement there, not in demo.
+
 ### Master ribbon menu (`JournalRibbonMenuFeature`)
 
 A single plugin "home" ribbon icon (`notebook-text`, label *Journal Folder menu*)

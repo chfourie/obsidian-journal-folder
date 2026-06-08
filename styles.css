@@ -2292,7 +2292,13 @@ input[data-jf-task-swapped] {
 	 * `top:0; bottom:0` would centre the icon over the entire subtree and drop
 	 * it below its own line. A one-line-tall box from the top keeps it on the
 	 * entry's line (`1lh` = the line height; `em` is the older-engine
-	 * fallback). `align-items: center` then centres the icon within it. */
+	 * fallback). `align-items: center` then centres the icon within it.
+	 *
+	 * `top` is the PRE-MEASUREMENT fallback: the positioner overwrites it with
+	 * the host's measured top-padding (inline `top`) so a padded block — headings
+	 * get `padding-top: var(--p-spacing)` in the editor — centres the icon on the
+	 * text line instead of floating in the padding strip above it. Unpadded
+	 * blocks measure 0, so the inline value equals this fallback. */
 	top: 0;
 	bottom: auto;
 	height: 1.5em;
