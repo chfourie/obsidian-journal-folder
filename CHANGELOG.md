@@ -24,6 +24,10 @@ release body).
   with higher-specificity selectors — including the calendar colour-lock. No
   visual change; verified against the AnuPpuccin theme. Clears the community
   review's "Avoid `!important`" findings.
+- Dropped the `builtin-modules` dev dependency in favour of Node's native
+  `module.builtinModules` in the esbuild config, and added a reason to the lone
+  `eslint-disable` directive in `journal-folder-settings-store.type.ts` — both
+  community-review findings.
 
 ## [3.1.3]
 
