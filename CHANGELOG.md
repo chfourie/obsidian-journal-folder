@@ -7,6 +7,20 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.5]
+
+### Internal
+- No user-facing changes — the plugin itself is unchanged from 3.1.4. This
+  release is repository housekeeping.
+- Removed the per-release end-to-end **verification report** (the committed
+  `docs/test-reports/` gallery). Regenerating ~74 screenshots on every release
+  was ballooning the repository's git history with binary churn, so the report
+  was dropped — it is no longer generated, committed, or linked from the README.
+  The README's own screenshots are unaffected, and the end-to-end suite still
+  verifies every release; it simply no longer captures a document.
+- Hardened the release script so the expected deploy-artifact churn from the E2E
+  and screenshot steps can no longer halt a release at the version-bump step.
+
 ## [3.1.4]
 
 ### Fixed
