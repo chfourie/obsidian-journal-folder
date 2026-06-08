@@ -425,6 +425,32 @@ and publish it manually (`gh release edit <tag> --draft=false`).
   screenshot harness drive the real app via the CLI, so the pipeline can't run on
   CI. The E2E step targets `jf-e2e-vault`; the screenshots step targets
   `demo-vault`. Keep the relevant window focused + visible during each step.
+- **Wrap the whole run in `caffeinate` so the screen can't lock mid-flight.** The
+  pipeline drives Obsidian with no user input for several minutes, so the macOS
+  display-sleep / screen-saver idle timer fires and the window goes
+  `document.hidden` — Obsidian then **stops rendering the reading view**, and the
+  E2E suite fails with empty previews (it surfaced as the `template-preview`
+  scenario failing while earlier suites passed — whichever suite happens to run
+  when the lock hits). The preflight even refuses to start with *"The Obsidian
+  window is not visible (document.hidden)"*. Tightening **System Settings → Lock
+  Screen** does **not** help (and a corporate MDM policy may enforce a hard
+  timeout regardless). The reliable fix is to keep the display awake for the
+  command's lifetime: `caffeinate -d -i -m npm run release -- <patch|minor|major>
+  --yes` (`-d` = no display sleep + suppresses the idle screen saver). Run it
+  **sandbox-OFF** — the Obsidian CLI talks to the app over a local socket the
+  sandbox blocks (you'll see *"unable to find Obsidian"* otherwise).
+- **The E2E + screenshot steps redeploy into their vaults — that's expected
+  churn, handled automatically.** Both `deployBuild`s copy the built
+  `manifest.json` / `styles.css` verbatim into `jf-e2e-vault` (step 3) and
+  `demo-vault` (step 4), dirtying those tracked files. Since `npm version` (step
+  6) refuses a dirty tree, the script discards them right before it
+  (`DEPLOYED_VAULT_ARTIFACTS` → `git checkout --`); step 7 re-deploys + commits
+  the demo-vault pair fresh at the new version. Historically a **stale committed
+  demo-vault `manifest.json`** (an out-of-band edit to the root manifest's
+  `description` that wasn't re-synced) made that churn a real diff and halted the
+  release at *"Tree dirty after committing docs"*; the discard step now absorbs
+  it. If the guard ever fires now, it means a genuine **non-artifact** source
+  file is dirty — investigate that, don't just clean it.
 - Flags: `--dry-run` validates preconditions and prints the plan without changing
   anything (works even on a dirty tree — it reports blockers instead of running);
   `--yes` skips the confirm before the outward push; `--skip-screenshots` skips

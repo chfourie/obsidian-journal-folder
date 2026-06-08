@@ -44,6 +44,22 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// Tracked plugin artifacts that the E2E step (step 3, into jf-e2e-vault) and the
+// screenshot step (step 4, into demo-vault) redeploy as verbatim copies of the
+// repo's built manifest.json / styles.css. They dirty the working tree as
+// EXPECTED churn — and `npm version` (step 6) refuses a dirty tree — so we
+// discard them right before it. The demo-vault pair is then re-deployed and
+// committed fresh at the new version in step 7; the e2e-vault pair is a fixture
+// overwritten at runtime each E2E run, so it simply stays at its committed
+// version. This is what kept halting releases with a stale demo-vault manifest.
+const DEPLOYED_VAULT_ARTIFACTS = [
+  'docs/demo-vault/.obsidian/plugins/journal-folder/manifest.json',
+  'docs/demo-vault/.obsidian/plugins/journal-folder/styles.css',
+  'tests/e2e/jf-e2e-vault/.obsidian/plugins/journal-folder/manifest.json',
+  'tests/e2e/jf-e2e-vault/.obsidian/plugins/journal-folder/styles.css',
+]
+
 const C = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
@@ -155,6 +171,7 @@ async function main() {
       'node tests/e2e/run.mjs --report   (live Obsidian → docs/test-reports/)',
       args.skipScreenshots ? null : 'npm run screenshots   (live Obsidian → docs/screenshots/)',
       'git commit docs/test-reports docs/screenshots README.md',
+      'git checkout -- <demo-vault + e2e-vault deploy artifacts>   (discard expected churn)',
       `npm version ${args.bump}   (commit + tag ${next})`,
       'npm run deploy',
       `git commit demo-vault bump → "Bump demo-vault plugin to ${next}"`,
@@ -198,8 +215,13 @@ async function main() {
 
   // --- Version bump + tag --------------------------------------------------
   step(6, 8, `Version bump → ${next}`)
+  // The E2E + screenshot steps redeploy the build into their vaults, dirtying
+  // the tracked manifest.json / styles.css copies. That's expected churn, not a
+  // source change — discard it so `npm version` (which refuses a dirty tree)
+  // proceeds. Step 7 re-deploys + commits the demo-vault pair fresh at ${next}.
+  run('git', ['checkout', '--', ...DEPLOYED_VAULT_ARTIFACTS])
   if (!gitClean()) {
-    die('Tree dirty after committing docs — resolve before `npm version`.')
+    die('Tree dirty after committing docs (unexpected non-artifact changes) — resolve before `npm version`.')
   }
   run('npm', ['version', args.bump])
 
