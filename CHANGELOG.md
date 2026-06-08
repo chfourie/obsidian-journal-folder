@@ -7,6 +7,16 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.1.6]
+
+### Fixed
+- **Signifiers now appear in vaults upgraded from an early version.** A vault
+  that still had a long-removed signifier placement saved (`start` or `end`,
+  from when there were four placement options) would silently render **no**
+  signifier icons — the icon was positioned off-screen and its tag hidden, so
+  nothing showed. Such vaults now migrate automatically to the default
+  single-column placement on load, and the icons reappear.
+
 ## [3.1.5]
 
 ### Internal

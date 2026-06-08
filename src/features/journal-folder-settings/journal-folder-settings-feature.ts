@@ -25,6 +25,7 @@ import {
 import type { Plugin } from 'obsidian'
 import { JournalFolderSettingsTab } from './journal-folder-settings-tab'
 import { migrateTaskSettings } from './migrate-task-settings'
+import { migrateSignifierSettings } from './migrate-signifier-settings'
 
 export class JournalFolderSettingsFeature extends PluginFeature {
   constructor(
@@ -75,10 +76,12 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     const stored =
       ((await this.plugin.loadData()) as Partial<JournalFolderSettings> | null) ??
       {}
-    const settings = migrateTaskSettings({
-      ...this.globalSettings,
-      ...stored,
-    })
+    const settings = migrateSignifierSettings(
+      migrateTaskSettings({
+        ...this.globalSettings,
+        ...stored,
+      })
+    )
     await this.saveSettings(settings)
   }
 
