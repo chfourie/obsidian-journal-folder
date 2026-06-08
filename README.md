@@ -1089,22 +1089,6 @@ These live as separate files in the repository (linked to GitHub so they resolve
 - [Tasks design](https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/tasks-design.md)
 - [Signifiers & task categories](https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/signifiers.md)
 
-## Release verification report
-
-Every release is cut through a local pipeline that runs the full end-to-end test
-suite against a live Obsidian instance and captures a **[release verification
-report](https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/test-reports/README.md)**
-— a step-by-step log of every tested scenario with screenshots. It is both the
-evidence of what was verified for the release and a guided tour of the plugin in
-action across all of its features.
-
-> **Reading this inside Obsidian's plugin settings?** Links there aren't
-> clickable, so open the report directly on GitHub — copy this URL into a browser:
->
-> ```
-> https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/test-reports/README.md
-> ```
-
 ## License
 
 GPL-3.0 — see `LICENSE.md`.

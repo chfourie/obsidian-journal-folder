@@ -30,7 +30,6 @@ asserts, and exits non-zero on failure.
 ```bash
 npm run test:e2e         # deploy the current build into the vault, then run
 npm run test:e2e:build   # build first, then deploy + run
-npm run test:e2e:report  # build, run, AND write the verification report (below)
 ```
 
 Useful flags (pass after `--`, e.g. `npm run test:e2e -- --filter calendar`):
@@ -41,7 +40,6 @@ Useful flags (pass after `--`, e.g. `npm run test:e2e -- --filter calendar`):
 | `--list` | print the suite/test names without running |
 | `--bail` | stop at the first failure |
 | `--no-deploy` | skip copying main.js + reloading (use the build already in the vault) |
-| `--report` | record steps + capture screenshots into `docs/test-reports/` (below) |
 
 Exit codes: `0` all passed · `1` test failures · `2` environment not ready.
 
@@ -101,51 +99,12 @@ Then add it to [`specs/index.mjs`](specs/index.mjs). The `ctx` surface
 readSettings/waitFor/assert/…) is assembled in [`lib/harness.mjs`](lib/harness.mjs).
 See [`TEST-PLAN.md`](TEST-PLAN.md) for the full scenario matrix.
 
-## The verification report (`--report`)
+## `ctx.step` / `ctx.shot` are no-ops
 
-The release pipeline (`npm run release …`, and the convenience
-`npm run test:e2e:report`) runs the suite in **report mode**, producing a
-committed end-user document — [`docs/test-reports/README.md`](../../docs/test-reports/README.md)
-— with a step-by-step log of every scenario and a screenshot for each visible
-one. It is both evidence of what the release verified and a guided feature tour.
-
-Authoring it from a spec adds two things on top of the assertions:
-
-- A suite **`description`** (1–2 sentences for an end user), placed right after `name`.
-- Per test, **`ctx.step('plain prose')`** narrative lines and **`ctx.shot('Caption', { rect })`** screenshots.
-
-```js
-export const suite = {
-  name: 'my-area',
-  description: 'What this feature area is, for someone reading the report.',
-  settings: {},
-  tests: [
-    ['does the thing', async (ctx) => {
-      await ctx.openNote('Journal/2026-06-06', 'preview')
-      ctx.step('Open the daily note in reading view.')
-      ctx.assert.ok(await ctx.exists('.journal-folder-header'), 'header renders')
-      await ctx.shot('Daily note header', { rect: "rectOf('.journal-folder-header')" })
-    }],
-  ],
-}
-```
-
-- **`ctx.shot(caption, opts?)`** — `opts.rect` is a measure-expression *string*
-  evaluated in-page with the screenshot helpers in scope: `rectOf(sel)` (within
-  the active reading/source view), `bodyRect(sel)` (anywhere — for portaled
-  panels, pickers, modals, the sidebar), `union(...)`/`bodyUnion(...)`, `_r(el)`.
-  Omit `opts` for the active reading view; pass `{ full: true }` for the whole
-  window; `{ pad }` overrides the crop padding.
-- **Place `ctx.shot` BEFORE any UI-dismissing action** — before `closeSidebar`/
-  `closeSettings`, before clicking a modal's confirm/cancel button. The capture
-  must happen while the thing is on screen.
-- **Off by default.** In a normal run `ctx.step`/`ctx.shot` are no-ops (the
-  harness passes a `nullReporter`) — nothing is captured, so the suite stays fast.
-- A **failed capture never fails the test** — it degrades to a noted step, so a
-  slightly-off `rect` is safe to fix after the first live run.
-
-Implementation: pure model + markdown renderer in [`lib/report.mjs`](lib/report.mjs)
-(unit-tested in [`report.test.ts`](report.test.ts)); screenshot + file I/O in
-[`lib/reporter.mjs`](lib/reporter.mjs), reusing the screenshot harness'
-`capture.mjs`. PNGs are written under `docs/test-reports/assets/<suite>/` and
-committed.
+Specs still call `ctx.step('plain prose')` and `ctx.shot('Caption', { rect })` in
+places. These were the authoring hooks for a per-release **verification report**
+(a committed `docs/test-reports/` gallery), which was **removed** — regenerating
+~74 PNGs every release ballooned git history. Both are now harmless no-ops kept
+only as inline documentation of each scenario's intent; the E2E suite captures
+nothing. (The README's own screenshots are a separate harness — `npm run
+screenshots` → `docs/screenshots/` — and are unaffected.)

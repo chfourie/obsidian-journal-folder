@@ -20,9 +20,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // Local release pipeline. Everything that must NOT be skipped before a release
 // runs here, in order, halting on the first failure:
 //
-//   preconditions → lint → unit tests → build → E2E (+verification report)
-//   → README screenshots → commit docs → version bump+tag → deploy
-//   → commit demo-vault bump → push (branch + tag)
+//   preconditions → lint → unit tests → build → E2E → README screenshots
+//   → commit docs → version bump+tag → deploy → commit demo-vault bump
+//   → push (branch + tag)
 //
 // The tag push triggers .github/workflows/release.yml, which creates a DRAFT
 // GitHub release (so the final outward step — publishing — stays manual; this is
@@ -35,7 +35,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 //   --dry-run           validate preconditions and print the plan; change nothing
 //   --yes               skip the confirm prompt before the outward push
-//   --skip-screenshots  skip `npm run screenshots` (the report is never skipped)
+//   --skip-screenshots  skip `npm run screenshots` (the E2E suite is never skipped)
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -168,9 +168,9 @@ async function main() {
       'npm run lint',
       'npm test',
       'npm run build',
-      'node tests/e2e/run.mjs --report   (live Obsidian → docs/test-reports/)',
+      'node tests/e2e/run.mjs   (live Obsidian E2E suite)',
       args.skipScreenshots ? null : 'npm run screenshots   (live Obsidian → docs/screenshots/)',
-      'git commit docs/test-reports docs/screenshots README.md',
+      'git commit docs/screenshots README.md',
       'git checkout -- <demo-vault + e2e-vault deploy artifacts>   (discard expected churn)',
       `npm version ${args.bump}   (commit + tag ${next})`,
       'npm run deploy',
@@ -190,10 +190,10 @@ async function main() {
   run('npm', ['test'])
   run('npm', ['run', 'build'])
 
-  // --- Live E2E with the verification report (must not be skipped) --------
-  step(3, 8, 'E2E suite + verification report (live Obsidian)')
+  // --- Live E2E (must not be skipped) -------------------------------------
+  step(3, 8, 'E2E suite (live Obsidian)')
   info('Ensure the jf-e2e-vault is open, focused and visible in Obsidian.')
-  run('node', ['tests/e2e/run.mjs', '--report'])
+  run('node', ['tests/e2e/run.mjs'])
 
   // --- README screenshots (live Obsidian) ---------------------------------
   if (args.skipScreenshots) {
@@ -205,12 +205,12 @@ async function main() {
   }
 
   // --- Commit generated documentation -------------------------------------
-  step(5, 8, 'Commit verification report + screenshots')
-  run('git', ['add', 'docs/test-reports', 'docs/screenshots', 'README.md'])
+  step(5, 8, 'Commit README screenshots')
+  run('git', ['add', 'docs/screenshots', 'README.md'])
   if (capture('git', ['diff', '--cached', '--name-only']) === '') {
     info('No documentation changes to commit.')
   } else {
-    run('git', ['commit', '-m', `docs: verification report + screenshots for ${next}`])
+    run('git', ['commit', '-m', `docs: screenshots for ${next}`])
   }
 
   // --- Version bump + tag --------------------------------------------------

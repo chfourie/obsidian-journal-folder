@@ -23,47 +23,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 //   node tests/e2e/run.mjs [--filter <text>] [--list] [--bail] [--no-deploy]
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { evalRaw, evalJSON, VAULT } from './lib/cli.mjs'
-import { deployBuild, reloadPlugin, resetVault, sleep, REPO_ROOT } from './lib/vault.mjs'
+import { deployBuild, reloadPlugin, resetVault, sleep } from './lib/vault.mjs'
 import { openNote, resetUi } from './lib/page.mjs'
 import { runSuites } from './lib/harness.mjs'
-import { createReporter } from './lib/reporter.mjs'
 import { suites } from './specs/index.mjs'
 
 function parseArgs(argv) {
-  const a = { bail: false, list: false, deploy: true, report: false }
+  const a = { bail: false, list: false, deploy: true }
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i]
     if (k === '--filter') a.filter = argv[++i]
     else if (k === '--list') a.list = true
     else if (k === '--bail') a.bail = true
     else if (k === '--no-deploy') a.deploy = false
-    else if (k === '--report') a.report = true
   }
   return a
-}
-
-// Gather the report header metadata: plugin version from the built manifest and
-// the live Obsidian API version. Best-effort — a missing value just drops its
-// row from the report table.
-async function reportMeta() {
-  let version
-  try {
-    const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'manifest.json'), 'utf8'))
-    version = manifest.version
-  } catch {
-    /* ignore */
-  }
-  let obsidian
-  try {
-    obsidian = await evalJSON(`typeof apiVersion!=='undefined'?apiVersion:'unknown'`)
-  } catch {
-    /* ignore */
-  }
-  return { version, obsidian, date: new Date().toISOString().slice(0, 10) }
 }
 
 function fail(msg) {
@@ -173,39 +149,7 @@ async function main() {
   // Leave fixtures pristine before the first suite even if a prior run aborted.
   resetVault()
 
-  // In --report mode (the release pipeline) build a reporter that records steps
-  // and captures screenshots into docs/test-reports/. A normal run passes no
-  // reporter, so ctx.step / ctx.shot are no-ops and nothing is captured.
-  let reporter = null
-  let savedTheme = null
-  if (args.report) {
-    reporter = createReporter(await reportMeta())
-    // Report screenshots are captured in LIGHT mode (they read better on the
-    // page) — save the user's scheme and restore it afterwards. `app.getTheme()`
-    // returns the effective scheme; `app.changeTheme('moonstone')` = light.
-    try {
-      savedTheme = await evalRaw('app.getTheme()')
-      await evalRaw(`(()=>{app.changeTheme('moonstone'); return 'ok'})()`)
-    } catch {
-      /* best effort — the theme just stays as-is */
-    }
-    console.log('Report mode: light scheme forced; capturing screenshots into docs/test-reports/')
-  }
-
-  const code = await runSuites(suites, { ...args, reporter })
-
-  if (reporter) {
-    const file = reporter.write()
-    const s = reporter.model.stats()
-    console.log(`\nReport written: ${file} (${s.shots} screenshots)`)
-    if (savedTheme) {
-      try {
-        await evalRaw(`(()=>{app.changeTheme(${JSON.stringify(savedTheme)}); return 'ok'})()`)
-      } catch {
-        /* best effort */
-      }
-    }
-  }
+  const code = await runSuites(suites, args)
   process.exit(code)
 }
 

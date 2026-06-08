@@ -412,9 +412,9 @@ the next `## [` via `awk` and passes it to `gh release create --notes-file`.
 first failure (so nothing that gates a release can be silently skipped):
 
 > preconditions (clean tree + `## [<next>]` CHANGELOG section) → `npm run lint` →
-> `npm test` → `npm run build` → **E2E with the verification report**
-> (`node tests/e2e/run.mjs --report`) → `npm run screenshots` → commit the
-> generated docs → `npm version <type>` (commit + unprefixed tag) → `npm run
+> `npm test` → `npm run build` → **E2E** (`node tests/e2e/run.mjs`) →
+> `npm run screenshots` → commit the generated docs (README screenshots only) →
+> `npm version <type>` (commit + unprefixed tag) → `npm run
 > deploy` → commit the demo-vault artifact bump → **confirm** → push branch + tag.
 
 The tag push triggers the workflow, which builds and creates a **draft** GitHub
@@ -454,7 +454,7 @@ and publish it manually (`gh release edit <tag> --draft=false`).
 - Flags: `--dry-run` validates preconditions and prints the plan without changing
   anything (works even on a dirty tree — it reports blockers instead of running);
   `--yes` skips the confirm before the outward push; `--skip-screenshots` skips
-  only the screenshot regen (the verification report is never skipped).
+  only the screenshot regen (the E2E suite is never skipped).
 - Still **add the `## [x.y.z]` CHANGELOG section first** — the script's
   precondition check refuses to proceed without it (heading format must match
   exactly; the awk extractor depends on it).
@@ -479,43 +479,28 @@ and publish it manually (`gh release edit <tag> --draft=false`).
 If the workflow logs "No CHANGELOG.md section found" and uses a `Release <tag>`
 placeholder body, you forgot the CHANGELOG section.
 
-### The verification report (`docs/test-reports/`)
+### The verification report (`docs/test-reports/`) — REMOVED
 
-A committed, end-user-facing artifact regenerated on every release: a step log of
-every E2E scenario plus a screenshot for each visible one — both evidence of what
-was verified and a feature gallery. Referenced from the README.
+There used to be a committed per-release gallery here (a step log of every E2E
+scenario + a screenshot for each visible one, referenced from the README). It was
+**removed entirely** — regenerating ~74 PNGs (~11 MB) on every release piled fresh
+binary blobs into git history forever and ballooned the repo. The whole
+report-generation feature is gone: `--report` mode, `tests/e2e/lib/report.mjs`,
+`tests/e2e/lib/reporter.mjs`, `tests/e2e/report.test.ts`, and the
+`test:e2e:report` script were all deleted, and the README section dropped.
+(The ~18 MB of `docs/test-reports/` blobs already in git history were left in
+place — a one-time `git filter-repo` purge was considered but not worth rewriting
+this published repo's history + moving its 41 release tags for the small reclaim;
+removing the feature already stops further growth.)
 
-- **Off by default.** A normal `npm run test:e2e` records nothing and captures no
-  screenshots; `ctx.step` / `ctx.shot` are no-ops (the harness passes
-  `nullReporter`). Only `--report` mode (the release pipeline, or `npm run
-  test:e2e:report`) builds a real reporter and captures.
-- **Pieces:** `tests/e2e/lib/report.mjs` is the pure model + markdown renderer
-  (unit-tested in `tests/e2e/report.test.ts` — vitest picks up `tests/**/*.test.ts`
-  and can import the `.mjs`). `tests/e2e/lib/reporter.mjs` is the I/O wrapper that
-  binds the model to the screenshots harness' `screenshotFull`/`cropFrom`
-  (`scripts/screenshots/lib/capture.mjs`) and writes `docs/test-reports/README.md`
-  + PNGs under `docs/test-reports/assets/<suite>/NN-<caption>.png` (committed).
-- **Authoring in specs:** give each suite a `description`; in each test call
-  `ctx.step('plain prose for an end user')` and `ctx.shot('Caption', { rect })`.
-  `rect` is a measure-expression string (same helpers as the screenshot scenes —
-  `rectOf`/`bodyRect`/`union`/`bodyUnion`/`_r`); omit opts for the active reading
-  view, `{ full: true }` for the whole window. **Place `ctx.shot` BEFORE anything
-  that dismisses the captured UI** (before `closeSidebar`/`closeSettings`, before
-  a modal's confirm click). A failed capture degrades to a noted step — it never
-  fails the test — so a slightly-off `rect` is safe to fix after the first live
-  run.
-- **Light mode + framed shots.** `run.mjs` forces the light scheme for the whole
-  report run (`app.changeTheme('moonstone')`, saving/restoring the user's scheme)
-  because the captures read better light — same call the screenshot harness uses.
-  The `ribbon-theme` light/dark-toggle spec needs no special-casing: it already
-  saves `before = app.getTheme()` and restores it in `finally`, so it flips
-  light→dark→light within the run. Each crop is then run through
-  `decorateShot` (`capture.mjs`) so it stands out from the page: a **soft drop
-  shadow** when ImageMagick (`magick`/`convert`) is on PATH, else a **thin neutral
-  border** via the always-present `sips` (baked into the PNG — GitHub strips inline
-  `<img>` styles, so a CSS shadow wouldn't survive). The README link to the report
-  carries a copy-pasteable bare URL because links don't open from inside Obsidian's
-  plugin-settings README viewer.
+What remains: the E2E suite **only verifies now — it captures nothing**. Specs
+still carry their `ctx.step('…')` / `ctx.shot('Caption', { rect })` calls, kept as
+**no-ops** in `tests/e2e/lib/harness.mjs` (they document each scenario's intent
+and cost nothing — no need to strip them from the 17 specs). The README's own
+screenshots (`docs/screenshots/`, via `npm run screenshots`) are a **separate**
+feature and stay committed. If you re-introduce a report, expect the history-bloat
+problem to return — host the images outside `master` (orphan branch / release
+assets / LFS) rather than committing regenerated PNGs each release.
 
 ---
 
