@@ -3,5 +3,5 @@
   "//  absolute path to each vault's journal-folder plugin folder below.",
   "//  Lines starting with // are ignored. The demo vault is always synced",
   "//  automatically — you don't need to list it here.",
-  "/Users/you/Obsidian/My Vault/.obsidian/plugins/journal-folder"
+  "{plugin-folder}/journal-folder"
 ]
