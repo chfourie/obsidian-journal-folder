@@ -7,6 +7,18 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.2.0]
+
+### Added
+- **New "Start a new line below" command.** Starts a fresh line below the one
+  your cursor is on — exactly as if you had pressed Enter at the **end** of that
+  line — so you can begin a new entry without first moving to the line's end. In
+  a bullet, checkbox, or blockquote it continues the list natively (and exits an
+  empty item) just like a real Enter, because it hands off to Obsidian's own
+  newline handling rather than reimplementing it. The command ships without a
+  default shortcut; bind it (for example to Ctrl/Cmd+Enter) under
+  **Settings → Hotkeys**, the same as the plugin's other commands.
+
 ## [3.1.6]
 
 ### Fixed

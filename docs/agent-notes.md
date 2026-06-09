@@ -648,6 +648,31 @@ depths. Column mode is untouched (it anchors `coordsAtPos(line.from)` and takes 
 min, so the consistent skew cancels). Outliner is in the real deploy targets but
 **not** the demo vault — verify per-entry placement there, not in demo.
 
+### "Start a new line below" command (`JournalEditorFeature`)
+
+A `start-new-line-below` editor command (no default hotkey; users bind
+Ctrl/Cmd+Enter themselves) that behaves as if you pressed Enter at the **end** of
+the cursor's current line — continuing bullets/checkboxes/blockquotes natively.
+`startNewLineBelow` (`start-new-line.ts`) moves the caret to end-of-line, then
+**dispatches a real `Enter` keydown into `editor.cm.contentDOM`** rather than
+reimplementing Obsidian's continuation rules (the maintainer's
+inherit-native-behaviour preference). Plain-newline fallback when `editor.cm` is
+unreachable.
+
+**Verification trap — synthetic events and `isTrusted`:** you *cannot* verify the
+end-to-end hotkey path with a synthetic `KeyboardEvent`. CodeMirror's own
+contentDOM keymap honours an untrusted (`isTrusted:false`) dispatched keydown — so
+dispatching `Enter` on `editor.cm.contentDOM` **does** trigger native list
+continuation and is a valid way to test the *inner* mechanism. But Obsidian's
+**global** keymap (the hotkey→command layer) ignores untrusted events, so a
+synthetic `Mod+Enter` is a no-op and proves nothing about the binding. The
+faithful programmatic proxy for a real keypress is to invoke the registered
+command's callback directly:
+`app.commands.commands['journal-folder:start-new-line-below'].editorCallback(editor, view)`
+— that's exactly what Obsidian's keymap calls, and it produces the continuation.
+(`executeCommandById` returned `true` but no-op'd in the eval context — don't
+trust it as the verification signal here; use the `editorCallback` call.)
+
 ### Master ribbon menu (`JournalRibbonMenuFeature`)
 
 A single plugin "home" ribbon icon (`notebook-text`, label *Journal Folder menu*)

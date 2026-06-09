@@ -16,6 +16,7 @@ You can run as many independent journals as you like in the same vault. A folder
 - **Quarterly notes** as an opt-in fifth tier between yearly and monthly. [Read more →](#quarterly-notes-opt-in)
 - **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, tag-driven **task categories** (optionally range-capped so day-local chores stay out of wider rollups), and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
 - **Signifiers** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers)
+- **A "start a new line below" command** — begin a fresh line (continuing any bullet, checkbox, or quote) as if you'd pressed Enter at the line's end, without moving the cursor there first. Bind it to a shortcut of your choice. [Read more →](#starting-a-new-line)
 
 ## Why folder-based?
 
@@ -91,6 +92,7 @@ User guide (everything below is in this page):
 - [Quarterly notes (opt-in)](#quarterly-notes-opt-in)
 - [Tasks](#tasks)
 - [Signifiers](#signifiers)
+- [Starting a new line](#starting-a-new-line)
 - [Using with a theme that styles tasks](#using-with-a-theme-that-styles-tasks)
 - [Using with the Obsidian Tasks plugin](#using-with-the-obsidian-tasks-plugin)
 - [Advanced configuration](#advanced-configuration)
@@ -703,6 +705,26 @@ signifier icons to open that same checklist. On a line that doesn't have a
 signifier yet, a faint **+** fades in the margin as you hover the line — click it
 to add one. The cursor turns to a pointer over the gutter so you can tell it's
 interactive.
+
+---
+
+## Starting a new line
+
+While you're writing, you don't have to move to the end of a line before pressing
+Enter to begin a new one. The command **"Start a new line below"** starts a fresh
+line beneath the line your cursor is on — exactly as if you had pressed Enter at
+the **end** of that line — so you can keep adding entries without first jumping to
+the line's end.
+
+Because it behaves like a real Enter, it **continues whatever you're in**: on a
+bullet, numbered item, checkbox, or blockquote it opens the next one (and an empty
+item exits the list), just as pressing Enter normally would. This works in both
+Live Preview and Source mode.
+
+The command ships **without a shortcut** so it can't clash with anything you've
+already set. Bind it under **Settings → Hotkeys** (search for *Start a new line
+below*) — Ctrl+Enter (Cmd+Enter on macOS) is a natural choice — the same way you'd
+assign any of the plugin's other commands.
 
 ---
 

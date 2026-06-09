@@ -26,6 +26,7 @@ import { JournalTasksFeature } from '../features/journal-tasks'
 import { JournalTasksSidebarFeature } from '../features/journal-tasks-sidebar'
 import { JournalSignifiersFeature } from '../features/journal-signifiers'
 import { JournalRibbonMenuFeature } from '../features/journal-ribbon-menu'
+import { JournalEditorFeature } from '../features/journal-editor'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -53,6 +54,7 @@ export default class JournalFolderPlugin extends Plugin {
       .addFeature(new JournalHeaderFeature(this))
       .addFeature(tasksFeature)
       .addFeature(new JournalSignifiersFeature(this))
+      .addFeature(new JournalEditorFeature(this))
       .addFeature(
         new JournalAutoTemplateFeature(this, settingsFeature.saveSettings)
       )
