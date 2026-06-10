@@ -74,7 +74,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   let pickerStyle = $state('')
 
   function portal(node: HTMLElement) {
-    document.body.appendChild(node)
+    activeDocument.body.appendChild(node)
     return {
       destroy() {
         node.remove()
@@ -97,14 +97,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     let leftPx = centerX - pickerWidth / 2
     leftPx = Math.max(
       margin,
-      Math.min(window.innerWidth - pickerWidth - margin, leftPx)
+      Math.min(activeWindow.innerWidth - pickerWidth - margin, leftPx)
     )
     pickerStyle = `top: ${top}px; left: ${leftPx}px;`
   }
 
   function togglePicker() {
     pickerOpen = !pickerOpen
-    if (pickerOpen) requestAnimationFrame(updatePickerPosition)
+    if (pickerOpen) window.requestAnimationFrame(updatePickerPosition)
   }
 
   function closePicker() {
@@ -129,9 +129,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   $effect(() => {
     if (!pickerOpen) return
-    document.addEventListener('scroll', handleViewportChange, true)
+    activeDocument.addEventListener('scroll', handleViewportChange, true)
     return () =>
-      document.removeEventListener('scroll', handleViewportChange, true)
+      activeDocument.removeEventListener('scroll', handleViewportChange, true)
   })
 
   function prevYear() {

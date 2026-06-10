@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-	import { moment } from 'obsidian'
+	import { moment } from '../../data-access'
 	import type { JournalNote } from '../../data-access'
 	import {
 		buildCalendarInfo,
@@ -90,7 +90,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	let pickerStyle = $state('')
 
 	function portal(node: HTMLElement) {
-		document.body.appendChild(node)
+		activeDocument.body.appendChild(node)
 		return {
 			destroy() {
 				node.remove()
@@ -118,14 +118,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		let leftPx = centerX - pickerWidth / 2
 		leftPx = Math.max(
 			margin,
-			Math.min(window.innerWidth - pickerWidth - margin, leftPx)
+			Math.min(activeWindow.innerWidth - pickerWidth - margin, leftPx)
 		)
 		pickerStyle = `top: ${top}px; left: ${leftPx}px;`
 	}
 
 	function togglePicker() {
 		pickerOpen = !pickerOpen
-		if (pickerOpen) requestAnimationFrame(updatePickerPosition)
+		if (pickerOpen) window.requestAnimationFrame(updatePickerPosition)
 	}
 
 	function closePicker() {
@@ -152,9 +152,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		if (!pickerOpen) return
 		// Capture-phase scroll catches the editor pane (which scrolls
 		// independently of the window).
-		document.addEventListener('scroll', handleViewportChange, true)
+		activeDocument.addEventListener('scroll', handleViewportChange, true)
 		return () =>
-			document.removeEventListener('scroll', handleViewportChange, true)
+			activeDocument.removeEventListener('scroll', handleViewportChange, true)
 	})
 
 	$effect(() => {
@@ -188,7 +188,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	}
 
 	function scrollToToday() {
-		// @ts-ignore
 		const today = moment()
 		offsetMonths = offsetForTarget(
 			note.getMoment(),

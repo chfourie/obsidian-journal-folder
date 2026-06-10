@@ -29,7 +29,7 @@ npm run lint:fix   # same, auto-fixing what's safe
 npm run version    # bump manifest.json + versions.json from package.json version
 ```
 
-Tests live in `tests/` and mirror the `src/` layout. **Linting uses `eslint-plugin-obsidianmd`** (flat config in `eslint.config.mjs`) — the *same* ruleset the Obsidian community-review scanner runs against a submitted release, so `npm run lint` reproduces those findings locally. It type-checks against `tsconfig.json` (scoped to `src`; tests are excluded from the tsconfig). Run it before tagging a release to avoid surprises in the published review. Prettier config also exists and is run manually if desired.
+Tests live in `tests/` and mirror the `src/` layout. **Linting uses `eslint-plugin-obsidianmd`** (flat config in `eslint.config.mjs`) — the *same* ruleset the Obsidian community-review scanner runs against a submitted release, so `npm run lint` reproduces those findings locally. It covers both `.ts` and `.svelte` sources, type-aware in both cases: `.ts` against `tsconfig.json` (scoped to `src`; tests are excluded from the tsconfig), `.svelte` via `svelte-eslint-parser` against `tsconfig.eslint.json` (an ESLint-only tsconfig that adds the `.svelte` files — the build's `tsc` never sees them). Note `prefer-active-doc` only flags bare `document`; the matching `activeWindow` convention for viewport reads/listeners is *not* lint-enforced (see `docs/agent-notes.md`). Run lint before tagging a release to avoid surprises in the published review. Prettier config also exists and is run manually if desired.
 
 ## Architecture
 

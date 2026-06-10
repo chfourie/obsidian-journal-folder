@@ -112,7 +112,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // Move the panel to <body> so it isn't clipped by the sidebar's
   // scroll container or the editor's CodeMirror widgets.
   function portal(node: HTMLElement) {
-    document.body.appendChild(node)
+    activeDocument.body.appendChild(node)
     return {
       destroy() {
         node.remove()
@@ -129,8 +129,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     // clamped into the viewport.
     let left = rect.right - width
     if (left < 8) left = 8
-    if (left + width > window.innerWidth - 8) {
-      left = Math.max(8, window.innerWidth - width - 8)
+    if (left + width > activeWindow.innerWidth - 8) {
+      left = Math.max(8, activeWindow.innerWidth - width - 8)
     }
     panelStyle = `top: ${rect.bottom + gap}px; left: ${left}px;`
   }
@@ -138,7 +138,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function openPanel() {
     folders = getFolders()
     open = true
-    requestAnimationFrame(updatePanelPosition)
+    window.requestAnimationFrame(updatePanelPosition)
   }
 
   function closePanel() {
@@ -179,9 +179,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     if (!open) return
     // Capture-phase scroll catches scrolling on any ancestor (the
     // sidebar pane scrolls, not window).
-    document.addEventListener('scroll', handleViewportChange, true)
+    activeDocument.addEventListener('scroll', handleViewportChange, true)
     return () =>
-      document.removeEventListener('scroll', handleViewportChange, true)
+      activeDocument.removeEventListener('scroll', handleViewportChange, true)
   })
 </script>
 

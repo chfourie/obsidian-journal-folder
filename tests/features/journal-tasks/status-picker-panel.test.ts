@@ -123,6 +123,63 @@ describe('openStatusPicker', () => {
   })
 })
 
+// The panel must read viewport geometry and attach its resize listener on
+// `activeWindow` (the window hosting the focused leaf), not the bare
+// `window` global — in a popout window the two differ and a bare-`window`
+// clamp positions against the wrong viewport. Simulated by swapping the
+// `activeWindow` polyfill for a stub with its own dimensions/listeners.
+describe('popout window compatibility (activeWindow)', () => {
+  const g = globalThis as typeof globalThis & { activeWindow: unknown }
+  const realActiveWindow = g.activeWindow
+
+  afterEach(() => {
+    g.activeWindow = realActiveWindow
+  })
+
+  it('attaches and removes its resize listener on activeWindow', () => {
+    const popoutWindow = {
+      innerWidth: 500,
+      innerHeight: 400,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    g.activeWindow = popoutWindow
+
+    openStatusPicker({ anchor: anchor(), model, currentStatus: 'open', onSelect: () => {} })
+    expect(popoutWindow.addEventListener).toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function)
+    )
+
+    closeStatusPicker()
+    expect(popoutWindow.removeEventListener).toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function)
+    )
+  })
+
+  it('clamps the panel into the activeWindow viewport, not the global one', () => {
+    // A tiny active viewport forces the clamp paths; jsdom's own `window`
+    // reports 1024×768, so a position inside [0, 500/400] proves the
+    // stub's dimensions were the ones read.
+    g.activeWindow = {
+      innerWidth: 500,
+      innerHeight: 400,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }
+
+    openStatusPicker({ anchor: anchor(), model, currentStatus: 'open', onSelect: () => {} })
+    const el = panel()!
+    const top = Number.parseFloat(el.style.top)
+    const left = Number.parseFloat(el.style.left)
+    expect(left).toBeGreaterThanOrEqual(0)
+    expect(left).toBeLessThanOrEqual(500)
+    expect(top).toBeGreaterThanOrEqual(0)
+    expect(top).toBeLessThanOrEqual(400)
+  })
+})
+
 describe('openStatusPickerForTarget', () => {
   const mutationTarget = {
     sourceFile: new TFile(),

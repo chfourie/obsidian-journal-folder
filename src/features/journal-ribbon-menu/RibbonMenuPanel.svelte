@@ -43,7 +43,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // Reuse the sidebar menu's `<body>` portal + Lucide-icon painter so the panel
   // escapes any clipping container and shares the `.jf-sidebar-menu-*` styling.
   function portal(node: HTMLElement) {
-    document.body.appendChild(node)
+    activeDocument.body.appendChild(node)
     return {
       destroy() {
         node.remove()
@@ -70,7 +70,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
           }
         : null,
       panel: { width, height },
-      viewport: { width: window.innerWidth, height: window.innerHeight },
+      viewport: {
+        width: activeWindow.innerWidth,
+        height: activeWindow.innerHeight,
+      },
       placement: 'right',
     })
     panelStyle = `top: ${top}px; left: ${left}px;`
@@ -80,7 +83,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     anchorEl = anchor ?? null
     items = getItems()
     open = true
-    requestAnimationFrame(updatePanelPosition)
+    window.requestAnimationFrame(updatePanelPosition)
   }
 
   function closePanel() {
@@ -134,9 +137,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   $effect(() => {
     if (!open) return
-    document.addEventListener('scroll', handleViewportChange, true)
+    activeDocument.addEventListener('scroll', handleViewportChange, true)
     return () =>
-      document.removeEventListener('scroll', handleViewportChange, true)
+      activeDocument.removeEventListener('scroll', handleViewportChange, true)
   })
 </script>
 

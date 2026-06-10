@@ -41,6 +41,31 @@ release flow, and design decisions behind shipped features.
   see the convention below). Prefer an inline
   `// eslint-disable-next-line <rule> -- <why>` with a reason over loosening the
   rule globally.
+  - **Lint covers `.svelte` files too** (flat-config block in `eslint.config.mjs`:
+    `svelte-eslint-parser` with `@typescript-eslint/parser` as
+    `parserOptions.parser`). It is fully **type-aware** via
+    `tsconfig.eslint.json` — a tsconfig that extends `tsconfig.json` and adds
+    `src/**/*.svelte` to `include`, read **only by ESLint** (the build's
+    `tsc -noEmit` keeps using `tsconfig.json`, which must never include
+    `.svelte` — tsc can't parse them). `extraFileExtensions: ['.svelte']` is
+    required or typescript-eslint rejects the files. The svelte block disables
+    core `no-undef`/`no-unused-vars` in favour of
+    `@typescript-eslint/no-unused-vars` (the core rules false-positive on TS
+    type-annotation parameter names and ambient globals); the
+    `@typescript-eslint` plugin must be re-declared there because the
+    obsidianmd config only registers it for `**/*.ts` (same plugin object, so
+    no redefinition conflict).
+  - **`prefer-active-doc` only flags bare `document` — bare `window` is NOT
+    linted.** The rule's replacement map has no `window → activeWindow` entry,
+    which is exactly how `status-picker-panel.ts` shipped `window.innerWidth`
+    clamps despite passing lint. Using `activeWindow` for viewport geometry
+    (`innerWidth`/`innerHeight`) and viewport listeners (`resize`) is a
+    **convention enforced by review, not lint** — sweep for it manually when
+    touching positioning code. Conversely `prefer-window-timers` *demands*
+    `window.`-prefixed timer calls and **rejects
+    `activeWindow.requestAnimationFrame`** ("timer functions should use
+    window") — so rAF/setTimeout stay on `window`, viewport reads go through
+    `activeWindow`, and the two rules are consistent only under that split.
   - **`styles.css` carries no `!important`** (the community review flags "Avoid
     `!important`"). Every override that used to need it — including the calendar
     colour-lock — is now won by **specificity**: qualify with a shared ancestor +
@@ -225,6 +250,18 @@ fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
   eval code="(async()=>{const v=app.workspace.getLeaf(false).view;await v.setState({...v.getState(),mode:'source'},{});await new Promise(r=>setTimeout(r,500));return [...document.querySelectorAll('.jf-signifier-gutter')].length})()"
   ```
   A synthetic `el.dispatchEvent(new MouseEvent('mousedown'|'click',{bubbles:true,clientX,clientY}))` fires the real handlers (CM `domEventHandlers`, Svelte) — e.g. mousedown on a `.jf-signifier-gutter.jf-signifier-live` opens the picker modal — so behaviour can be verified end-to-end without a human.
+
+**Verifying popout-window behaviour** (the `activeDocument`/`activeWindow`
+contract) is fully scriptable: `app.workspace.openPopoutLeaf()` →
+`leaf.openFile(file)` → `doc = leaf.view.containerEl.ownerDocument` →
+`doc.defaultView.focus()` (a programmatic focus **does** update Obsidian's
+`activeDocument` — assert `activeDocument === doc` before trusting the run) →
+dispatch clicks on the in-note affordances and assert the portaled panel's
+`ownerDocument` is the popout's, not the main `document`, and its rect fits
+`doc.defaultView.innerWidth/Height`. Detach the popout leaf afterwards
+(`l.detach()` on every leaf whose `containerEl.ownerDocument !== document`).
+This proved the More popover / date picker / status picker all render and
+clamp inside the popout after the `activeDocument`/`activeWindow` sweep.
 
 ### Without the CLI
 

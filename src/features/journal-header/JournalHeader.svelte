@@ -77,7 +77,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 	// Move the panel to <body> so it isn't clipped by CodeMirror widget
 	// containers in live-preview mode.
 	function portal(node: HTMLElement) {
-		document.body.appendChild(node)
+		activeDocument.body.appendChild(node)
 		return {
 			destroy() {
 				node.remove()
@@ -98,7 +98,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 	function toggleMore() {
 		moreOpen = !moreOpen
-		if (moreOpen) requestAnimationFrame(updatePanelPosition)
+		if (moreOpen) window.requestAnimationFrame(updatePanelPosition)
 	}
 
 	function closeMore() {
@@ -157,9 +157,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 		if (!moreOpen) return
 		// Capture-phase scroll catches scrolling on any ancestor (the editor
 		// pane scrolls, not window).
-		document.addEventListener('scroll', handleViewportChange, true)
+		activeDocument.addEventListener('scroll', handleViewportChange, true)
 		return () =>
-			document.removeEventListener('scroll', handleViewportChange, true)
+			activeDocument.removeEventListener('scroll', handleViewportChange, true)
 	})
 </script>
 

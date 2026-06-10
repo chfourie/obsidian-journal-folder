@@ -58,7 +58,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   let panelStyle = $state('')
 
   function portal(node: HTMLElement) {
-    document.body.appendChild(node)
+    activeDocument.body.appendChild(node)
     return {
       destroy() {
         node.remove()
@@ -94,7 +94,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         width: rect.width,
       },
       panel: { width, height },
-      viewport: { width: window.innerWidth, height: window.innerHeight },
+      viewport: {
+        width: activeWindow.innerWidth,
+        height: activeWindow.innerHeight,
+      },
       placement: 'below',
       align,
       gap,
@@ -105,7 +108,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function openPanel() {
     items = getItems()
     open = true
-    requestAnimationFrame(updatePanelPosition)
+    window.requestAnimationFrame(updatePanelPosition)
   }
 
   function closePanel() {
@@ -150,9 +153,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   $effect(() => {
     if (!open) return
-    document.addEventListener('scroll', handleViewportChange, true)
+    activeDocument.addEventListener('scroll', handleViewportChange, true)
     return () =>
-      document.removeEventListener('scroll', handleViewportChange, true)
+      activeDocument.removeEventListener('scroll', handleViewportChange, true)
   })
 </script>
 

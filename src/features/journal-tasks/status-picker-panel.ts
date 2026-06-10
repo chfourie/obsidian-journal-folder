@@ -215,7 +215,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     activeDocument.removeEventListener('contextmenu', onOutsidePointer, true)
     activeDocument.removeEventListener('keydown', onKey, true)
     activeDocument.removeEventListener('scroll', onViewport, true)
-    window.removeEventListener('resize', onViewport)
+    activeWindow.removeEventListener('resize', onViewport)
     panel.remove()
     if (active && active.destroy === destroy) active = null
   }
@@ -224,7 +224,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   activeDocument.addEventListener('contextmenu', onOutsidePointer, true)
   activeDocument.addEventListener('keydown', onKey, true)
   activeDocument.addEventListener('scroll', onViewport, true)
-  window.addEventListener('resize', onViewport)
+  activeWindow.addEventListener('resize', onViewport)
 
   active = { destroy }
 }
@@ -269,8 +269,8 @@ function position(panel: HTMLElement, anchor: HTMLElement): void {
   const rect = anchor.getBoundingClientRect()
   const pw = panel.offsetWidth
   const ph = panel.offsetHeight
-  const vw = window.innerWidth
-  const vh = window.innerHeight
+  const vw = activeWindow.innerWidth
+  const vh = activeWindow.innerHeight
 
   let left = rect.left
   if (left + pw > vw - MARGIN) left = vw - pw - MARGIN

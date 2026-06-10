@@ -187,7 +187,31 @@ the rest live (see Verification, bottom).
 
 ---
 
-## Step 4 — Extend ESLint to `.svelte` and fix what it flags (HIGH, systemic)
+## Step 4 — Extend ESLint to `.svelte` and fix what it flags (HIGH, systemic) ✅ DONE
+
+> **Completed.** `eslint.config.mjs` grew a `src/**/*.svelte` block
+> (`svelte-eslint-parser` + `@typescript-eslint/parser`), **fully
+> type-aware** via the new `tsconfig.eslint.json` (extends `tsconfig.json`,
+> adds the `.svelte` files; only ESLint reads it — the build's `tsc` keeps
+> using `tsconfig.json`). Core `no-undef`/`no-unused-vars` are swapped for
+> `@typescript-eslint/no-unused-vars` in that block (TS false positives).
+> All listed fallout fixed: the `moment` wrapper import + dropped
+> `@ts-ignore` in `JournalCalendar.svelte`; `document`/`document.body` →
+> `activeDocument` and `window.innerWidth/Height` → `activeWindow` across
+> the six portaled panels and `status-picker-panel.ts`. The lint gap on the
+> `.ts` file was **rule coverage**: `prefer-active-doc`'s replacement map
+> only contains `document` — bare `window` is never flagged, so
+> `activeWindow` stays a review-enforced convention (noted in
+> `docs/agent-notes.md` + CLAUDE.md). One deliberate split: the new lint's
+> `prefer-window-timers` *rejects* `activeWindow.requestAnimationFrame`, so
+> rAF calls are `window.`-prefixed (behaviour-identical to the old bare
+> calls) while viewport reads/listeners use `activeWindow`. New unit tests:
+> popout-simulation describe block in
+> `tests/features/journal-tasks/status-picker-panel.test.ts` (resize
+> listener attaches/detaches on a stubbed `activeWindow`; clamping uses its
+> dimensions). Live-verified via the CLI in a real popout: More popover,
+> date picker, and status picker all render in the popout document (none in
+> the main document) and clamp to the popout viewport.
 
 **Finding:** `eslint.config.mjs` scopes the obsidianmd ruleset to `src/**/*.ts` only.
 `.svelte` files escape `prefer-active-doc` and the moment-wrapper conventions. Known
