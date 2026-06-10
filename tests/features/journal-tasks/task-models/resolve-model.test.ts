@@ -65,6 +65,24 @@ describe('resolveTaskModel', () => {
     )
   })
 
+  it('does not hand out the shared built-in template array as the fallback', () => {
+    const model = resolveTaskModel({})
+    // A mutation of the fallback model's statuses must not be able to
+    // poison the read-only built-in template (or vice versa).
+    expect(model.statuses).not.toBe(BUILTIN_TEMPLATES.simple)
+    expect(model.statuses).toEqual(BUILTIN_TEMPLATES.simple)
+  })
+
+  it('keeps the fallback memo-stable across calls (one clone, one model)', () => {
+    // The fallback flow is cloned once at module scope, so repeated
+    // resolves reuse the same statuses array and (via the buildTaskModel
+    // memo) the same model instance.
+    const first = resolveTaskModel({})
+    const second = resolveTaskModel({ taskFlows: {}, defaultTaskFlow: 'Ghost' })
+    expect(second.statuses).toBe(first.statuses)
+    expect(second).toBe(first)
+  })
+
   it('propagates taskClickOpensPicker into the model', () => {
     const off = resolveTaskModel({
       taskFlows: { Main: simpleFlow },

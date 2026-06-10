@@ -369,6 +369,31 @@ describe('migrateTasks', () => {
     expect(Notice.lastMessage).toContain('no migrated status')
   })
 
+  it('aborts (no writes) when a task already lives in the destination note', async () => {
+    const { app, source, dest } = setup()
+    app.vault.setContents(source, '- [ ] a\n')
+    app.vault.setContents(dest, '- [ ] b\n')
+
+    // One task from another note plus one whose source IS the destination —
+    // the whole call must abort, not partially migrate.
+    await migrateTasks({
+      app,
+      destFile: dest,
+      tasks: [mig(source, 0, '- [ ] a', 'open'), mig(dest, 0, '- [ ] b', 'open')],
+      model: modelWithMigrated(),
+      placement: 'end',
+      headingText: 'Tasks',
+      toMarker: '→',
+      fromMarker: '←',
+      addToReference: true,
+      addFromReference: true,
+    })
+
+    expect(await app.vault.read(source)).toBe('- [ ] a\n')
+    expect(await app.vault.read(dest)).toBe('- [ ] b\n')
+    expect(Notice.lastMessage).toContain('already in')
+  })
+
   it('skips a drifted origin line but still migrates the rest', async () => {
     const { app, source, dest } = setup()
     // Line 1 was captured as in-progress but is now done on disk.

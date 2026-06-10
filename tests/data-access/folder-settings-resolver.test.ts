@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { App, Plugin, TFile, TFolder } from 'obsidian'
-import { FolderSettingsResolver } from '../../src/data-access/folder-settings-resolver'
+import {
+  coerceEmbeddedSettingValue,
+  FolderSettingsResolver,
+} from '../../src/data-access/folder-settings-resolver'
 import { DEFAULT_SETTINGS } from '../../src/data-access/journal-folder-settings.type'
 import { buildApp } from '../helpers/fixtures'
 
@@ -200,6 +203,40 @@ describe('FolderSettingsResolver', () => {
       expect(resolved.journalFolderTitle).toBe('Embedded')
     })
 
+    it('coerces embedded values to the field type (booleans + numbers)', () => {
+      const { app, files } = buildApp('Journal', ['2026-05-03'])
+      const resolver = new FolderSettingsResolver(makePlugin(app))
+
+      const resolved = resolver.resolve(
+        DEFAULT_SETTINGS,
+        files['2026-05-03'],
+        `
+        quarters-enabled: true
+        use-folder-name-as-default-title: false
+        task-migration-reference-opacity: 55
+        `
+      )
+
+      expect(resolved.quartersEnabled).toBe(true)
+      expect(resolved.useFolderNameAsDefaultTitle).toBe(false)
+      expect(resolved.taskMigrationReferenceOpacity).toBe(55)
+    })
+
+    it('skips an embedded numeric field whose value is not a number', () => {
+      const { app, files } = buildApp('Journal', ['2026-05-03'])
+      const resolver = new FolderSettingsResolver(makePlugin(app))
+
+      const resolved = resolver.resolve(
+        DEFAULT_SETTINGS,
+        files['2026-05-03'],
+        'task-migration-reference-opacity: lots'
+      )
+
+      expect(resolved.taskMigrationReferenceOpacity).toBe(
+        DEFAULT_SETTINGS.taskMigrationReferenceOpacity
+      )
+    })
+
     it('does not bleed settings between sibling folders with the same name', () => {
       const app = new App()
 
@@ -234,5 +271,52 @@ describe('FolderSettingsResolver', () => {
       // Outer/Journal's title must NOT bleed into the unrelated Inner/Journal note.
       expect(resolved.journalFolderTitle).toBe(DEFAULT_SETTINGS.journalFolderTitle)
     })
+  })
+})
+
+describe('coerceEmbeddedSettingValue', () => {
+  // Keys arrive already camelCased (the resolver converts before coercing).
+
+  it('passes string fields through verbatim', () => {
+    expect(coerceEmbeddedSettingValue('dailyNoteTitlePattern', 'HH:mm')).toBe(
+      'HH:mm'
+    )
+    expect(coerceEmbeddedSettingValue('journalFolderTitle', '')).toBe('')
+  })
+
+  it('passes unknown keys through verbatim', () => {
+    expect(coerceEmbeddedSettingValue('someFutureKey', 'true')).toBe('true')
+  })
+
+  it('coerces boolean fields with only the literal "false" falsy', () => {
+    expect(coerceEmbeddedSettingValue('quartersEnabled', 'true')).toBe(true)
+    expect(coerceEmbeddedSettingValue('quartersEnabled', 'false')).toBe(false)
+    expect(coerceEmbeddedSettingValue('quartersEnabled', 'FALSE')).toBe(false)
+    expect(coerceEmbeddedSettingValue('quartersEnabled', ' False ')).toBe(false)
+    // Convention: any other string — even '0' / 'no' — is truthy.
+    expect(coerceEmbeddedSettingValue('quartersEnabled', '0')).toBe(true)
+    expect(coerceEmbeddedSettingValue('quartersEnabled', 'no')).toBe(true)
+  })
+
+  it('coerces numeric fields via Number()', () => {
+    expect(
+      coerceEmbeddedSettingValue('taskMigrationReferenceOpacity', '55')
+    ).toBe(55)
+    expect(
+      coerceEmbeddedSettingValue('taskMigrationReferenceOpacity', '2.5')
+    ).toBe(2.5)
+  })
+
+  it('returns undefined (skip) for garbage or blank numeric values', () => {
+    expect(
+      coerceEmbeddedSettingValue('taskMigrationReferenceOpacity', 'lots')
+    ).toBeUndefined()
+    // `Number('')` is 0 — a blank value must skip, not become zero.
+    expect(
+      coerceEmbeddedSettingValue('taskMigrationReferenceOpacity', '')
+    ).toBeUndefined()
+    expect(
+      coerceEmbeddedSettingValue('taskMigrationReferenceOpacity', '55px')
+    ).toBeUndefined()
   })
 })

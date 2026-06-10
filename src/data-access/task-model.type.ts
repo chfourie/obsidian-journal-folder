@@ -97,17 +97,32 @@ export interface TaskStatus {
 // styles for surrounding rows compete with the plugin's injected
 // shell + icon. One rendering per flow keeps the alphabet visually
 // consistent everywhere the flow is used.
+// Explicit "the user cleared the migrated status" sentinel for
+// `TaskFlow.migratedStatus` — see the three-state note on that field.
+// `TaskStatusId` is a plain string, so the sentinel can't be expressed
+// in the type itself; every site that writes or means "deliberately
+// none" should use this constant rather than a bare `''`.
+export const MIGRATED_STATUS_CLEARED: TaskStatusId = ''
+
 export interface TaskFlow {
   statuses: TaskStatus[]
   rendering: TaskRendering
   // Id of the status stamped onto a task's *origin* line when it is
   // migrated to another note. Must name an **inactive** status
   // (`isDone === true`) — migration moves a task to a new note and
-  // closes it out at the source. `undefined` (or a dangling / active
-  // id) means this flow has no migrated status configured, which
-  // disables the migration commands for folders using it. Validated
-  // both where it's chosen (the flow editor only offers inactive
-  // statuses) and when a status's Active toggle is edited.
+  // closes it out at the source. Three-state:
+  //   - a status id → migration is enabled, origins are stamped with it
+  //     (a dangling / active id is rejected by `buildTaskModel` and
+  //     behaves like "none");
+  //   - `MIGRATED_STATUS_CLEARED` (`''`) → the user deliberately chose
+  //     "(None)" — migration is disabled and the settings-load auto-wire
+  //     in `migrate-task-settings.ts` must NOT re-populate it;
+  //   - `undefined` → never set; the auto-wire may fill it from an
+  //     inactive `[>]` status on the next settings load.
+  // `buildTaskModel` treats the sentinel like `undefined` (both falsy →
+  // no migrated status). Validated both where it's chosen (the flow
+  // editor only offers inactive statuses) and when a status's Active
+  // toggle is edited.
   migratedStatus?: TaskStatusId
 }
 

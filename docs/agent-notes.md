@@ -771,6 +771,40 @@ Four small optimisations whose *invariants* matter more than the code:
   `document-task-live-preview.ts` likewise resolves the model **once per
   scan pass**, not per checkbox.
 
+### API-hardening contracts (remediation step 7)
+
+Four small invariants future code should preserve:
+
+- **Embedded block config is type-coerced at the parse layer.**
+  `coerceEmbeddedSettingValue` (in `folder-settings-resolver.ts`, exported +
+  unit-tested) coerces each embedded `key: value` string by
+  `typeof DEFAULT_SETTINGS[key]`: number → `Number(value)` with blank /
+  NaN **skipping the entry** (`Number('')` is 0 — a blank must not become
+  zero), boolean → the front-matter convention (only the literal string
+  `"false"` is falsy), strings and unknown keys pass through verbatim.
+  New numeric / boolean folder-honoured fields get this for free — don't
+  re-introduce use-site string comparisons. The YAML front-matter path is
+  untouched (YAML already delivers typed primitives).
+- **`migrateTasks` refuses a destination that is also a source**
+  (same-note guard, whole call aborts with a Notice). The pickers already
+  exclude the source note via `excludePath`, but the exported writer must
+  not rely on its callers — without the guard it would stamp the origin
+  and append an active duplicate into the same note.
+- **The fallback task flow is cloned ONCE at module scope**
+  (`FALLBACK_FLOW` in `resolve-model.ts`). The tension: handing out the
+  shared `BUILTIN_TEMPLATES` array risks mutation poisoning the read-only
+  template, but a *per-call* `cloneTemplate` would defeat
+  `buildTaskModel`'s WeakMap memo (keyed on array identity) and rebuild
+  the model on every resolve. Clone-once gets both: isolation from the
+  template and a stable identity for the memo.
+- **`TaskFlow.migratedStatus` is three-state** — a status id (configured),
+  `MIGRATED_STATUS_CLEARED` (`''`, the user's deliberate "(None)" — the
+  settings-load auto-wire must not re-populate it), and `undefined`
+  (never set — auto-wire may fill it from an inactive `[>]`). The
+  sentinel constant lives next to `TaskFlow` in `task-model.type.ts`;
+  write sites use it instead of a bare `''` (`TaskStatusId` is a plain
+  string, so the type can't express the distinction).
+
 ### Task flows (configurable task statuses)
 
 Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where

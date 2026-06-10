@@ -178,7 +178,8 @@ export function migrateTaskSettings(
   // the community-conventional `[>]` migrated status (inactive) gets
   // it set automatically, so Bullet-Journal-seeded flows migrate
   // out of the box. Idempotent — only fills an undefined field, and
-  // leaves an explicit choice (including a deliberate clear) alone.
+  // leaves an explicit choice alone, including a deliberate clear
+  // (`MIGRATED_STATUS_CLEARED`, `''` — !== undefined, so it skips).
   for (const flow of Object.values(upgradedFlows)) {
     if (flow.migratedStatus !== undefined) continue
     const migrated = flow.statuses.find((s) => s.char === '>' && s.isDone)

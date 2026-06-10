@@ -33,6 +33,7 @@ import {
   findFoldersUsingTaskFlow,
   isBuiltInTemplate,
   type JournalFolderSettings,
+  MIGRATED_STATUS_CLEARED,
   type TaskRendering,
   type TaskStatus,
 } from '../../data-access'
@@ -231,20 +232,21 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
             'are eligible.'
     )
     .addDropdown((dd) => {
-      dd.addOption('', '(None — migration disabled)')
+      dd.addOption(MIGRATED_STATUS_CLEARED, '(None — migration disabled)')
       for (const s of inactiveStatuses) dd.addOption(s.id, s.label || s.id)
       const current =
         flow.migratedStatus && inactiveStatuses.some((s) => s.id === flow.migratedStatus)
           ? flow.migratedStatus
-          : ''
+          : MIGRATED_STATUS_CLEARED
       dd.setValue(current).onChange(async (value) => {
         await saveSettings({
           ...settings,
           taskFlows: {
             ...settings.taskFlows,
-            // Empty string is an explicit "none" — distinct from
-            // `undefined`, so the settings-load auto-wire won't re-add
-            // a `[>]` status the user deliberately cleared.
+            // Picking "(None)" stores MIGRATED_STATUS_CLEARED (`''`) — an
+            // explicit clear, distinct from `undefined`, so the
+            // settings-load auto-wire won't re-add a `[>]` status the
+            // user deliberately cleared.
             [flowName]: { ...flow, migratedStatus: value },
           },
         })
@@ -589,9 +591,10 @@ function renderStatusRow(config: StatusRowConfig): void {
         const base = flow ?? { rendering: flowRendering }
         const nextFlow = { ...base, statuses: cleaned }
         // Drop the migrated-status designation if it pointed at the
-        // status we just removed (set explicit '' so it isn't auto-wired
-        // back on next settings load).
-        if (nextFlow.migratedStatus === removedId) nextFlow.migratedStatus = ''
+        // status we just removed (set the explicit cleared sentinel so it
+        // isn't auto-wired back on the next settings load).
+        if (nextFlow.migratedStatus === removedId)
+          nextFlow.migratedStatus = MIGRATED_STATUS_CLEARED
         await saveSettings({
           ...settings,
           taskFlows: { ...settings.taskFlows, [flowName]: nextFlow },

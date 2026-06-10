@@ -17,7 +17,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { TFile, type FrontMatterCache, type Plugin } from 'obsidian'
-import { type JournalFolderSettings } from './journal-folder-settings.type'
+import {
+  DEFAULT_SETTINGS,
+  type JournalFolderSettings,
+} from './journal-folder-settings.type'
 import { camelCase } from './string-utils'
 
 // Settings that only make sense at the global level. The per-field JSDoc on
@@ -60,6 +63,33 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'taskCategoryShowUnderNote',
 ])
 
+// Embedded `key: value` config lines arrive as raw strings. Coerce each
+// value to the field's primitive type — derived from the field's
+// `DEFAULT_SETTINGS` value — so a numeric field never lands in the typed
+// settings as a string (`tasks > '200'`-style comparisons silently
+// misbehave) and booleans follow the front-matter convention (only the
+// literal "false" is falsy on the string path, mirroring
+// `isTruthySetting`). Returns `undefined` when the value can't represent
+// the field's type (blank / non-numeric text for a number field) — the
+// caller skips the entry so the lower layers' value stays in effect.
+// Unknown keys and string fields pass through verbatim; non-scalar fields
+// are all global-only and filtered out before coercion.
+export function coerceEmbeddedSettingValue(
+  key: string,
+  value: string
+): string | number | boolean | undefined {
+  const defaultValue = DEFAULT_SETTINGS[key as keyof JournalFolderSettings]
+  if (typeof defaultValue === 'number') {
+    const parsed = Number(value)
+    // `Number('')` is 0 — treat a blank value like garbage, not zero.
+    return value === '' || Number.isNaN(parsed) ? undefined : parsed
+  }
+  if (typeof defaultValue === 'boolean') {
+    return value.trim().toLowerCase() !== 'false'
+  }
+  return value
+}
+
 export class FolderSettingsResolver {
   constructor(private plugin: Plugin) {}
 
@@ -100,7 +130,9 @@ export class FolderSettingsResolver {
   }
 
   private getEmbeddedConfig(rawConfig: string): Partial<JournalFolderSettings> {
-    const config = {}
+    // Assembled untyped (like the front-matter path above) and consumed as
+    // a partial overlay; per-field typing is enforced by the coercion.
+    const config: Record<string, unknown> = {}
     rawConfig = rawConfig.trim()
     if (!rawConfig) return {}
 
@@ -111,8 +143,9 @@ export class FolderSettingsResolver {
       .forEach((item) => {
         if (GLOBAL_ONLY_FIELDS.has(item.key as keyof JournalFolderSettings))
           return
-        // @ts-ignore
-        config[item.key] = item.value
+        const value = coerceEmbeddedSettingValue(item.key, item.value)
+        if (value === undefined) return
+        config[item.key] = value
       })
 
     return config

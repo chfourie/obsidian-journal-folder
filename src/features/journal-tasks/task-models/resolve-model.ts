@@ -22,9 +22,22 @@ import type {
 } from '../../../data-access/task-model.type'
 import {
   BUILTIN_TEMPLATES,
+  cloneTemplate,
   DEFAULT_TEMPLATE_ID,
 } from '../../../data-access/task-templates'
 import { buildTaskModel } from './build-task-model'
+
+// Last-resort flow when neither the folder override nor the default flow
+// resolves. Cloned ONCE at module scope: the clone keeps the shared
+// `BUILTIN_TEMPLATES` array immune to any downstream mutation of
+// `model.statuses` (matching the `cloneTemplate` pattern used everywhere
+// else a template is handed out), while the stable array identity keeps
+// `buildTaskModel`'s WeakMap memo effective — a per-call clone would
+// rebuild the model on every resolve.
+const FALLBACK_FLOW: TaskFlow = {
+  statuses: cloneTemplate(BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID]),
+  rendering: 'plugin',
+}
 
 // Resolves the active TaskModel from settings.
 //
@@ -71,8 +84,5 @@ function pickFlow(settings: {
   ) {
     return flows[defaultPick]
   }
-  return {
-    statuses: BUILTIN_TEMPLATES[DEFAULT_TEMPLATE_ID],
-    rendering: 'plugin',
-  }
+  return FALLBACK_FLOW
 }

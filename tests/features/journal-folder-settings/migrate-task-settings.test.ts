@@ -3,6 +3,7 @@ import { migrateTaskSettings } from '../../../src/features/journal-folder-settin
 import {
   DEFAULT_SETTINGS,
   type JournalFolderSettings,
+  MIGRATED_STATUS_CLEARED,
 } from '../../../src/data-access'
 import { BUILTIN_TEMPLATES } from '../../../src/data-access/task-templates'
 
@@ -154,11 +155,14 @@ describe('migrateTaskSettings', () => {
       expect(twice.taskFlows.Flow.migratedStatus).toBe('migrated')
     })
 
-    it('leaves an explicit "" (deliberate clear) alone', () => {
+    it('leaves an explicit clear (MIGRATED_STATUS_CLEARED) alone', () => {
+      // The cleared sentinel (`''`) blocks the auto-wire, while undefined
+      // (the test below) allows it — the three-state contract on
+      // `TaskFlow.migratedStatus`.
       const result = migrateTaskSettings(
-        flowSettings(BUILTIN_TEMPLATES['bullet-journal'], '')
+        flowSettings(BUILTIN_TEMPLATES['bullet-journal'], MIGRATED_STATUS_CLEARED)
       )
-      expect(result.taskFlows.Flow.migratedStatus).toBe('')
+      expect(result.taskFlows.Flow.migratedStatus).toBe(MIGRATED_STATUS_CLEARED)
     })
 
     it('leaves a flow without a "[>]" status unset', () => {

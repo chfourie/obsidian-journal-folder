@@ -391,7 +391,33 @@ helper if extracted.
 
 ---
 
-## Step 7 — API hardening (MEDIUM)
+## Step 7 — API hardening (MEDIUM) ✅ DONE
+
+> **Completed (one commit, all four).**
+> **7a:** `coerceEmbeddedSettingValue` (exported from
+> `folder-settings-resolver.ts`) coerces embedded values by
+> `typeof DEFAULT_SETTINGS[key]` — number → `Number(value)` with
+> blank/NaN → entry skipped (`Number('')` is 0, must not become zero),
+> boolean → only literal `"false"` falsy (the `isTruthySetting`
+> convention), strings + unknown keys verbatim. The `@ts-ignore` is gone
+> (untyped `Record<string, unknown>` assembly, same as the front-matter
+> path). **7b:** `migrateTasks` aborts (Notice, zero writes) when any
+> `task.sourceFile.path === destFile.path`. **7c:** module-scope
+> `FALLBACK_FLOW` built via `cloneTemplate` — cloned ONCE so the
+> built-in template can't be mutation-poisoned while the stable array
+> identity keeps `buildTaskModel`'s WeakMap memo effective (a per-call
+> clone would defeat it). **7d:** named sentinel
+> `MIGRATED_STATUS_CLEARED` (`''`) next to `TaskFlow` in
+> `task-model.type.ts` with the three-state contract documented on the
+> field; the flow editor's two write sites + dropdown use it; the
+> auto-wire / build-task-model comments reference it (no behaviour
+> change — `TaskStatusId` is plain `string`, so a union can't express
+> it). Tests: coercion table + resolve()-path cases in
+> `tests/data-access/folder-settings-resolver.test.ts`, same-note abort
+> in `task-migration.test.ts`, not-the-shared-array + memo-stable
+> fallback in `resolve-model.test.ts`, the `''`-blocks-auto-wire test
+> re-pinned to the constant in `migrate-task-settings.test.ts`. Durable
+> notes in `docs/agent-notes.md` (*API-hardening contracts*).
 
 **7a. Embedded block config is type-unsafe** —
 `src/data-access/folder-settings-resolver.ts` ~lines 101–117 (`getEmbeddedConfig`):

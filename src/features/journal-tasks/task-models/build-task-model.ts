@@ -46,9 +46,9 @@ export function buildTaskModel(
   // status. Driven by the global `taskClickOpensPicker` setting.
   clickOpensPicker = false
 ): TaskModel {
-  // `''` (user-cleared) and `undefined` (never set) deliberately share a
-  // cache slot — both are falsy, so `createTaskModel` treats them
-  // identically (no migrated status).
+  // `''` (user-cleared, `MIGRATED_STATUS_CLEARED`) and `undefined` (never
+  // set) deliberately share a cache slot — both are falsy, so
+  // `createTaskModel` treats them identically (no migrated status).
   const variantKey = `${rendering}|${clickOpensPicker ? 1 : 0}|${migratedStatus ?? ''}`
   let variants = modelCache.get(statuses)
   if (!variants) {

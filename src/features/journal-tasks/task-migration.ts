@@ -273,6 +273,13 @@ export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
     new Notice('No active tasks to migrate.')
     return
   }
+  // The pickers already exclude the source note from the target list, but
+  // guard here too — migrating a task into its own note would stamp the
+  // origin line and then append an active duplicate to the same note.
+  if (tasks.some((t) => t.sourceFile.path === destFile.path)) {
+    new Notice('Tasks cannot be migrated into the note they are already in.')
+    return
+  }
 
   // 1) Stamp the origins first, grouped by file so each note is
   //    processed once. Only tasks whose origin line still matches are
