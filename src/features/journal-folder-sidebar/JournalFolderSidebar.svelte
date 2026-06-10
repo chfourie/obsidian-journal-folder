@@ -109,9 +109,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   // *Today* control resets it (along with the anchor itself).
   let calendarOffset = $state<number>(0)
   // Bumped every time the vault mutates so the `$derived` anchor note
-  // rebuilds. The synthetic anchor's `noteNames` snapshot is captured at
-  // construction (see `journal-note.ts → journalNote`), so deletes /
-  // renames / creates only flip cell `exists` flags after a rebuild.
+  // rebuilds. The synthetic anchor's sibling-names snapshot is captured
+  // lazily on first existence check and then frozen (see
+  // `journal-note.ts → FolderNamesSnapshot`), so deletes / renames /
+  // creates only flip cell `exists` flags after a rebuild.
   let vaultTick = $state<number>(0)
 
   // svelte-ignore state_referenced_locally

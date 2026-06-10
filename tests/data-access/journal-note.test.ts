@@ -12,7 +12,7 @@ import {
   type JournalNoteFactory,
 } from '../../src/data-access/journal-note'
 import { DEFAULT_SETTINGS } from '../../src/data-access/journal-folder-settings.type'
-import { buildApp } from '../helpers/fixtures'
+import { buildApp, buildFolder } from '../helpers/fixtures'
 
 // "Today" used throughout — a Sunday in ISO week 18 of 2026.
 const TODAY = new Date('2026-05-03T12:00:00Z')
@@ -523,6 +523,95 @@ describe('journalNoteFactoryWithSettings', () => {
       const m = moment('2026-05-15')
       const quarter = note.noteFor('quarter', m)
       expect(quarter.link().url).toBe('Journal/2026-Q2')
+    })
+  })
+
+  describe('sibling snapshot (lazy, shared per folder)', () => {
+    // Wraps `folder.children` in a counting getter so the tests can assert
+    // how many times the factory actually scans the folder. The factory is
+    // expected to scan lazily (only when an existence API runs) and at most
+    // once per folder per factory instance.
+    function countingApp(folderName: string, names: string[]) {
+      const built = buildApp(folderName, names)
+      const children = built.folder.children
+      let reads = 0
+      Object.defineProperty(built.folder, 'children', {
+        get() {
+          reads++
+          return children
+        },
+      })
+      return { ...built, reads: () => reads }
+    }
+
+    it('does not read the folder children until an existence API is called', () => {
+      const { files, reads } = countingApp('Journal', [
+        '2026-05-03',
+        '2026-05-04',
+      ])
+      const note = factory()(files['2026-05-03'])
+      note.getTitle()
+      note.getMoment()
+      note.link()
+      note.forwardInTime()
+      expect(reads()).toBe(0)
+      expect(note.isExistingNote()).toBe(true)
+      expect(reads()).toBe(1)
+    })
+
+    it('reads the folder children at most once per factory instance', () => {
+      const names = ['2026-05-01', '2026-05-02', '2026-05-03']
+      const { files, reads } = countingApp('Journal', names)
+      const journalNote = factory()
+      for (const name of names) {
+        expect(journalNote(files[name]).isExistingNote()).toBe(true)
+      }
+      expect(reads()).toBe(1)
+    })
+
+    it('shares the snapshot with derived notes', () => {
+      const { files, reads } = countingApp('Journal', [
+        '2026-05-03',
+        '2026-05-04',
+        '2026-05',
+      ])
+      const note = factory()(files['2026-05-03'])
+      expect(note.isExistingNote()).toBe(true)
+      expect(note.forwardInTime().isExistingNote()).toBe(true)
+      expect(note.forwardInTime().forwardInTime().isExistingNote()).toBe(false)
+      for (const higher of note.getHigherOrderNotes()) {
+        higher.isExistingNote()
+      }
+      expect(note.closestSibling('after')?.link().url).toBe(
+        'Journal/2026-05-04'
+      )
+      expect(reads()).toBe(1)
+    })
+
+    it('keeps snapshots of different folders independent', () => {
+      const app = new App()
+      const a = buildFolder(app, 'JournalA', ['2026-05-03'])
+      const b = buildFolder(app, 'JournalB', ['2026-05-04'])
+      const journalNote = factory()
+
+      const noteA = journalNote(a.files['2026-05-03'])
+      expect(noteA.isExistingNote()).toBe(true)
+      expect(noteA.forwardInTime().isExistingNote()).toBe(false)
+
+      const noteB = journalNote(b.files['2026-05-04'])
+      expect(noteB.isExistingNote()).toBe(true)
+      expect(noteB.backInTime().isExistingNote()).toBe(false)
+    })
+
+    it('resolves "today" freshly when a factory instance straddles midnight', () => {
+      // The factory memoises startOfInterval(today, pattern) per strategy;
+      // the memo must invalidate when the wall-clock day changes.
+      const { files } = buildApp('Journal', ['2026-05-03', '2026-05-04'])
+      const journalNote = factory()
+      expect(journalNote(files['2026-05-03']).isPresentTime()).toBe(true)
+      vi.setSystemTime(new Date('2026-05-04T12:00:00Z'))
+      expect(journalNote(files['2026-05-03']).isPresentTime()).toBe(false)
+      expect(journalNote(files['2026-05-04']).isPresentTime()).toBe(true)
     })
   })
 

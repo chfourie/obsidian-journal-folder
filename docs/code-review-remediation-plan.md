@@ -78,7 +78,19 @@ unclosed-fence case.
 
 ---
 
-## Step 2 — Hoist/lazify the `JournalNote` sibling snapshot (CRITICAL perf)
+## Step 2 — Hoist/lazify the `JournalNote` sibling snapshot (CRITICAL perf) ✅ DONE
+
+> **Completed (together with 5a, one commit).** Both fixes (a) *and* (b)
+> landed, plus the bonus: `FolderNamesSnapshot` in
+> `src/data-access/journal-note.ts` is a lazy holder (computes the names on
+> first existence-API call — scope walks never touch `folder.children`),
+> cached per parent folder in the factory closure and shared through
+> `createNote`/`createNoteOfSameTimeUnit`; `startOfInterval(today, pattern)`
+> is memoised per strategy, keyed on today's value (midnight-safe).
+> `isExistingNote` is Set-backed (5a); `closestSibling` keeps the array.
+> Tests (counting `children` getter) in
+> `tests/data-access/journal-note.test.ts`; durable notes in
+> `docs/agent-notes.md`.
 
 **Finding:** the `journalNote` factory (`src/data-access/journal-note.ts`, ~line 200)
 builds `noteNames = (file.parent?.children || []).map(f => f.name.replace(/\.md$/, ''))`
@@ -198,7 +210,8 @@ newly-covered files. Popout behaviour itself is a live-verification item (Obsidi
 
 Three independent sub-items; one commit each or one combined commit.
 
-**5a. Set-based `isExistingNote`** — `src/data-access/journal-note.ts` ~line 315:
+**5a. Set-based `isExistingNote`** ✅ DONE (landed with Step 2 — see its annotation) —
+`src/data-access/journal-note.ts` ~line 315:
 `this.noteNames.some(name => name === this.name)` is a linear scan, called per calendar
 cell (~51 cells/sidebar build, up to ~255 for a 5-month in-note calendar via
 `src/features/journal-header/journal-calendar-info.ts` cell builders). Build a

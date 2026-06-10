@@ -89,6 +89,31 @@ function startOfInterval(
   return moment(sourceMoment.format(pattern), pattern)
 }
 
+// Lazily-computed snapshot of the note names in one folder. A scope walk
+// (task candidates, migration pickers) builds a JournalNote per file but
+// never calls the existence APIs, so the folder's children are not read at
+// all unless `isExistingNote`/`closestSibling` actually run — and then at
+// most once: the snapshot is shared by every note in the folder within one
+// factory instance and by every note derived via createNote /
+// createNoteOfSameTimeUnit. The Set view backs the per-calendar-cell
+// existence lookup; the array view stays for closestSibling's ordered scan.
+class FolderNamesSnapshot {
+  private names: string[] | undefined
+  private nameSet: Set<string> | undefined
+
+  constructor(private readonly compute: () => string[]) {}
+
+  getNames(): string[] {
+    if (!this.names) this.names = this.compute()
+    return this.names
+  }
+
+  has(name: string): boolean {
+    if (!this.nameSet) this.nameSet = new Set(this.getNames())
+    return this.nameSet.has(name)
+  }
+}
+
 // Folder front-matter and embedded code-block configs arrive as raw values,
 // so a boolean setting can show up as a real boolean (YAML), the string
 // "true"/"false" (embedded `key: value`), or anything else a user typed.
@@ -193,23 +218,56 @@ export function journalNoteFactoryWithSettings(
     return buildStrategy
   }
 
+  // One snapshot per folder per factory instance — a factory lives for
+  // exactly one walk/render, so files sharing a parent share one (lazy)
+  // children scan instead of paying O(folder size) per note.
+  const snapshotsByFolder = new Map<unknown, FolderNamesSnapshot>()
+  function snapshotFor(parent: TFile['parent']): FolderNamesSnapshot {
+    let snapshot = snapshotsByFolder.get(parent)
+    if (!snapshot) {
+      snapshot = new FolderNamesSnapshot(() =>
+        (parent?.children || []).map((f) => f.name.replace(/\.md$/, ''))
+      )
+      snapshotsByFolder.set(parent, snapshot)
+    }
+    return snapshot
+  }
+
+  // `startOfInterval(today, pattern)` is identical for every file in a
+  // walk, so memoise it per strategy. Keyed on today's value so a factory
+  // that happens to straddle midnight still resolves the new day.
+  let presentCacheDay: number | undefined
+  const presentByStrategy = new Map<JournalNoteStrategy, moment.Moment>()
+  function presentFor(
+    today: moment.Moment,
+    strategy: JournalNoteStrategy
+  ): moment.Moment {
+    if (presentCacheDay !== today.valueOf()) {
+      presentByStrategy.clear()
+      presentCacheDay = today.valueOf()
+    }
+    let present = presentByStrategy.get(strategy)
+    if (!present) {
+      present = startOfInterval(today, strategy.filePattern)
+      presentByStrategy.set(strategy, present)
+    }
+    return present
+  }
+
   return function journalNote(file: TFile): JournalNote {
     const strategy = getNoteStrategy(file)
     // @ts-ignore
     const today = moment().startOf('day')
-    const noteNames = (file.parent?.children || []).map((f) =>
-      f.name.replace(/\.md$/, '')
-    )
 
     return new JournalNote(
       strategies,
       file.parent?.name,
       file.parent?.path || '',
-      noteNames,
+      snapshotFor(file.parent),
       strategy,
       // @ts-ignore
       moment(file.basename, strategy.filePattern),
-      startOfInterval(today, strategy.filePattern),
+      presentFor(today, strategy),
       today
     )
   }
@@ -223,7 +281,7 @@ export class JournalNote {
     private strategies: JournalNoteStrategies,
     private folderName: string | undefined,
     private path: string,
-    private noteNames: string[],
+    private siblings: FolderNamesSnapshot,
     private strategy: JournalNoteStrategy,
     private fileMoment: moment.Moment,
     private present: moment.Moment,
@@ -312,7 +370,7 @@ export class JournalNote {
   }
 
   isExistingNote(): boolean {
-    return this.noteNames.some((name) => name === this.name)
+    return this.siblings.has(this.name)
   }
 
   isToday(): boolean {
@@ -415,7 +473,7 @@ export class JournalNote {
 
   closestSibling(beforeOrAfter: 'before' | 'after'): JournalNote | undefined {
     const multiplier = beforeOrAfter === 'before' ? -1 : 1
-    const adjacentFileName = this.noteNames.reduce<string | null>(
+    const adjacentFileName = this.siblings.getNames().reduce<string | null>(
       (prev, curr) => {
         if (!this.strategy.fileRegex.test(curr)) return prev
         if (curr.localeCompare(this.name) * multiplier <= 0) return prev
@@ -476,7 +534,7 @@ export class JournalNote {
       this.strategies,
       this.folderName,
       this.path,
-      this.noteNames,
+      this.siblings,
       this.strategy,
       moment,
       this.present,
@@ -492,7 +550,7 @@ export class JournalNote {
       this.strategies,
       this.folderName,
       this.path,
-      this.noteNames,
+      this.siblings,
       strategy,
       startOfInterval(moment, strategy.filePattern),
       startOfInterval(this.today, strategy.filePattern),

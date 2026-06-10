@@ -570,6 +570,29 @@ prefix already defeats the task regex). `findDocumentTaskLines` tracks fence
 state from line 0, not `lineStart`, so both functions agree on every absolute
 line.
 
+### The `JournalNote` sibling snapshot is lazy and factory-scoped
+
+`journal-note.ts`'s `FolderNamesSnapshot` holds a folder's note names for the
+existence APIs (`isExistingNote` — Set-backed; `closestSibling` — ordered
+array). Two properties matter for callers:
+
+- **One factory instance per walk/render.** The snapshot is cached per parent
+  folder *inside one `journalNoteFactoryWithSettings` closure* (and shared
+  with every note derived via `createNote`/`createNoteOfSameTimeUnit`).
+  Constructing a fresh factory per file forfeits the cache and reverts the
+  O(n²) scope-walk cost this design removed (~3.3M string ops on a 5-year
+  daily folder). All current call sites build the factory once, then loop.
+  `startOfInterval(today, pattern)` is likewise memoised per strategy in the
+  factory, keyed on today's value so a walk straddling midnight stays correct.
+- **The snapshot is computed on first existence check, then frozen.** Walks
+  that never call the existence APIs (task candidates, migration pickers)
+  never read `folder.children` at all. Consumers that need freshness after
+  vault mutations must rebuild the note — the sidebar already does (its
+  `bumpVault` tick rebuilds the anchor note on create/delete/rename).
+
+Tests with counting `children` getters live in
+`tests/data-access/journal-note.test.ts` (*sibling snapshot* describe block).
+
 ### Task flows (configurable task statuses)
 
 Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where
