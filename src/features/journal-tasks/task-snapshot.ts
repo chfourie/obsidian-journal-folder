@@ -43,11 +43,44 @@ import { resolveTaskModel } from './task-models'
 import { makeRangeCapFilter } from './task-range-cap'
 import { mapWithConcurrency, TASK_READ_CONCURRENCY } from './concurrency'
 import type { TaskCache } from './task-cache'
+import type { TaskModel } from './task-models'
 
 export interface TaskPanelSnapshot {
   tasks: JournalTask[]
+  // Count of the *visible* population (post completed-filter) before the
+  // size cap — the header's task count and the footer's "of N" both read
+  // this, so the two can't contradict each other.
   totalBeforeCap: number
   truncated: boolean
+  // Every completed task hidden by the filter, across the whole scope
+  // (not just the capped slice). 0 when completed tasks are shown.
+  hiddenCompletedCount: number
+}
+
+// Completed-filter + size-cap in the canonical order: filter first, so
+// the cap only trims visible tasks and `hiddenCompletedCount` reflects
+// every completed task in scope. Shared by the sidebar snapshot and the
+// in-note block so the surfaces can't drift on the count semantics.
+export function capVisibleTasks(
+  sorted: JournalTask[],
+  opts: {
+    showCompleted: boolean
+    model: Pick<TaskModel, 'isDone'>
+    maxItems: number
+  }
+): TaskPanelSnapshot {
+  const visible = opts.showCompleted
+    ? sorted
+    : sorted.filter((t) => !opts.model.isDone(t.status))
+  const capped = visible.slice(0, opts.maxItems)
+  return {
+    tasks: capped,
+    totalBeforeCap: visible.length,
+    truncated: visible.length > capped.length,
+    hiddenCompletedCount: opts.showCompleted
+      ? 0
+      : sorted.length - visible.length,
+  }
 }
 
 // The panel-local scope a sidebar passes in. Each surface (combined
@@ -58,6 +91,10 @@ export interface TaskSnapshotScope {
   range: TasksSidebarRange
   folderMode: TasksSidebarFolderMode
   folder: string
+  // The panel's completed-tasks toggle. Applied *before* the size cap
+  // (see `capVisibleTasks`) so hidden completed tasks never consume cap
+  // slots and the hidden count covers the whole scope.
+  showCompleted: boolean
 }
 
 // Shared computation used by both the combined journal sidebar and
@@ -137,12 +174,9 @@ export async function computeTaskSnapshot(
       if (capFilter(t, noteRange)) collected.push(t)
     }
   })
-  const sorted = sortTasks(collected)
-  const totalBeforeCap = sorted.length
-  const capped = sorted.slice(0, settings.tasksMaxItems)
-  return {
-    tasks: capped,
-    totalBeforeCap,
-    truncated: totalBeforeCap > capped.length,
-  }
+  return capVisibleTasks(sortTasks(collected), {
+    showCompleted: scope.showCompleted,
+    model,
+    maxItems: settings.tasksMaxItems,
+  })
 }

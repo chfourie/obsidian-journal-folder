@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { App, TFile, TFolder } from '../../mocks/obsidian'
-import { DEFAULT_SETTINGS } from '../../../src/data-access'
-import { computeTaskSnapshot } from '../../../src/features/journal-tasks/task-snapshot'
+import { DEFAULT_SETTINGS, type JournalTask } from '../../../src/data-access'
+import {
+  capVisibleTasks,
+  computeTaskSnapshot,
+} from '../../../src/features/journal-tasks/task-snapshot'
 import { TaskCache } from '../../../src/features/journal-tasks/task-cache'
 
 // A vault with one journal folder (config note + a daily note carrying a
@@ -48,7 +51,7 @@ describe('computeTaskSnapshot', () => {
       app,
       DEFAULT_SETTINGS,
       new TaskCache(app),
-      { anchor: 'today', range: 'all', folderMode: 'specific', folder: 'Journal' }
+      { anchor: 'today', range: 'all', folderMode: 'specific', folder: 'Journal', showCompleted: true }
     )
     expect(snapshot.tasks.map((t) => t.displayText)).toEqual(['a task'])
     expect(walkCount()).toBe(0)
@@ -65,7 +68,7 @@ describe('computeTaskSnapshot', () => {
       app,
       DEFAULT_SETTINGS,
       new TaskCache(app),
-      { anchor: 'today', range: 'all', folderMode: 'specific', folder: 'Journal' }
+      { anchor: 'today', range: 'all', folderMode: 'specific', folder: 'Journal', showCompleted: true }
     )
     expect(snapshot.tasks.map((t) => t.displayText).sort()).toEqual([
       'a task',
@@ -81,9 +84,93 @@ describe('computeTaskSnapshot', () => {
       app,
       DEFAULT_SETTINGS,
       new TaskCache(app),
-      { anchor: 'today', range: 'all', folderMode: 'all', folder: '' }
+      { anchor: 'today', range: 'all', folderMode: 'all', folder: '', showCompleted: true }
     )
     expect(snapshot.tasks.map((t) => t.displayText)).toEqual(['a task'])
     expect(walkCount()).toBe(1)
+  })
+
+  it('filters completed tasks before the cap and counts them across the whole scope', async () => {
+    const { app, addNote } = setupApp()
+    addNote('2026-06-07', '- [ ] active two\n- [x] done one\n- [x] done two\n')
+    const snapshot = await computeTaskSnapshot(
+      app,
+      { ...DEFAULT_SETTINGS, tasksMaxItems: 1 },
+      new TaskCache(app),
+      {
+        anchor: 'today',
+        range: 'all',
+        folderMode: 'specific',
+        folder: 'Journal',
+        showCompleted: false,
+      }
+    )
+    // 2 active in scope, capped to 1 — the cap must not be consumed by
+    // hidden completed tasks, and the counts are pre-cap.
+    expect(snapshot.tasks).toHaveLength(1)
+    expect(snapshot.totalBeforeCap).toBe(2)
+    expect(snapshot.truncated).toBe(true)
+    expect(snapshot.hiddenCompletedCount).toBe(2)
+  })
+
+  it('reports no hidden tasks when completed tasks are shown', async () => {
+    const { app, addNote } = setupApp()
+    addNote('2026-06-07', '- [x] done one\n')
+    const snapshot = await computeTaskSnapshot(
+      app,
+      DEFAULT_SETTINGS,
+      new TaskCache(app),
+      {
+        anchor: 'today',
+        range: 'all',
+        folderMode: 'specific',
+        folder: 'Journal',
+        showCompleted: true,
+      }
+    )
+    expect(snapshot.tasks.map((t) => t.displayText).sort()).toEqual([
+      'a task',
+      'done one',
+    ])
+    expect(snapshot.totalBeforeCap).toBe(2)
+    expect(snapshot.truncated).toBe(false)
+    expect(snapshot.hiddenCompletedCount).toBe(0)
+  })
+})
+
+describe('capVisibleTasks', () => {
+  const model = { isDone: (status: string) => status === 'done' }
+  const task = (id: string, status: string): JournalTask =>
+    ({ displayText: id, status }) as unknown as JournalTask
+
+  it('caps only the visible tasks and keeps pre-cap totals', () => {
+    const sorted = [
+      task('a', 'open'),
+      task('b', 'done'),
+      task('c', 'open'),
+      task('d', 'open'),
+    ]
+    const result = capVisibleTasks(sorted, {
+      showCompleted: false,
+      model,
+      maxItems: 2,
+    })
+    expect(result.tasks.map((t) => t.displayText)).toEqual(['a', 'c'])
+    expect(result.totalBeforeCap).toBe(3)
+    expect(result.truncated).toBe(true)
+    expect(result.hiddenCompletedCount).toBe(1)
+  })
+
+  it('keeps completed tasks and zeroes the hidden count when showing completed', () => {
+    const sorted = [task('a', 'open'), task('b', 'done')]
+    const result = capVisibleTasks(sorted, {
+      showCompleted: true,
+      model,
+      maxItems: 10,
+    })
+    expect(result.tasks.map((t) => t.displayText)).toEqual(['a', 'b'])
+    expect(result.totalBeforeCap).toBe(2)
+    expect(result.truncated).toBe(false)
+    expect(result.hiddenCompletedCount).toBe(0)
   })
 })

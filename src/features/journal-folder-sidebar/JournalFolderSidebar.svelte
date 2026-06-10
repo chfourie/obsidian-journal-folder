@@ -392,14 +392,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   }
 
   const taskModel = $derived(resolveTaskModel(settings))
-  const visibleTasks = $derived(
-    settings.tasksShowCompleted
-      ? taskPanel.tasks
-      : taskPanel.tasks.filter((t) => !taskModel.isDone(t.status))
-  )
-  const hiddenCompletedCount = $derived(
-    taskPanel.tasks.length - visibleTasks.length
-  )
 
   async function setTasksAnchor(anchor: TasksSidebarAnchor) {
     await saveSettings({ ...settings, tasksSidebarAnchor: anchor })
@@ -500,11 +492,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <hr class="jf-sidebar-divider" />
     <div class="jf-sidebar-section" data-jf-sidebar-section="tasks">
       <TaskList
-        tasks={visibleTasks}
+        tasks={taskPanel.tasks}
         model={taskModel}
         app={obsidianApp}
         showCompleted={settings.tasksShowCompleted}
-        hiddenCompletedCount={hiddenCompletedCount}
+        hiddenCompletedCount={taskPanel.hiddenCompletedCount}
         totalBeforeCap={taskPanel.totalBeforeCap}
         truncated={taskPanel.truncated}
         header="sidebar"

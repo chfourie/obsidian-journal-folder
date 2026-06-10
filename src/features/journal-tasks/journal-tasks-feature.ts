@@ -40,6 +40,7 @@ import { parseJournalTasksBlock } from './parse-block-config'
 import { anchorRange, buildReferenceRange } from './reference-range'
 import { effectiveUnits, findTaskCandidates } from './task-scope'
 import { sortTasks } from './task-sorting'
+import { capVisibleTasks } from './task-snapshot'
 import { rangeForNote } from './reference-range'
 import { makeRangeCapFilter } from './task-range-cap'
 import { mapWithConcurrency, TASK_READ_CONCURRENCY } from './concurrency'
@@ -530,21 +531,13 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       }
     })
 
-    const sorted = sortTasks(allTasks)
-    const maxItems = this.blockConfig.maxItems ?? settings.tasksMaxItems
-    // Filter completed *before* the cap so the cap only trims visible
-    // tasks and `hiddenCount` reflects every completed task in scope —
-    // not just the ones that happened to land inside the pre-cap slice.
-    const visible = this.showCompleted
-      ? sorted
-      : sorted.filter((t) => !model.isDone(t.status))
-    const totalBeforeCap = visible.length
-    const capped = visible.slice(0, maxItems)
-    const truncated = totalBeforeCap > capped.length
-    const filtered = capped
-    const hiddenCount = this.showCompleted
-      ? 0
-      : sorted.length - visible.length
+    // Completed-filter before the size cap, hidden count across the whole
+    // scope — shared with the sidebar snapshot via `capVisibleTasks`.
+    const snapshot = capVisibleTasks(sortTasks(allTasks), {
+      showCompleted: this.showCompleted,
+      model,
+      maxItems: this.blockConfig.maxItems ?? settings.tasksMaxItems,
+    })
 
     this.tearDownComponent()
     this.containerEl.empty()
@@ -552,13 +545,13 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
     this.component = mount(TaskList, {
       target: this.containerEl,
       props: {
-        tasks: filtered,
+        tasks: snapshot.tasks,
         model,
         app: this.plugin.app,
         showCompleted: this.showCompleted,
-        hiddenCompletedCount: hiddenCount,
-        totalBeforeCap,
-        truncated,
+        hiddenCompletedCount: snapshot.hiddenCompletedCount,
+        totalBeforeCap: snapshot.totalBeforeCap,
+        truncated: snapshot.truncated,
         header: 'note',
         collapsedNotePaths: this.collapsedNotePaths,
         signifiers: settings.signifiers,

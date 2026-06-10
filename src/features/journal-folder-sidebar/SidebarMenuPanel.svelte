@@ -75,15 +75,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     if (!triggerEl) return
     const rect = triggerEl.getBoundingClientRect()
     const gap = 6
-    // `min-width` is baked into `panelStyle` (not set imperatively): the
-    // reactive `style={panelStyle}` binding rewrites the whole inline
-    // style whenever it changes, which would otherwise wipe an
-    // imperatively-set width on the first open.
+    // `min-width` is baked into `panelStyle` only — the reactive
+    // `style={panelStyle}` binding rewrites the whole inline style, so an
+    // imperatively-set width would be wiped on the next style write. The
+    // measured `offsetWidth` may predate the min-width's application, so
+    // floor the positioning width at the trigger width to match what the
+    // panel will actually render at.
     const minWidthCss = matchTriggerWidth ? ` min-width: ${rect.width}px;` : ''
-    if (panelEl) panelEl.style.minWidth = matchTriggerWidth
-      ? `${rect.width}px`
-      : ''
-    const width = panelEl?.offsetWidth ?? 220
+    const width = Math.max(
+      panelEl?.offsetWidth ?? 220,
+      matchTriggerWidth ? rect.width : 0
+    )
     const height = panelEl?.offsetHeight ?? 0
     const { top, left } = computeMenuPanelPosition({
       anchor: {
@@ -108,8 +110,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   function openPanel() {
     items = getItems()
     open = true
-    window.requestAnimationFrame(updatePanelPosition)
   }
+
+  // Position once the portaled panel actually exists. A first-open rAF
+  // ran before `panelEl` bound, so the width fell back to an estimate and
+  // the panel spent its first frame mis-positioned (and rAF is throttled
+  // while Obsidian is backgrounded). The effect re-runs when `panelEl`
+  // binds, with the rendered panel measurable.
+  $effect(() => {
+    if (open && panelEl) updatePanelPosition()
+  })
 
   function closePanel() {
     open = false

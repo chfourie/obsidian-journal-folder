@@ -31,6 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   import TaskItem from './TaskItem.svelte'
   import TaskScopePanel from './TaskScopePanel.svelte'
   import { groupTasksByCategory } from './group-tasks-by-category'
+  import { taskListHeaderLabel } from './task-list-header'
   import { renderSignifierIcon } from '../journal-signifiers'
 
   type Props = {
@@ -102,11 +103,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     onOpenSettings,
   }: Props = $props()
 
-  const captionText = $derived(caption && caption.trim() ? caption : 'TASKS')
-  const headerLabel = $derived.by(() => {
-    if (showCompleted) return `${captionText} (${tasks.length})`
-    return `${captionText} (${tasks.length} · ${hiddenCompletedCount} ✓ hidden)`
-  })
+  // Pre-cap count, matching the footer — see `taskListHeaderLabel`.
+  const headerLabel = $derived(
+    taskListHeaderLabel({
+      caption,
+      showCompleted,
+      totalBeforeCap,
+      hiddenCompletedCount,
+    })
+  )
 
   // `truncated` is supplied by the caller; the snapshot/feature is the
   // only level that knows the cap was actually hit. Don't derive it

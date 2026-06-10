@@ -71,14 +71,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   })
 
   const taskModel = $derived(resolveTaskModel(settings))
-  const visibleTasks = $derived(
-    settings.tasksOnlySidebarShowCompleted
-      ? snapshot.tasks
-      : snapshot.tasks.filter((t) => !taskModel.isDone(t.status))
-  )
-  const hiddenCompletedCount = $derived(
-    snapshot.tasks.length - visibleTasks.length
-  )
 
   async function setAnchor(anchor: TasksSidebarAnchor) {
     await saveSettings({ ...settings, tasksOnlySidebarAnchor: anchor })
@@ -116,11 +108,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <div class="journal-tasks-sidebar-root">
   <TaskList
-    tasks={visibleTasks}
+    tasks={snapshot.tasks}
     model={taskModel}
     app={obsidianApp}
     showCompleted={settings.tasksOnlySidebarShowCompleted}
-    hiddenCompletedCount={hiddenCompletedCount}
+    hiddenCompletedCount={snapshot.hiddenCompletedCount}
     totalBeforeCap={snapshot.totalBeforeCap}
     truncated={snapshot.truncated}
     header="sidebar"

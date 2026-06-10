@@ -108,7 +108,12 @@ export class JournalTasksSidebarView extends ItemView {
       target,
       props: {
         initialSettings: this.getSettings(),
-        initialSnapshot: { tasks: [], totalBeforeCap: 0, truncated: false },
+        initialSnapshot: {
+          tasks: [],
+          totalBeforeCap: 0,
+          truncated: false,
+          hiddenCompletedCount: 0,
+        },
         saveSettings: (s: JournalFolderSettings) => this.saveSettings(s),
         registerApi: (api: TasksOnlyUpdateApi) => {
           this.#api = api
@@ -190,6 +195,7 @@ export class JournalTasksSidebarView extends ItemView {
         range: settings.tasksOnlySidebarRange,
         folderMode: settings.tasksOnlySidebarFolderMode,
         folder: settings.tasksOnlySidebarFolder,
+        showCompleted: settings.tasksOnlySidebarShowCompleted,
       }
     )
     this.#api.setSnapshot(snapshot)

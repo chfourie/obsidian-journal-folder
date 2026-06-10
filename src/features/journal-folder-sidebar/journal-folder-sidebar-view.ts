@@ -181,7 +181,12 @@ export class JournalFolderSidebarView extends ItemView {
         initialSettings: this.getSettings(),
         initialKnownFolders: findJournalFolderPaths(this.plugin.app),
         initialActiveFile: this.snapshotActiveFile(),
-        initialTaskPanel: { tasks: [], totalBeforeCap: 0, truncated: false },
+        initialTaskPanel: {
+          tasks: [],
+          totalBeforeCap: 0,
+          truncated: false,
+          hiddenCompletedCount: 0,
+        },
         saveSettings: (s: JournalFolderSettings) => this.saveSettings(s),
         registerApi: (api: SidebarUpdateApi) => {
           this.#api = api
@@ -308,6 +313,7 @@ export class JournalFolderSidebarView extends ItemView {
         tasks: [],
         totalBeforeCap: 0,
         truncated: false,
+        hiddenCompletedCount: 0,
       })
       return
     }
@@ -320,6 +326,7 @@ export class JournalFolderSidebarView extends ItemView {
         range: settings.tasksSidebarRange,
         folderMode: settings.tasksSidebarFolderMode,
         folder: settings.tasksSidebarFolder,
+        showCompleted: settings.tasksShowCompleted,
       }
     )
     this.#api.setTaskPanelSnapshot(snapshot)

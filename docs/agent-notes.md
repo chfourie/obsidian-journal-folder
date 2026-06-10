@@ -396,11 +396,13 @@ suite. Run `npm run test:e2e:build`; full docs in
     one at 0,0). A bare `.mod-active [data-jf-more-button]` hits the **hidden** one
     → its popover renders blank at the top-left. Scope interactive reading-view
     queries to `.markdown-reading-view`.
-  - **Portaled panels position via `requestAnimationFrame`**, which is throttled
-    while Obsidian isn't the foreground app during CLI driving → a freshly opened
-    sidebar menu stays at its default top-left (the `menu-panel-position.ts`
-    no-anchor "centered sheet"). Fire a window `resize` after opening to run the
-    reposition synchronously.
+  - **Some portaled panels position via `requestAnimationFrame`**, which is
+    throttled while Obsidian isn't the foreground app during CLI driving → a
+    freshly opened panel can sit at its default top-left (the
+    `menu-panel-position.ts` no-anchor "centered sheet"). Fire a window `resize`
+    after opening to run the reposition synchronously. (`SidebarMenuPanel` no
+    longer needs this — it positions via an `$effect` on open, see the step-8
+    note below — but `RibbonMenuPanel` / `TaskScopePanel` still rAF.)
   - Native Obsidian `Menu` (`.menu`) **can't be captured** (dismisses on the
     `dev:screenshot` focus change — the plugin's custom portaled panels survive);
     calendar visibility is a session-sticky store (toggle via the More popover);
@@ -804,6 +806,41 @@ Four small invariants future code should preserve:
   sentinel constant lives next to `TaskFlow` in `task-model.type.ts`;
   write sites use it instead of a bare `''` (`TaskStatusId` is a plain
   string, so the type can't express the distinction).
+
+### Task-count semantics + menu-panel first-open positioning (remediation step 8)
+
+- **`capVisibleTasks` (in `task-snapshot.ts`) is the single owner of the
+  completed-filter / size-cap ordering** — filter first, so the cap only trims
+  *visible* tasks and `hiddenCompletedCount` covers every completed task in
+  scope. All three list surfaces consume it (the two sidebar panels via
+  `computeTaskSnapshot`, whose scope now carries `showCompleted`; the in-note
+  block directly). The sidebars previously filtered completed *post-cap* in
+  the Svelte components — that quietly let hidden completed tasks consume cap
+  slots and made the hidden count slice-local. Moving the filter into the
+  snapshot is sound because **both sidebar views recompute the snapshot on
+  every settings change** (`onSettingsChanged → refresh`), so the show-completed
+  toggle still takes effect; a future surface must keep using the helper, not
+  re-derive the math.
+- **The task-list header counts the pre-cap visible population**
+  (`taskListHeaderLabel` in `task-list-header.ts`, pure + unit-tested): header
+  `(N · M ✓ hidden)` and the truncation footer's "Showing X of N" now read the
+  same `totalBeforeCap`, so they can't contradict (the header used to restate
+  the capped list length and understated the real count whenever the cap hit).
+- **Portaled-panel first-open positioning: prefer a `$effect` over a
+  post-open rAF.** `SidebarMenuPanel` used to schedule its first
+  `updatePanelPosition` via `requestAnimationFrame` from the open handler —
+  that frame ran before `bind:this` populated `panelEl`, so the width fell
+  back to an estimate (one-frame mis-position), and rAF is throttled while
+  Obsidian is backgrounded (the screenshot-harness "fire a resize" gotcha).
+  An `$effect` gated on `open && panelEl` runs exactly when the portaled node
+  exists and is measurable, synchronously with the render flush. The
+  `matchTriggerWidth` min-width lives **only** in the reactive `panelStyle`
+  string (an imperative `style.minWidth` write is wiped by the next reactive
+  style write); the positioning width is floored at the trigger width
+  (`Math.max`) because `offsetWidth` may be measured before the min-width
+  applies. `RibbonMenuPanel` / `TaskScopePanel` still use the rAF pattern
+  (no `matchTriggerWidth`, fallback widths ≈ real widths, so no visible
+  symptom) — port them to the `$effect` shape if they ever misbehave.
 
 ### Task flows (configurable task statuses)
 
