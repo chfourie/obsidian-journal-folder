@@ -94,6 +94,40 @@ describe('buildTaskModel', () => {
       ])
       expect(model.opensPickerOnClick('open')).toBe(false)
     })
+
+    it('is true for every status when clickOpensPicker is on', () => {
+      const statuses = [
+        status({ id: 'open', char: ' ', next: 'done' }),
+        status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+      ]
+      const model = buildTaskModel(statuses, 'plugin', undefined, true)
+      // Both a plain cycling status and the done status open the picker.
+      expect(model.opensPickerOnClick('open')).toBe(true)
+      expect(model.opensPickerOnClick('done')).toBe(true)
+      // And nextStatus is still defined (cycling is the fallback if a
+      // surface ever calls it directly).
+      expect(model.nextStatus('open')).toBe('done')
+    })
+
+    it('clickOpensPicker even reports true for an unknown status id', () => {
+      const model = buildTaskModel(
+        [status({ id: 'open', char: ' ', next: 'done' })],
+        'plugin',
+        undefined,
+        true
+      )
+      expect(model.opensPickerOnClick('ghost')).toBe(true)
+    })
+  })
+
+  it('model id changes with the clickOpensPicker flag', () => {
+    const statuses = [
+      status({ id: 'open', char: ' ', next: 'done' }),
+      status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+    ]
+    const cycle = buildTaskModel(statuses, 'plugin', undefined, false)
+    const pick = buildTaskModel(statuses, 'plugin', undefined, true)
+    expect(cycle.id).not.toBe(pick.id)
   })
 
   it('first matching char wins on duplicates', () => {

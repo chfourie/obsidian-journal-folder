@@ -27,6 +27,7 @@ import { JournalTasksSidebarFeature } from '../features/journal-tasks-sidebar'
 import { JournalSignifiersFeature } from '../features/journal-signifiers'
 import { JournalRibbonMenuFeature } from '../features/journal-ribbon-menu'
 import { JournalEditorFeature } from '../features/journal-editor'
+import { JournalTodayFeature } from '../features/journal-today'
 
 export default class JournalFolderPlugin extends Plugin {
   readonly #features: PluginFeatureSet = new PluginFeatureSet()
@@ -49,6 +50,7 @@ export default class JournalFolderPlugin extends Plugin {
       settingsFeature.saveSettings,
       tasksFeature.cache
     )
+    const todayFeature = new JournalTodayFeature(this)
     this.#features
       .addFeature(settingsFeature)
       .addFeature(new JournalHeaderFeature(this))
@@ -60,6 +62,7 @@ export default class JournalFolderPlugin extends Plugin {
       )
       .addFeature(folderSidebarFeature)
       .addFeature(tasksSidebarFeature)
+      .addFeature(todayFeature)
       // The master ribbon menu aggregates the other features' surfaces, so it
       // is constructed last with callbacks into the already-built features.
       .addFeature(
@@ -68,6 +71,7 @@ export default class JournalFolderPlugin extends Plugin {
           openTasksSidebar: () => tasksSidebarFeature.activate(),
           initNewJournalFolder: () =>
             folderSidebarFeature.openInitFolderPicker(),
+          openToday: () => todayFeature.openToday(),
         })
       )
   }

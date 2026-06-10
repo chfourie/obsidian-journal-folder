@@ -48,6 +48,7 @@ export const PER_FOLDER_FIELDS = [
   'defaultCalendarVisibleDesktop',
   'defaultCalendarVisibleMobile',
   'quartersEnabled',
+  'includeInTodayPicker',
   'autoTemplateEnabled',
   'taskMigrationPlacement',
   'taskMigrationHeading',

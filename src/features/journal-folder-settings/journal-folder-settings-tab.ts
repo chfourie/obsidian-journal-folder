@@ -40,6 +40,7 @@ import {
   MIGRATION_REFERENCE_PRESETS,
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
+  type TodayButtonPlacement,
   type TaskMigrationReferenceStyle,
   TEMPLATE_FILENAMES,
 } from '../../data-access'
@@ -272,6 +273,20 @@ class SettingsFormBuilder {
       )
       this.createHideJournalFolderNotesSetting(settings)
     }
+
+    new Setting(this.containerEl)
+      .setName('Today')
+      .setHeading()
+      .setDesc(
+        isFolder
+          ? "Whether this folder participates in the plugin's Today action."
+          : "A one-click jump to the current day's note. Reachable any time " +
+              'via the "Open today\'s journal note" command.'
+      )
+    if (!isFolder) {
+      this.createTodayButtonPlacementSetting(settings)
+    }
+    this.createIncludeInTodayPickerSetting(settings, isFolder)
 
     new Setting(this.containerEl).setName('Calendar').setHeading()
     this.createDefaultCalendarVisibleSetting(
@@ -524,6 +539,7 @@ class SettingsFormBuilder {
       )
     this.createTasksMaxItemsSetting(settings)
     this.createTaskInteractionScopeSetting(settings)
+    this.createTaskClickOpensPickerSetting(settings)
     this.createMigrationPlacementSettings(settings)
     this.createMigrationReferenceSettings(settings)
 
@@ -1206,6 +1222,84 @@ class SettingsFormBuilder {
       )
   }
 
+  createTodayButtonPlacementSetting(settings: JournalFolderSettings): Setting {
+    let component: DropdownComponent
+
+    const onChange = (value: string) => {
+      settings.todayButtonPlacement = value as TodayButtonPlacement
+      // noinspection JSIgnoredPromiseFromCall
+      void this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName("Today button placement")
+      .setDesc(
+        'Where the Today affordance appears. In menu — an item inside the ' +
+          'existing Journal Folder ribbon menu. Top-level ribbon icon — its ' +
+          'own icon in the ribbon. Off — hidden (the command still works).'
+      )
+      .addDropdown((dropdown) => {
+        component = dropdown
+        // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
+        dropdown.addOption('menu', 'In the Journal Folder menu')
+        dropdown.addOption('ribbon', 'Top-level ribbon icon')
+        dropdown.addOption('off', 'Off')
+        dropdown.setValue(settings.todayButtonPlacement).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.todayButtonPlacement)
+            onChange(DEFAULT_SETTINGS.todayButtonPlacement)
+          })
+      })
+  }
+
+  createIncludeInTodayPickerSetting(
+    settings: JournalFolderSettings,
+    isFolder: boolean
+  ): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.includeInTodayPicker = value
+      // noinspection JSIgnoredPromiseFromCall
+      void this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName(
+        isFolder
+          ? 'Include this folder in the Today picker'
+          : 'Include folders in the Today picker by default'
+      )
+      .setDesc(
+        'When the Today action has more than one eligible journal folder, it ' +
+          'asks which one to open. A folder is offered only when this is on. ' +
+          'Special cases: a single journal folder is always opened directly; ' +
+          'if several folders exist but none opt in, all of them are offered. ' +
+          (isFolder
+            ? 'Overrides the global default for this folder via the ' +
+              '"include-in-today-picker" front-matter key.'
+            : 'Override per-folder in journal-folder.md front matter.')
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.includeInTodayPicker).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.includeInTodayPicker)
+            onChange(DEFAULT_SETTINGS.includeInTodayPicker)
+          })
+      })
+  }
+
   createUseFolderNameAsDefaultTitleSetting(
     settings: JournalFolderSettings
   ): Setting {
@@ -1322,6 +1416,38 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.taskInteractionScope)
             onChange(DEFAULT_SETTINGS.taskInteractionScope)
+          })
+      })
+  }
+
+  createTaskClickOpensPickerSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.taskClickOpensPicker = value
+      // noinspection JSIgnoredPromiseFromCall
+      void this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Left-click opens the status menu')
+      .setDesc(
+        'When on, left-clicking a task checkbox opens the status picker ' +
+          '(the same menu as a right-click / long-press) instead of ' +
+          'cycling to the next status. Right-click always opens the menu ' +
+          'regardless.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.taskClickOpensPicker).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.taskClickOpensPicker)
+            onChange(DEFAULT_SETTINGS.taskClickOpensPicker)
           })
       })
   }

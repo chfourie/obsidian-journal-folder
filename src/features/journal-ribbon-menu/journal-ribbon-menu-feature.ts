@@ -39,6 +39,7 @@ export type RibbonMenuActions = {
   openFolderSidebar: () => void | Promise<void>
   openTasksSidebar: () => void | Promise<void>
   initNewJournalFolder: () => void | Promise<void>
+  openToday: () => void | Promise<void>
 }
 
 // The plugin's single "home" ribbon icon. Replaces the per-sidebar ribbon icons
@@ -108,7 +109,7 @@ export class JournalRibbonMenuFeature extends PluginFeature {
   // Resolved lazily on every open so the theme row reflects the current scheme.
   #buildItems(): SidebarMenuItem[] {
     const current = this.#currentColorScheme()
-    return [
+    const items: SidebarMenuItem[] = [
       {
         kind: 'item',
         title: colorSchemeMenuLabel(current),
@@ -116,6 +117,20 @@ export class JournalRibbonMenuFeature extends PluginFeature {
         onClick: () => this.#toggleColorScheme(),
       },
       { kind: 'separator' },
+    ]
+    // The Today action lives here only when the user routes it to the menu;
+    // `'ribbon'` gives it a dedicated icon and `'off'` hides it entirely
+    // (both owned by the today feature). It leads so the most-frequent
+    // action is first.
+    if (this.globalSettings.todayButtonPlacement === 'menu') {
+      items.push({
+        kind: 'item',
+        title: "Open today's journal note",
+        icon: 'calendar-check',
+        onClick: () => void this.actions.openToday(),
+      })
+    }
+    items.push(
       {
         kind: 'item',
         title: 'Open Journal Folder sidebar',
@@ -134,8 +149,9 @@ export class JournalRibbonMenuFeature extends PluginFeature {
         title: 'Initialise a new journal folder',
         icon: 'folder-plus',
         onClick: () => void this.actions.initNewJournalFolder(),
-      },
-    ]
+      }
+    )
+    return items
   }
 
   // `getTheme` / `changeTheme` are runtime-only methods on the App object,

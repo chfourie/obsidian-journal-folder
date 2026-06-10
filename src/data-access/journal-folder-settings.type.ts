@@ -112,6 +112,25 @@ export type JournalFolderSettings = {
   // — the sidebar only moves when the user picks a folder explicitly.
   // **Global only** because the sidebar is a singleton view.
   sidebarMode: SidebarMode
+  // Where the "Today" affordance lives — a one-click jump to the current
+  // day's note for a journal folder.
+  //   `'menu'`   — an item inside the plugin's existing ribbon menu (the
+  //                "Journal Folder menu" home icon). **Default** — keeps the
+  //                ribbon strip uncluttered and doesn't change existing
+  //                vaults' ribbons on upgrade.
+  //   `'ribbon'` — a dedicated top-level ribbon icon.
+  //   `'off'`    — no Today affordance (the `open-today` command still
+  //                works from the palette).
+  // The command `open-today` is always registered regardless. **Global
+  // only** — the ribbon strip is process-wide.
+  todayButtonPlacement: TodayButtonPlacement
+  // Per-folder opt-in: whether this folder participates in the "Today"
+  // picker. Default **false**. The effective set of folders the Today
+  // action offers is resolved in `resolveTodayFolders`: with a single known
+  // journal folder it's always included; with several folders but none
+  // opted in, they're all included; otherwise only the opted-in folders.
+  // **Folder-honored** via the front-matter key `include-in-today-picker`.
+  includeInTodayPicker: boolean
   // Master toggle for the sidebar's task panel. Off by default so the
   // sidebar stays minimal for users who don't journal with tasks.
   // **Global only** — the sidebar is a singleton view.
@@ -198,6 +217,14 @@ export type JournalFolderSettings = {
   // **Global only** — interception happens at process-wide layers
   // (markdown post-processor, editor extension, settings tab).
   taskInteractionScope: TaskInteractionScope
+  // When true, a **left-click** on a task checkbox opens the status
+  // picker (the same panel a right-click / long-press shows) instead of
+  // cycling the status to its `next`. Right-click still opens the picker
+  // regardless. Off by default so the familiar click-to-advance gesture
+  // is preserved. Applies to all four checkbox surfaces (sidebar panel,
+  // in-note block, reading view, live preview). **Global only** — the
+  // interaction layers are process-wide.
+  taskClickOpensPicker: boolean
   // Where the task-migration commands insert the copied task lines in
   // the destination note:
   //   `'heading'`         — under the heading named by
@@ -345,6 +372,8 @@ export type SignifierPlacement = 'margin' | 'margin-column'
 
 export type SidebarMode = 'static' | 'dynamic'
 
+export type TodayButtonPlacement = 'menu' | 'ribbon' | 'off'
+
 export type StartOfWeekSetting =
   | 'locale-default'
   | 'sunday'
@@ -391,6 +420,8 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultJournalFolder: '',
   hideJournalFolderNotes: true,
   sidebarMode: 'dynamic',
+  todayButtonPlacement: 'menu',
+  includeInTodayPicker: false,
   tasksSidebarEnabled: false,
   tasksSidebarAnchor: 'note',
   tasksSidebarRange: 'day',
@@ -412,6 +443,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   defaultTaskFlow: 'Default',
   taskFlow: '',
   taskInteractionScope: 'lists',
+  taskClickOpensPicker: false,
   taskMigrationPlacement: 'after-last-task',
   taskMigrationHeading: 'Tasks',
   taskMigrationAddToReference: true,

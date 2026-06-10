@@ -710,6 +710,36 @@ the CSS transition). Toggle = `changeTheme(getTheme()==='obsidian' ? 'moonstone'
 there (deliberate — we don't try to return to `'system'`). Logic isolated in
 `theme-toggle.ts` (unit tested) so the undocumented API has a one-file blast radius.
 
+### Today button (`JournalTodayFeature`)
+
+A one-click jump to today's `YYYY-MM-DD` note for a journal folder (creating it on
+first visit, exactly like clicking the calendar's Today cell — today is the
+present, so no "create a past note?" confirm). Lives in `src/features/journal-today/`.
+
+- **Placement** is the global-only `todayButtonPlacement` (`'menu'` default /
+  `'ribbon'` / `'off'`). `'menu'` is rendered by the **ribbon-menu feature** (it
+  conditionally pushes a *Open today's journal note* item, leading, when the
+  setting is `'menu'`); `'ribbon'` is a dedicated top-level icon (`calendar-check`)
+  that *this* feature adds/removes itself, reconciled in `useSettings` (tracks
+  `#ribbonEl`, `el.remove()` to drop it). Default is `'menu'` deliberately — adding
+  a ribbon icon to everyone's strip on upgrade is intrusive (same philosophy as
+  `taskInteractionScope` defaulting to `'lists'`). The `open-today` **command** is
+  always registered (palette/mobile), like every ribbon-primary affordance.
+- **Folder selection** is the pure `resolveTodayFolders(known, isIncluded)` (unit
+  tested — the fiddly rules live here, not in the feature): 0 known → nothing;
+  **exactly one known folder is always opened directly, ignoring opt-in** (a single
+  journal needs no picker); several known with *none* opted in → offer all (usable
+  out of the box); several with *some* opted in → only those. One resolved folder
+  opens directly; >1 shows `TodayFolderPickerModal` (`FuzzySuggestModal<string>`).
+- **Opt-in** is the folder-honoured `includeInTodayPicker` (default false, FM key
+  `include-in-today-picker`, in `PER_FOLDER_FIELDS`). Resolved per folder by passing
+  the folder's `journal-folder.md` TFile through `PluginFeature.getSettings(file)`
+  (the config note's parent *is* the folder, so the front-matter override layers
+  over the global default); FM booleans may be strings → `isTruthySetting`.
+- **Opening** uses `workspace.openLinkText(<folderPath>/<today>, configPathFor(folder),
+  false)`, mirroring the calendar/header navigation (full-path link, resolved against
+  the folder's config note).
+
 ### Note-based templates (replaces inline template text)
 
 Template content used to live as text in `data.json` (`autoTemplateContent` +

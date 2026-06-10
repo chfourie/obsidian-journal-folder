@@ -31,7 +31,11 @@ import { TASK_LINE_REGEX } from './task-line-regex'
 export function buildTaskModel(
   statuses: TaskStatus[],
   rendering: TaskRendering = 'plugin',
-  migratedStatus?: TaskStatusId
+  migratedStatus?: TaskStatusId,
+  // When true, a left-click on any task checkbox opens the status picker
+  // instead of cycling — `opensPickerOnClick` then returns true for every
+  // status. Driven by the global `taskClickOpensPicker` setting.
+  clickOpensPicker = false
 ): TaskModel {
   const byChar = new Map<string, TaskStatus>()
   const byId = new Map<TaskStatusId, TaskStatus>()
@@ -58,7 +62,7 @@ export function buildTaskModel(
   // Pure visual changes (colour, shell) are intentionally excluded
   // — they don't influence parsed `JournalTask` data.
   const id =
-    `model:${rendering}:` +
+    `model:${rendering}:${clickOpensPicker ? 'pick' : 'cycle'}:` +
     statuses
       .map((s) => `${s.char}|${s.isDone ? '1' : '0'}|${s.next}`)
       .join(',')
@@ -94,6 +98,9 @@ export function buildTaskModel(
       return byId.has(entry.next) ? entry.next : fallbackId
     },
     opensPickerOnClick(current) {
+      // Global opt-in: every left-click opens the picker rather than
+      // cycling.
+      if (clickOpensPicker) return true
       // A status whose `next` is its own id is a "pick on click"
       // status: cycling it would land back on itself, so the click
       // surfaces open the status picker instead of writing a no-op.

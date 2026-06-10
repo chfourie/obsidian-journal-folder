@@ -38,9 +38,15 @@ export function resolveTaskModel(settings: {
   taskFlows?: Record<string, TaskFlow>
   defaultTaskFlow?: string
   taskFlow?: string
+  taskClickOpensPicker?: boolean
 }): TaskModel {
   const flow = pickFlow(settings)
-  return buildTaskModel(flow.statuses, flow.rendering, flow.migratedStatus)
+  return buildTaskModel(
+    flow.statuses,
+    flow.rendering,
+    flow.migratedStatus,
+    settings.taskClickOpensPicker ?? false
+  )
 }
 
 function pickFlow(settings: {

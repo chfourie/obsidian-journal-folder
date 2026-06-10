@@ -64,4 +64,20 @@ describe('resolveTaskModel', () => {
       BUILTIN_TEMPLATES.simple.map((s) => s.id)
     )
   })
+
+  it('propagates taskClickOpensPicker into the model', () => {
+    const off = resolveTaskModel({
+      taskFlows: { Main: simpleFlow },
+      defaultTaskFlow: 'Main',
+    })
+    const on = resolveTaskModel({
+      taskFlows: { Main: simpleFlow },
+      defaultTaskFlow: 'Main',
+      taskClickOpensPicker: true,
+    })
+    // Off: a plain cycling status does not open the picker. On: it does.
+    const firstId = simpleFlow.statuses[0].id
+    expect(off.opensPickerOnClick(firstId)).toBe(false)
+    expect(on.opensPickerOnClick(firstId)).toBe(true)
+  })
 })

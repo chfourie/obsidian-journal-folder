@@ -109,6 +109,39 @@ export const suite = {
       },
     ],
     [
+      'taskClickOpensPicker makes a left-click open the picker instead of cycling',
+      async (ctx) => {
+        // Global opt-in: with the setting on, opensPickerOnClick returns true
+        // for EVERY status, so a left-click surfaces the picker rather than
+        // writing a no-op-free cycle. Apply before opening so the freshly
+        // rendered note inherits the flag (it is baked into the model id).
+        await ctx.applySettings({ taskClickOpensPicker: true })
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        ctx.step('Enable “left-click opens the status menu” and open the daily note.')
+        ctx.assert.contains(
+          ctx.readNote('Journal/2026-06-06.md'),
+          '- [ ] open task one',
+          'precondition'
+        )
+        await ctx.click(OPEN_ICON, { settleMs: 500 })
+        ctx.assert.ok(
+          await ctx.exists('[data-jf-status-picker]'),
+          'left-click opened the status picker'
+        )
+        // The status must be untouched — the click opened the picker, it did
+        // not cycle the task.
+        ctx.assert.contains(
+          ctx.readNote('Journal/2026-06-06.md'),
+          '- [ ] open task one',
+          'status not cycled by the left-click'
+        )
+        ctx.step('With the setting on, a left-click opens the picker and leaves the status unchanged.')
+        await ctx.shot('Left-click opens the picker', {
+          rect: "bodyRect('[data-jf-status-picker]')",
+        })
+      },
+    ],
+    [
       'theme-rendering flow keeps the native checkbox (no plugin icon swap)',
       async (ctx) => {
         // Flip the active flow to theme rendering and confirm the document
