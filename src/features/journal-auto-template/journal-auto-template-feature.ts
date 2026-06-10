@@ -65,7 +65,15 @@ export class JournalAutoTemplateFeature extends PluginFeature {
         this.plugin.app,
         settings
       )
-      await this.saveSettings({ ...settings, templatesMigratedToFiles: true })
+      // Re-read the live settings at save time — the known stale-snapshot
+      // trap: a settings change landing while the migration's vault writes
+      // are in flight would be silently overwritten by saving the
+      // pre-await `settings` snapshot (which remains the right *input*
+      // for the migration itself).
+      await this.saveSettings({
+        ...this.globalSettings,
+        templatesMigratedToFiles: true,
+      })
       if (written > 0) {
         new Notice(
           `Journal Folder: moved ${written} template${

@@ -264,7 +264,28 @@ cell (~51 cells/sidebar build, up to ~255 for a 5-month in-note calendar via
 the array is shared now. `closestSibling` (~line 418, a regex reduce) can keep the array.
 **Do together with Step 2** — same plumbing.
 
-**5b. Diff-gated settings invalidation** —
+**5b. Diff-gated settings invalidation** ✅ DONE —
+
+> **Completed (with 5c, one commit).** Pure field classes + diff helpers in
+> `src/data-access/settings-invalidation.ts` (`settingsFieldsChanged`,
+> `readingViewRenderAffected`; value-diff via JSON so load/sync's wholesale
+> object rebuild doesn't false-positive). The tasks feature gates
+> `cache.clear()` on `TASK_PARSE_FIELDS` (flows + markers + signifiers +
+> categories **+ title patterns / startOfWeek / quartersEnabled** — cached
+> tasks bake rendered note titles) and `updateOptions()` on
+> `TASK_EDITOR_FIELDS`; the cache's marker/signifier/category setters still
+> run on every save (cheap, keeps config in step). The signifiers feature
+> gates `updateOptions()` + the reserve-clear on `SIGNIFIER_RENDER_FIELDS`,
+> and the `rerender(true)` sweep on `readingViewRenderAffected` — an
+> **exclusion** diff over `RENDER_INERT_FIELDS`, because that sweep serves
+> every reading-view surface (headers/blocks/migration refs too), and an
+> exclusion list means future fields fail safe. Tests:
+> `tests/data-access/settings-invalidation.test.ts`. Live-verified via the
+> CLI: flipping `tasksShowCompleted` through the settings pipeline leaves a
+> deep DOM probe in an open reading view intact (no re-render); flipping
+> `signifierHideTagInReadingView` destroys the probe and the tag visibility
+> changes. (Probe trap: `rerender(true)` reuses section divs — probe deep
+> elements.) Durable notes in `docs/agent-notes.md`; CLAUDE.md updated.
 `src/features/journal-tasks/journal-tasks-feature.ts` `useSettings` (~lines 301–323) does
 `#cache.clear()` + `workspace.updateOptions()` on **every** settings save, and
 `src/features/journal-signifiers/journal-signifiers-feature.ts` `useSettings`
@@ -278,7 +299,12 @@ markers, signifiers, categories — the cache's model-id validation already enco
 this), only `rerender(true)` when a signifier-relevant field changed, and skip both for
 pure UI fields (`tasksSidebar*`, `sidebarMode`, …). Keep the diff helper pure and tested.
 
-**5c. Stale-settings snapshot in template migration** —
+**5c. Stale-settings snapshot in template migration** ✅ DONE (with 5b — the
+save now spreads `this.globalSettings` re-read at save time; the pre-await
+snapshot remains the migration input. Test in
+`tests/features/journal-auto-template-feature.test.ts` interleaves a
+`useSettings` change between migration start and save and asserts it
+survives — verified to fail against the pre-fix code) —
 `src/features/journal-auto-template/journal-auto-template-feature.ts` ~lines 61–68
 (`maybeMigrateInlineTemplates`): `const settings = this.globalSettings` is captured, then
 after `await runInlineTemplateMigration(...)` the code saves

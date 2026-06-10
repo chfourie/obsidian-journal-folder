@@ -259,6 +259,52 @@ describe('JournalAutoTemplateFeature', () => {
     expect(await app.vault.read(file)).toBe('pre-existing\n')
   })
 
+  it('keeps a settings change made mid-migration when saving the migration flag', async () => {
+    const saved: JournalFolderSettings[] = []
+    const plugin = buildPlugin()
+    const feature = new JournalAutoTemplateFeature(plugin, async (next) => {
+      saved.push(next)
+      feature.useSettings(next)
+    })
+    // Legacy inline content present + flag unset → the migration runs and
+    // performs vault writes before its final save.
+    feature.useSettings({
+      ...DEFAULT_SETTINGS,
+      templatesMigratedToFiles: false,
+      autoTemplateContent: '# Legacy template\n',
+    })
+    // noinspection JSIgnoredPromiseFromCall
+    feature.load()
+    // @ts-expect-error — test mock workspace
+    plugin.app.workspace.signalLayoutReady()
+    // Simulate a concurrent settings save landing while the migration's
+    // vault writes are still in flight (before its own save runs).
+    feature.useSettings({
+      ...DEFAULT_SETTINGS,
+      templatesMigratedToFiles: false,
+      autoTemplateContent: '# Legacy template\n',
+      tasksSidebarRange: 'year',
+    })
+    await new Promise((r) => setTimeout(r, 10))
+
+    const final = saved.at(-1)
+    expect(final).toBeDefined()
+    // The flag is set AND the mid-migration change survives — the save
+    // must re-read live settings, not the pre-await snapshot.
+    expect(final?.templatesMigratedToFiles).toBe(true)
+    expect(final?.tasksSidebarRange).toBe('year')
+    // The migration itself still consumed the snapshot's legacy content.
+    // @ts-expect-error — test mock vault
+    expect(
+      await plugin.app.vault.read(
+        // @ts-expect-error — test mock vault
+        plugin.app.vault.getAbstractFileByPath(
+          'Templates/journal-folder/default-template.md'
+        )
+      )
+    ).toBe('# Legacy template\n')
+  })
+
   it('does not seed the journal-folder.md config note itself', async () => {
     ;({ app } = setupFeature({ autoTemplateEnabled: true }))
     seedJournalFolder(app)

@@ -20,6 +20,9 @@ import { type Editor, MarkdownView, Plugin } from 'obsidian'
 import {
   type JournalFolderSettings,
   PluginFeature,
+  readingViewRenderAffected,
+  settingsFieldsChanged,
+  SIGNIFIER_RENDER_FIELDS,
 } from '../../data-access'
 import { processSignifiers } from './process-signifiers'
 import {
@@ -189,30 +192,44 @@ export class JournalSignifiersFeature extends PluginFeature {
   }
 
   useSettings(settings: JournalFolderSettings): void {
+    const prev = this.globalSettings
     super.useSettings(settings)
-    // Re-apply editor extensions across open editors so signifier / placement
-    // / tag-hiding edits take effect in live preview immediately.
-    this.plugin.app.workspace.updateOptions?.()
-    // Turning the reserved-lane toggle off must drop the inline padding the
-    // positioning pass left on the container; with it on, the pass re-applies
-    // the (possibly zero) deficit on the re-render below.
-    if (!settings.signifierReserveGutter) {
-      clearAllReadingReserve()
+    // Both invalidations are diff-gated — every settings write (including
+    // the sidebar's scope controls) propagates here, and unconditionally
+    // re-rendering every open view made a "show completed" click flash
+    // every reading view in the workspace.
+    if (settingsFieldsChanged(prev, settings, SIGNIFIER_RENDER_FIELDS)) {
+      // Re-apply editor extensions across open editors so signifier /
+      // placement / tag-hiding edits take effect in live preview
+      // immediately.
+      this.plugin.app.workspace.updateOptions?.()
+      // Turning the reserved-lane toggle off must drop the inline padding
+      // the positioning pass left on the container; with it on, the pass
+      // re-applies the (possibly zero) deficit on the re-render below.
+      if (!settings.signifierReserveGutter) {
+        clearAllReadingReserve()
+      }
     }
     // Reading-view markdown post-processors do NOT re-run on a settings
-    // change, so a placement / signifier / tag-hiding edit would otherwise
-    // leave the previously-rendered markers in place. Force open reading
-    // views to re-render so the new settings apply to fresh DOM.
-    this.plugin.app.workspace.iterateAllLeaves((leaf) => {
-      const view = leaf.view
-      if (view instanceof MarkdownView) {
-        // `previewMode.rerender(true)` is the sanctioned full re-render
-        // (semi-private in the typings). No-op when not in reading mode.
-        const preview = (view as unknown as {
-          previewMode?: { rerender?: (full?: boolean) => void }
-        }).previewMode
-        preview?.rerender?.(true)
-      }
-    })
+    // change, so a render-relevant edit would otherwise leave the
+    // previously-rendered DOM in place. Force open reading views to
+    // re-render so the new settings apply to fresh DOM. This sweep serves
+    // every reading-view surface (signifiers, migration references,
+    // document checkboxes, the `journal-header` / `journal-tasks`
+    // blocks), so it gates on the broad render-relevance diff, not just
+    // the signifier fields.
+    if (readingViewRenderAffected(prev, settings)) {
+      this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+        const view = leaf.view
+        if (view instanceof MarkdownView) {
+          // `previewMode.rerender(true)` is the sanctioned full re-render
+          // (semi-private in the typings). No-op when not in reading mode.
+          const preview = (view as unknown as {
+            previewMode?: { rerender?: (full?: boolean) => void }
+          }).previewMode
+          preview?.rerender?.(true)
+        }
+      })
+    }
   }
 }

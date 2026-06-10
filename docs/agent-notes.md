@@ -674,6 +674,53 @@ future vault-event consumer should reuse rather than reinvent:
   still appeared in the panel after the debounce and disappeared on
   revert.
 
+### Settings invalidation is diff-gated (`settings-invalidation.ts`)
+
+Every settings write — the settings tab, the per-folder modal, **and the
+sidebar's scope controls** (anchor / range / folder / show-completed) — goes
+through the same `saveSettings → propagate → useSettings` pipeline. The
+features therefore must NOT invalidate unconditionally in `useSettings`:
+before the gating, one "show completed" click cleared the whole task cache
+and re-rendered every open reading view. The field classification lives in
+`src/data-access/settings-invalidation.ts` (pure, unit-tested in
+`tests/data-access/settings-invalidation.test.ts`); each feature diffs the
+incoming snapshot against its previous one (`const prev = this.globalSettings`
+*before* `super.useSettings(...)`). Rules to keep in mind:
+
+- **Cached `JournalTask`s bake more than the obvious** — `extractTasks`
+  embeds the *rendered* source-note titles (`noteTitle`, `noteTitleShort`)
+  and tier, so `TASK_PARSE_FIELDS` (→ `TaskCache.clear()`) includes the
+  title patterns, `startOfWeek`, and `quartersEnabled`, not just
+  flows/markers/signifiers/categories. The cache's own mtime + model-id
+  validation cannot see any of these (edits *within* a flow keep the model
+  id).
+- **The reading-view `rerender(true)` sweep lives in the signifiers feature
+  but serves every reading-view surface** (migration references, document
+  checkboxes, the `journal-header` / `journal-tasks` blocks — historically
+  it ran on every save, which is what kept them fresh). It is gated on
+  `readingViewRenderAffected`, an **exclusion** diff: anything outside
+  `RENDER_INERT_FIELDS` re-renders, so a future unclassified field fails
+  safe (extra re-render, never a stale view). When adding a pure-UI field,
+  add it to `RENDER_INERT_FIELDS`; when adding a render-affecting field, do
+  nothing — the default covers it.
+- **Diff by value, not reference** — load / external sync rebuilds the whole
+  settings object, so structured fields (flows, signifiers, categories) are
+  compared by JSON value. A reference-based diff would re-invalidate on
+  every `onExternalSettingsChange`.
+- **Verification probe trap:** `previewMode.rerender(true)` *reuses* the
+  per-section container divs and replaces their contents — a probe
+  `dataset` stamped on a section div survives a full re-render and proves
+  nothing. Plant probes on deep content elements (`p` / `li`), which are
+  genuinely replaced.
+
+The stale-snapshot rule (see *Known traps in the settings tab*) also
+applies to features: `maybeMigrateInlineTemplates` used to save its
+pre-`await` settings snapshot after the migration's vault writes, silently
+overwriting any settings change that landed mid-flight. Any feature that
+holds a settings snapshot across an `await` and then *saves* must re-read
+`this.globalSettings` at save time (the snapshot stays fine as the
+operation's *input*).
+
 ### Task flows (configurable task statuses)
 
 Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where

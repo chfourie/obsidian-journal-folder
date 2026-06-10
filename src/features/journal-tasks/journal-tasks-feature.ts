@@ -27,6 +27,9 @@ import {
   journalNoteFactoryWithSettings,
   openPluginSettings,
   PluginFeature,
+  settingsFieldsChanged,
+  TASK_EDITOR_FIELDS,
+  TASK_PARSE_FIELDS,
 } from '../../data-access'
 import { ErrorMessage } from '../../ui'
 import TaskList from './TaskList.svelte'
@@ -299,10 +302,8 @@ export class JournalTasksFeature extends PluginFeature {
   }
 
   useSettings(settings: JournalFolderSettings): void {
+    const prev = this.globalSettings
     super.useSettings(settings)
-    // Switching the active model invalidates every cached entry —
-    // their parsed status IDs are model-specific.
-    this.#cache.clear()
     // Keep the cache's marker list in step so task lists strip the
     // current migration references from their display text.
     this.#cache.setMigrationMarkers([
@@ -313,13 +314,25 @@ export class JournalTasksFeature extends PluginFeature {
     // annotate tasks and strip their tags from display text.
     this.#cache.setSignifiers(settings.signifiers)
     this.#cache.setCategories(settings.taskCategories)
-    // Force open CodeMirror editors to re-run their ViewPlugin
-    // updates so toggles of `taskInteractionScope` and edits to the
-    // active flow take effect without requiring the user to type.
-    // `updateOptions()` re-applies extensions across all editors;
-    // the per-editor MutationObserver inside each plugin also
-    // re-scans whenever Obsidian re-renders content.
-    this.plugin.app.workspace.updateOptions?.()
+    // Invalidations are diff-gated: every settings write — including the
+    // sidebar's scope controls — lands here, and unconditional clears
+    // turned a "show completed" click into a full cache rebuild.
+    if (settingsFieldsChanged(prev, settings, TASK_PARSE_FIELDS)) {
+      // A parse-relevant change invalidates every cached entry — the
+      // cache's mtime / model-id validation can't see it (e.g. edits
+      // *within* a flow keep the model id; markers / signifiers /
+      // categories / titles are baked into the parsed tasks).
+      this.#cache.clear()
+    }
+    if (settingsFieldsChanged(prev, settings, TASK_EDITOR_FIELDS)) {
+      // Force open CodeMirror editors to re-run their ViewPlugin
+      // updates so toggles of `taskInteractionScope` and edits to the
+      // active flow take effect without requiring the user to type.
+      // `updateOptions()` re-applies extensions across all editors;
+      // the per-editor MutationObserver inside each plugin also
+      // re-scans whenever Obsidian re-renders content.
+      this.plugin.app.workspace.updateOptions?.()
+    }
   }
 
   private async renderBlock(

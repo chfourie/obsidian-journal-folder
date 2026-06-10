@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 export * from './link.type'
 export * from './journal-folder-settings.type'
+export * from './settings-invalidation'
 export * from './plugin-feature'
 export * from './journal-note'
 export * from './template-folder'
