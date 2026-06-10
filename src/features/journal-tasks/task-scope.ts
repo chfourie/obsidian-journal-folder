@@ -92,8 +92,11 @@ export interface ResolveFoldersInput {
   // The active journal note's parent-folder path, or `null` when the
   // active leaf isn't a recognised journal note.
   activeNoteFolder: string | null
-  // Every known journal folder (the `'all'` fallback).
-  allFolders: string[]
+  // Every known journal folder (the `'all'` fallback). A thunk because
+  // producing the list costs a full-vault walk (`findJournalFolderPaths`
+  // scans every markdown file) — it must only run when a branch below
+  // actually needs it.
+  allFolders: () => string[]
 }
 
 // Resolves which folder path(s) a sidebar task panel should scan from
@@ -108,12 +111,12 @@ export function resolveTaskFolders(input: ResolveFoldersInput): string[] {
   if (input.folderMode === 'note') {
     return input.activeNoteFolder !== null
       ? [input.activeNoteFolder]
-      : input.allFolders
+      : input.allFolders()
   }
   if (input.folderMode === 'specific' && input.folder) {
     return [input.folder]
   }
-  return input.allFolders
+  return input.allFolders()
 }
 
 // Lists the journal notes that live directly under `folderPath`, sorted

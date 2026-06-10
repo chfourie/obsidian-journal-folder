@@ -17,9 +17,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+  debounce,
   ItemView,
   Notice,
   type Plugin,
+  type TAbstractFile,
   TFile,
   type WorkspaceLeaf,
 } from 'obsidian'
@@ -28,6 +30,8 @@ import {
   configPathFor,
   findJournalFolderPaths,
   FolderSettingsResolver,
+  isJournalFileBasename,
+  isJournalFolder,
   type JournalFolderSettings,
   openPluginSettings,
 } from '../../data-access'
@@ -38,11 +42,19 @@ import {
 } from '../journal-auto-template'
 import { confirmModal } from '../../ui'
 import {
+  activeLeafAffectsTaskScope,
   computeTaskSnapshot,
+  TASK_REFRESH_DEBOUNCE_MS,
   type TaskCache,
+  taskEventAffectsScope,
+  type TaskEventScope,
   type TaskPanelSnapshot,
 } from '../journal-tasks'
 export type { TaskPanelSnapshot }
+import {
+  classifyVaultMutation,
+  type VaultMutationKind,
+} from './sidebar-vault-events'
 import { VIEW_TYPE_JOURNAL_FOLDER_SIDEBAR } from './journal-folder-sidebar-feature'
 import JournalFolderSidebar from './JournalFolderSidebar.svelte'
 import {
@@ -66,13 +78,16 @@ export type SidebarUpdateApi = {
   setKnownFolders: (folders: string[]) => void
   setActiveFile: (file: ActiveFileSnapshot | null) => void
   setSelected: (path: string) => void
-  // Bumped on every vault mutation (create / delete / rename) so the
-  // calendar's `$derived(buildAnchorNote(...))` recomputes — the
-  // synthetic anchor reads `parent.children` *once* at construction, so
-  // existence-flag accuracy after a deletion or rename requires us to
-  // rebuild the anchor.
+  // Bumped on vault mutations (create / delete / rename) that touch the
+  // selected folder, so the calendar's `$derived(buildAnchorNote(...))`
+  // recomputes — the synthetic anchor's sibling-names snapshot is frozen
+  // after first use, so existence-flag accuracy after a deletion or
+  // rename requires us to rebuild the anchor.
   bumpVault: () => void
   setTaskPanelSnapshot: (snapshot: TaskPanelSnapshot) => void
+  // Read-back of the component's currently selected folder, so the vault
+  // listeners can gate the anchor rebuild on events that touch it.
+  getSelectedFolder: () => string
 }
 
 export type ActiveFileSnapshot = {
@@ -100,6 +115,34 @@ export class JournalFolderSidebarView extends ItemView {
   #component: ReturnType<typeof mount> | null = null
   #api: SidebarUpdateApi | null = null
   readonly #resolver: FolderSettingsResolver
+
+  // Vault events accumulate the work they require in these flags; the
+  // trailing-debounced flush below runs once per event burst and executes
+  // only the flagged reactions. Each flag's action is expensive enough to
+  // gate: `refreshKnownFolders` walks every markdown file, `bumpVault`
+  // rebuilds the calendar anchor, and the task refresh recomputes the
+  // whole panel snapshot.
+  #pendingKnownFolders = false
+  #pendingBump = false
+  #pendingTasks = false
+  #flushPendingRefresh = debounce(
+    () => {
+      const refreshFolders = this.#pendingKnownFolders
+      const bump = this.#pendingBump
+      const refreshTasks = this.#pendingTasks
+      this.#pendingKnownFolders = false
+      this.#pendingBump = false
+      this.#pendingTasks = false
+      if (refreshFolders) this.refreshKnownFolders()
+      if (bump) this.#api?.bumpVault()
+      if (refreshTasks) {
+        // noinspection JSIgnoredPromiseFromCall
+        void this.refreshTaskPanel()
+      }
+    },
+    TASK_REFRESH_DEBOUNCE_MS,
+    true
+  )
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -179,33 +222,60 @@ export class JournalFolderSidebarView extends ItemView {
     // — new journal folders appearing (or disappearing) shouldn't require
     // closing and reopening the sidebar. Also bump the vault tick so the
     // calendar's anchor rebuilds and existence flags catch up to the
-    // disk state.
+    // disk state. `classifyVaultMutation` drops the events that can't
+    // affect any of those, and the debounced flush coalesces the rest.
     this.registerEvent(
-      this.plugin.app.vault.on('create', () => this.onVaultMutation())
+      this.plugin.app.vault.on('create', (file) =>
+        this.onVaultMutation('create', file)
+      )
     )
     this.registerEvent(
-      this.plugin.app.vault.on('delete', () => this.onVaultMutation())
+      this.plugin.app.vault.on('delete', (file) =>
+        this.onVaultMutation('delete', file)
+      )
     )
     this.registerEvent(
-      this.plugin.app.vault.on('rename', () => this.onVaultMutation())
+      this.plugin.app.vault.on('rename', (file, oldPath) =>
+        this.onVaultMutation('rename', file, oldPath)
+      )
     )
 
     this.registerEvent(
       this.plugin.app.workspace.on('active-leaf-change', () => {
+        // The snapshot push stays immediate — it gates menu items and
+        // drives dynamic-mode folder switching, both of which should
+        // feel instant.
         this.#api?.setActiveFile(this.snapshotActiveFile())
-        // Dynamic-reference scope follows the active leaf, so refresh.
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refreshTaskPanel()
+        // The task panel only reads the active leaf through its 'note'
+        // anchor / folder mode; any other scope is leaf-independent.
+        const settings = this.getSettings()
+        if (!settings.tasksSidebarEnabled) return
+        if (
+          !activeLeafAffectsTaskScope({
+            anchor: settings.tasksSidebarAnchor,
+            folderMode: settings.tasksSidebarFolderMode,
+          })
+        ) {
+          return
+        }
+        this.#pendingTasks = true
+        this.#flushPendingRefresh()
       })
     )
 
     // Vault content edits don't trigger create/delete/rename — listen
     // separately for `modify` so a task ticked off in another pane
-    // re-renders here without delay.
+    // re-renders here. Only journal notes inside the panel's resolved
+    // folder scope can change the snapshot; everything else (typing in
+    // any other note) is dropped before the debounce.
     this.registerEvent(
-      this.plugin.app.vault.on('modify', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refreshTaskPanel()
+      this.plugin.app.vault.on('modify', (file) => {
+        const scope = this.taskEventScope()
+        if (!scope) return
+        if (!(file instanceof TFile)) return
+        if (!taskEventAffectsScope(file.path, scope)) return
+        this.#pendingTasks = true
+        this.#flushPendingRefresh()
       })
     )
   }
@@ -263,11 +333,56 @@ export class JournalFolderSidebarView extends ItemView {
     this.#api?.setKnownFolders(findJournalFolderPaths(this.plugin.app))
   }
 
-  private onVaultMutation(): void {
-    this.refreshKnownFolders()
-    this.#api?.bumpVault()
-    // noinspection JSIgnoredPromiseFromCall
-    void this.refreshTaskPanel()
+  private onVaultMutation(
+    kind: VaultMutationKind,
+    file: TAbstractFile,
+    oldPath?: string
+  ): void {
+    const actions = classifyVaultMutation({
+      kind,
+      paths: oldPath !== undefined ? [file.path, oldPath] : [file.path],
+      isFolderEvent: !(file instanceof TFile),
+      selectedFolder: this.#api?.getSelectedFolder() ?? '',
+      taskScope: this.taskEventScope(),
+    })
+    if (
+      !actions.refreshKnownFolders &&
+      !actions.bumpVault &&
+      !actions.refreshTasks
+    ) {
+      return
+    }
+    this.#pendingKnownFolders ||= actions.refreshKnownFolders
+    this.#pendingBump ||= actions.bumpVault
+    this.#pendingTasks ||= actions.refreshTasks
+    this.#flushPendingRefresh()
+  }
+
+  // The task panel's event scope for vault-listener gating, or `null`
+  // when the panel is disabled (no snapshot to keep fresh).
+  private taskEventScope(): TaskEventScope | null {
+    const settings = this.getSettings()
+    if (!settings.tasksSidebarEnabled) return null
+    return {
+      folderMode: settings.tasksSidebarFolderMode,
+      folder: settings.tasksSidebarFolder,
+      activeNoteFolder: this.activeNoteFolder(settings),
+      quartersEnabled: !!settings.quartersEnabled,
+      isJournalFolder: (folderPath) =>
+        isJournalFolder(this.plugin.app, folderPath),
+    }
+  }
+
+  // Parent folder of the active journal note, or `null` when the active
+  // leaf isn't a recognised journal note — mirrors `computeTaskSnapshot`'s
+  // anchor detection so the gate and the snapshot agree on scope.
+  private activeNoteFolder(settings: JournalFolderSettings): string | null {
+    const file = this.plugin.app.workspace.getActiveFile?.()
+    if (!(file instanceof TFile)) return null
+    if (!isJournalFileBasename(file.basename, !!settings.quartersEnabled)) {
+      return null
+    }
+    return file.parent?.path ?? '/'
   }
 
   private openFolderConfigModal(folderPath: string): void {

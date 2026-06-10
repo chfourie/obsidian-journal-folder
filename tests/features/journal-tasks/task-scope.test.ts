@@ -166,6 +166,7 @@ describe('effectiveUnits', () => {
 
 describe('resolveTaskFolders', () => {
   const ALL = ['Journal', 'Work']
+  const allFolders = () => ALL
 
   it('folder mode "note" → active note folder', () => {
     expect(
@@ -173,7 +174,7 @@ describe('resolveTaskFolders', () => {
         folderMode: 'note',
         folder: '',
         activeNoteFolder: 'Work',
-        allFolders: ALL,
+        allFolders,
       })
     ).toEqual(['Work'])
   })
@@ -184,7 +185,7 @@ describe('resolveTaskFolders', () => {
         folderMode: 'note',
         folder: '',
         activeNoteFolder: null,
-        allFolders: ALL,
+        allFolders,
       })
     ).toEqual(ALL)
   })
@@ -195,7 +196,7 @@ describe('resolveTaskFolders', () => {
         folderMode: 'all',
         folder: 'Journal',
         activeNoteFolder: 'Journal',
-        allFolders: ALL,
+        allFolders,
       })
     ).toEqual(ALL)
   })
@@ -206,7 +207,7 @@ describe('resolveTaskFolders', () => {
         folderMode: 'specific',
         folder: 'Work',
         activeNoteFolder: 'Journal',
-        allFolders: ALL,
+        allFolders,
       })
     ).toEqual(['Work'])
   })
@@ -217,8 +218,29 @@ describe('resolveTaskFolders', () => {
         folderMode: 'specific',
         folder: '',
         activeNoteFolder: null,
-        allFolders: ALL,
+        allFolders,
       })
     ).toEqual(ALL)
+  })
+
+  it('never invokes the all-folders walk when a mode resolves its folder directly', () => {
+    let calls = 0
+    const counting = () => {
+      calls += 1
+      return ALL
+    }
+    resolveTaskFolders({
+      folderMode: 'note',
+      folder: '',
+      activeNoteFolder: 'Work',
+      allFolders: counting,
+    })
+    resolveTaskFolders({
+      folderMode: 'specific',
+      folder: 'Work',
+      activeNoteFolder: null,
+      allFolders: counting,
+    })
+    expect(calls).toBe(0)
   })
 })

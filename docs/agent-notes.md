@@ -593,6 +593,50 @@ array). Two properties matter for callers:
 Tests with counting `children` getters live in
 `tests/data-access/journal-note.test.ts` (*sibling snapshot* describe block).
 
+### Sidebar vault listeners are scope-filtered + debounced
+
+Both sidebar views (`journal-folder-sidebar-view.ts`,
+`journal-tasks-sidebar-view.ts`) gate every vault/workspace event *before*
+doing any work, then coalesce the survivors through a 200ms trailing
+`debounce` (Obsidian's own — the test mock in `tests/mocks/obsidian.ts`
+makes it a pass-through, so unit-tested paths stay synchronous). Rules any
+future vault-event consumer should reuse rather than reinvent:
+
+- **The pure predicates live in
+  `src/features/journal-tasks/task-event-scope.ts`** —
+  `taskEventAffectsScope(path, scope)` mirrors `resolveTaskFolders`' mode
+  rules per file (only `.md` journal basenames in the panel's resolved
+  folders matter; `journal-folder.md` events are *always* relevant because
+  they change the folder topology the all-folders fallback scans), and
+  `activeLeafAffectsTaskScope` (only a `note` anchor / `note` folder mode
+  reads the active leaf). The combined sidebar's create/delete/rename
+  classifier is `classifyVaultMutation`
+  (`journal-folder-sidebar/sidebar-vault-events.ts`): per event it decides
+  known-folder rescan (config-note paths only) / anchor bump (selected
+  folder only — read back from the component via
+  `SidebarUpdateApi.getSelectedFolder`) / task refresh, accumulates the
+  flags, and one debounced flush executes whatever piled up. Renames must
+  check **both** old and new paths.
+- **Folder-event semantics:** a folder `create` is inert (its contents
+  arrive as separate file events — don't refresh on sync folder churn);
+  folder `delete`/`rename` are handled conservatively (full refresh) since
+  one event can move a whole journal folder.
+- **`resolveTaskFolders.allFolders` is a thunk** so the
+  `findJournalFolderPaths` full-vault walk (`vault.getMarkdownFiles()`)
+  only runs when a branch actually falls back to all folders. Don't
+  re-materialise it eagerly at call sites.
+- **Don't import the `journal-tasks` feature *index* from plain-TS modules
+  that unit tests load** — the index re-exports Svelte components
+  (`TaskList.svelte`), and Vitest's transform chain chokes on `.svelte`
+  when the import arrives via a `.ts`-only test. Import the concrete
+  module (`../journal-tasks/task-event-scope`) instead. (Views are fine —
+  they aren't unit-loaded.)
+- Verified live via the CLI: with the gates in, editing a non-journal note
+  produced **zero** `getMarkdownFiles` walks (was: one full task-pipeline
+  run per autosave), while a task appended to an in-scope journal note
+  still appeared in the panel after the debounce and disappeared on
+  revert.
+
 ### Task flows (configurable task statuses)
 
 Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where

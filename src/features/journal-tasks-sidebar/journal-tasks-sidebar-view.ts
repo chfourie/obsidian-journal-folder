@@ -16,15 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ItemView, type Plugin, type WorkspaceLeaf } from 'obsidian'
+import {
+  debounce,
+  ItemView,
+  type Plugin,
+  TFile,
+  type WorkspaceLeaf,
+} from 'obsidian'
 import { mount, unmount } from 'svelte'
 import {
+  isJournalFileBasename,
+  isJournalFolder,
   type JournalFolderSettings,
   openPluginSettings,
 } from '../../data-access'
 import {
+  activeLeafAffectsTaskScope,
   computeTaskSnapshot,
+  TASK_REFRESH_DEBOUNCE_MS,
   type TaskCache,
+  taskEventAffectsScope,
+  type TaskEventScope,
   type TaskPanelSnapshot,
 } from '../journal-tasks'
 import JournalTasksSidebar from './JournalTasksSidebar.svelte'
@@ -50,6 +62,17 @@ export type TasksOnlyUpdateApi = {
 export class JournalTasksSidebarView extends ItemView {
   #component: ReturnType<typeof mount> | null = null
   #api: TasksOnlyUpdateApi | null = null
+
+  // Trailing debounce so a burst of vault events (a sync importing many
+  // files, a multi-file edit) collapses into one snapshot rebuild.
+  #scheduleRefresh = debounce(
+    () => {
+      // noinspection JSIgnoredPromiseFromCall
+      void this.refresh()
+    },
+    TASK_REFRESH_DEBOUNCE_MS,
+    true
+  )
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -97,35 +120,41 @@ export class JournalTasksSidebarView extends ItemView {
       },
     })
 
+    // The panel only reads the active leaf through its 'note' anchor /
+    // folder mode; any other scope is leaf-independent, so skip those.
     this.registerEvent(
       this.plugin.app.workspace.on('active-leaf-change', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refresh()
+        const settings = this.getSettings()
+        if (
+          !activeLeafAffectsTaskScope({
+            anchor: settings.tasksOnlySidebarAnchor,
+            folderMode: settings.tasksOnlySidebarFolderMode,
+          })
+        ) {
+          return
+        }
+        this.#scheduleRefresh()
+      })
+    )
+    // Vault events are scope-filtered before the debounce, so typing in
+    // a note outside the panel's folders never costs a snapshot rebuild.
+    this.registerEvent(
+      this.plugin.app.vault.on('modify', (file) => this.onFileEvent(file))
+    )
+    this.registerEvent(
+      this.plugin.app.vault.on('create', (file) => {
+        // A newly created folder is empty — its files arrive as
+        // separate create events, so the folder itself is inert.
+        if (file instanceof TFile) this.onFileEvent(file)
       })
     )
     this.registerEvent(
-      this.plugin.app.vault.on('modify', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refresh()
-      })
+      this.plugin.app.vault.on('delete', (file) => this.onFileEvent(file))
     )
     this.registerEvent(
-      this.plugin.app.vault.on('create', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refresh()
-      })
-    )
-    this.registerEvent(
-      this.plugin.app.vault.on('delete', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refresh()
-      })
-    )
-    this.registerEvent(
-      this.plugin.app.vault.on('rename', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        void this.refresh()
-      })
+      this.plugin.app.vault.on('rename', (file, oldPath) =>
+        this.onFileEvent(file, oldPath)
+      )
     )
   }
 
@@ -164,6 +193,45 @@ export class JournalTasksSidebarView extends ItemView {
       }
     )
     this.#api.setSnapshot(snapshot)
+  }
+
+  // Schedules a refresh when the event can actually change the panel.
+  // Non-file targets (folder deletes/renames) are treated conservatively —
+  // a single folder event can move or remove a whole journal folder.
+  private onFileEvent(file: unknown, oldPath?: string): void {
+    if (!(file instanceof TFile)) {
+      this.#scheduleRefresh()
+      return
+    }
+    const scope = this.taskEventScope()
+    const affected =
+      taskEventAffectsScope(file.path, scope) ||
+      (oldPath !== undefined && taskEventAffectsScope(oldPath, scope))
+    if (affected) this.#scheduleRefresh()
+  }
+
+  private taskEventScope(): TaskEventScope {
+    const settings = this.getSettings()
+    return {
+      folderMode: settings.tasksOnlySidebarFolderMode,
+      folder: settings.tasksOnlySidebarFolder,
+      activeNoteFolder: this.activeNoteFolder(settings),
+      quartersEnabled: !!settings.quartersEnabled,
+      isJournalFolder: (folderPath) =>
+        isJournalFolder(this.plugin.app, folderPath),
+    }
+  }
+
+  // Parent folder of the active journal note, or `null` when the active
+  // leaf isn't a recognised journal note — mirrors `computeTaskSnapshot`'s
+  // anchor detection so the gate and the snapshot agree on scope.
+  private activeNoteFolder(settings: JournalFolderSettings): string | null {
+    const file = this.plugin.app.workspace.getActiveFile?.()
+    if (!(file instanceof TFile)) return null
+    if (!isJournalFileBasename(file.basename, !!settings.quartersEnabled)) {
+      return null
+    }
+    return file.parent?.path ?? '/'
   }
 
   private openPluginSettings(): void {

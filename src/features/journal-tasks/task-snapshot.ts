@@ -100,7 +100,7 @@ export async function computeTaskSnapshot(
     folderMode: scope.folderMode,
     folder: scope.folder,
     activeNoteFolder: activeNote ? (activeFile?.parent?.path ?? '') : null,
-    allFolders: findJournalFolderPaths(app),
+    allFolders: () => findJournalFolderPaths(app),
   })
 
   const candidates = findTaskCandidates({

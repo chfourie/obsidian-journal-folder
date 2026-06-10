@@ -120,7 +120,28 @@ accesses via a mock folder whose `children` getter increments a counter).
 
 ---
 
-## Step 3 — Debounce + scope-filter the sidebar vault listeners (HIGH perf)
+## Step 3 — Debounce + scope-filter the sidebar vault listeners (HIGH perf) ✅ DONE
+
+> **Completed.** Pure predicates in
+> `src/features/journal-tasks/task-event-scope.ts`
+> (`taskEventAffectsScope` — mirrors `resolveTaskFolders` per file, config
+> notes always relevant; `activeLeafAffectsTaskScope`;
+> `TASK_REFRESH_DEBOUNCE_MS = 200`) and
+> `src/features/journal-folder-sidebar/sidebar-vault-events.ts`
+> (`classifyVaultMutation` — per-event known-folders / bump / tasks
+> decision; renames check both paths; folder create inert, folder
+> delete/rename conservative). Both views gate events then coalesce via
+> Obsidian's `debounce` (combined view: pending flags + one flush; bump
+> gated on the selected folder via the new
+> `SidebarUpdateApi.getSelectedFolder`). `resolveTaskFolders.allFolders`
+> is now a thunk; `computeTaskSnapshot` passes
+> `() => findJournalFolderPaths(app)`. Tests:
+> `tests/features/journal-tasks/{task-event-scope,task-snapshot}.test.ts`,
+> `tests/features/journal-folder-sidebar/sidebar-vault-events.test.ts`,
+> plus updated `task-scope.test.ts` (thunk-not-invoked assertion).
+> Live-verified via the CLI: non-journal edits → 0 vault walks; in-scope
+> journal edit still refreshes the panel. Durable notes in
+> `docs/agent-notes.md`; CLAUDE.md sidebar section updated.
 
 **Finding A:** both sidebar views refresh their task panel on every `vault.modify` and
 `active-leaf-change` with no debounce and no scope check:
