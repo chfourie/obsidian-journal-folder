@@ -90,6 +90,27 @@ export function findLucideMarkerSpans(
   return spans.sort((a, b) => a.from - b.from)
 }
 
+// Decides whether the live-preview migration-marker decoration set must
+// rebuild for a view update. Doc / viewport / settings changes always
+// rebuild (they can introduce or move spans). A bare selection move only
+// matters when the previous build actually found marker spans in the
+// viewport — a cursor entering / leaving a span reveals / re-hides it —
+// so a span-free note (the overwhelmingly common case) skips the
+// per-cursor-move line walk entirely. Mirrors the signifier extension's
+// gated `selectionSet` rebuild. Pure / unit-tested.
+export function shouldRebuildMigrationDecorations(update: {
+  docChanged: boolean
+  viewportChanged: boolean
+  selectionSet: boolean
+  settingsChanged: boolean
+  lastBuildFoundSpans: boolean
+}): boolean {
+  if (update.docChanged || update.viewportChanged || update.settingsChanged) {
+    return true
+  }
+  return update.selectionSet && update.lastBuildFoundSpans
+}
+
 // Live-preview rendering of `lucide:` migration-reference markers: a
 // CodeMirror `ViewPlugin` that replaces each marker token with its Lucide
 // icon (faded to the configured opacity, full on hover — the same
@@ -106,6 +127,11 @@ export function migrationReferenceLivePreviewExtension(
       private lastFromMarker: string
       private lastOpacity: number
       private lastLivePreview: boolean
+      // Whether the last build saw any marker spans in the viewport
+      // (counted BEFORE the reveal-on-selection filter — a revealed span
+      // emits no decoration but still needs re-hiding on the next cursor
+      // move). Gates the `selectionSet` rebuild.
+      private lastBuildFoundSpans = false
 
       constructor(view: EditorView) {
         const s = ctx.getSettings()
@@ -124,13 +150,17 @@ export function migrationReferenceLivePreviewExtension(
           s.taskMigrationFromMarker !== this.lastFromMarker ||
           s.taskMigrationReferenceOpacity !== this.lastOpacity ||
           livePreview !== this.lastLivePreview
-        // Rebuild on edits, scroll, settings, and selection moves (a
-        // cursor entering / leaving a marker reveals / re-hides it).
+        // Rebuild on edits, scroll, and settings; selection moves only
+        // matter when the viewport actually has marker spans (a cursor
+        // entering / leaving one reveals / re-hides it).
         if (
-          update.docChanged ||
-          update.viewportChanged ||
-          update.selectionSet ||
-          settingsChanged
+          shouldRebuildMigrationDecorations({
+            docChanged: update.docChanged,
+            viewportChanged: update.viewportChanged,
+            selectionSet: update.selectionSet,
+            settingsChanged,
+            lastBuildFoundSpans: this.lastBuildFoundSpans,
+          })
         ) {
           this.decorations = this.build(update.view)
         }
@@ -141,6 +171,7 @@ export function migrationReferenceLivePreviewExtension(
       }
 
       private build(view: EditorView): DecorationSet {
+        this.lastBuildFoundSpans = false
         if (!isLivePreview(view)) return Decoration.none
         const s = ctx.getSettings()
         const markers = [s.taskMigrationToMarker, s.taskMigrationFromMarker]
@@ -160,6 +191,7 @@ export function migrationReferenceLivePreviewExtension(
           while (pos <= to) {
             const line = view.state.doc.lineAt(pos)
             for (const span of findLucideMarkerSpans(line.text, markers)) {
+              this.lastBuildFoundSpans = true
               const sf = line.from + span.from
               const st = line.from + span.to
               // Reveal the raw token for editing while the cursor /

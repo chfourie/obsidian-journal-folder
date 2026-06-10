@@ -42,6 +42,7 @@ import { effectiveUnits, findTaskCandidates } from './task-scope'
 import { sortTasks } from './task-sorting'
 import { rangeForNote } from './reference-range'
 import { makeRangeCapFilter } from './task-range-cap'
+import { mapWithConcurrency, TASK_READ_CONCURRENCY } from './concurrency'
 import { processDocumentTasks } from './document-tasks-processor'
 import { documentTaskLivePreviewExtension } from './document-task-live-preview'
 import { appendStatusMenuItems } from './document-task-menu'
@@ -514,18 +515,20 @@ class TasksBlockRenderChild extends MarkdownRenderChild {
       listUnit: activeNote ? activeNote.getTimeUnit() : 'day',
       categories: settings.taskCategories,
     })
+    // Pooled reads, mirroring `computeTaskSnapshot` — serial awaits on a
+    // cold cache were N sequential `cachedRead`s. Order is preserved.
+    const taskLists = await mapWithConcurrency(
+      candidates,
+      TASK_READ_CONCURRENCY,
+      (candidate) => cache.getTasks(candidate.file, model, candidate.note)
+    )
     const allTasks: JournalTask[] = []
-    for (const candidate of candidates) {
+    candidates.forEach((candidate, i) => {
       const noteRange = rangeForNote(candidate.note)
-      const tasks = await cache.getTasks(
-        candidate.file,
-        model,
-        candidate.note
-      )
-      for (const task of tasks) {
+      for (const task of taskLists[i]) {
         if (capFilter(task, noteRange)) allTasks.push(task)
       }
-    }
+    })
 
     const sorted = sortTasks(allTasks)
     const maxItems = this.blockConfig.maxItems ?? settings.tasksMaxItems

@@ -41,6 +41,7 @@ import {
 import { sortTasks } from './task-sorting'
 import { resolveTaskModel } from './task-models'
 import { makeRangeCapFilter } from './task-range-cap'
+import { mapWithConcurrency, TASK_READ_CONCURRENCY } from './concurrency'
 import type { TaskCache } from './task-cache'
 
 export interface TaskPanelSnapshot {
@@ -121,18 +122,21 @@ export async function computeTaskSnapshot(
     listUnit: scope.range,
     categories: settings.taskCategories,
   })
+  // Pooled reads: on a cold cache each `getTasks` is a real
+  // `cachedRead`, and awaiting them serially made a large folder pay N
+  // sequential round-trips. Results come back in candidate order.
+  const taskLists = await mapWithConcurrency(
+    candidates,
+    TASK_READ_CONCURRENCY,
+    (candidate) => taskCache.getTasks(candidate.file, model, candidate.note)
+  )
   const collected: JournalTask[] = []
-  for (const candidate of candidates) {
+  candidates.forEach((candidate, i) => {
     const noteRange = rangeForNote(candidate.note)
-    const tasks = await taskCache.getTasks(
-      candidate.file,
-      model,
-      candidate.note
-    )
-    for (const t of tasks) {
+    for (const t of taskLists[i]) {
       if (capFilter(t, noteRange)) collected.push(t)
     }
-  }
+  })
   const sorted = sortTasks(collected)
   const totalBeforeCap = sorted.length
   const capped = sorted.slice(0, settings.tasksMaxItems)

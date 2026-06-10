@@ -321,7 +321,37 @@ the mutation survives.
 
 ---
 
-## Step 6 — Perf micro-optimizations (LOW/MEDIUM, four small wins)
+## Step 6 — Perf micro-optimizations (LOW/MEDIUM, four small wins) ✅ DONE
+
+> **Completed (one commit, all four).**
+> **6a:** `findDocumentTaskLines` now takes pre-split lines
+> (`readonly string[]`); `document-tasks-processor.ts` splits
+> `section.text` once and shares the array with the raw-line lookup.
+> Fence lockstep with `extractTasks` (shared `fence-tracker.ts`)
+> unchanged. **6b:** new order-preserving worker pool
+> `mapWithConcurrency` + `TASK_READ_CONCURRENCY = 16`
+> (`src/features/journal-tasks/concurrency.ts`) used by both
+> `computeTaskSnapshot` and the in-note block's render loop (results
+> zipped back by candidate index). **6c:** `scan()` in
+> `document-task-live-preview.ts` resolves the model once per pass and
+> threads it into `swapInput`; `buildTaskModel` is memoised via a
+> `WeakMap` on the statuses array identity + a variant key
+> (rendering/clickOpensPicker/migratedStatus) — sound because the flow
+> editor always builds new arrays (`''`/`undefined` migratedStatus share
+> a slot, both falsy). **6d:** `migration-reference-live-preview.ts`
+> gates its `selectionSet` rebuild on the pure
+> `shouldRebuildMigrationDecorations` + a `lastBuildFoundSpans` flag
+> recorded *before* the reveal-on-selection filter. Tests:
+> `tests/features/journal-tasks/{concurrency,
+> migration-reference-rebuild-gate}.test.ts`, memoisation describe block
+> in `task-models/build-task-model.test.ts`, pooled-read test in
+> `task-snapshot.test.ts`, updated `document-task-line-map.test.ts`.
+> Live-verified via the CLI (demo vault): reading-view checkboxes render
+> with correct absolute lines and a click rewrites exactly its line;
+> live-preview icons swap + mousedown-cycle correctly; lucide migration
+> markers render in Live Preview, stay raw in Source mode, and still
+> reveal/re-hide on cursor enter/leave. Durable notes in
+> `docs/agent-notes.md` (*Task perf micro-patterns*).
 
 **6a. Double file split per rendered block** —
 `src/features/journal-tasks/document-tasks-processor.ts` ~lines 64–74:

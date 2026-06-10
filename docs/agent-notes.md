@@ -239,6 +239,19 @@ fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
   `app:reload` are themselves gated and may report "not found" in some vaults —
   the Hot-Reload plugin covers reloads after a deploy regardless.*
 
+- **A hidden window can sometimes be recovered programmatically — but never a
+  locked screen.** When `document.hidden === true` because the window is
+  minimized / occluded, `eval` can surface it:
+  `window.electronWindow.restore(); window.electronWindow.show(); window.electronWindow.focus()`
+  (`electronWindow` is Obsidian's renderer-exposed BrowserWindow handle;
+  `open -a Obsidian`, AppleScript `activate`, and CDP `Page.bringToFront` all
+  failed where this worked). When the cause is the **macOS lock screen**, nothing
+  programmatic helps — the maintainer confirms any screen lock makes the vault
+  report hidden and live checks fail. For any unattended CLI-driven verification
+  (not just releases), start `caffeinate -d -i -m -u -t <secs>` *while the screen
+  is unlocked* before the run, and probe `document.hidden` first so a hidden
+  window is diagnosed as such instead of as a rendering bug.
+
 **Two CLI gotchas (each cost time):**
 
 - `create file=<name>` **ignores the name** and writes `Untitled.md`. To make a
@@ -720,6 +733,43 @@ overwriting any settings change that landed mid-flight. Any feature that
 holds a settings snapshot across an `await` and then *saves* must re-read
 `this.globalSettings` at save time (the snapshot stays fine as the
 operation's *input*).
+
+### Task perf micro-patterns (remediation step 6)
+
+Four small optimisations whose *invariants* matter more than the code:
+
+- **`buildTaskModel` is memoised on the statuses array's identity** (a
+  `WeakMap<TaskStatus[], Map<variantKey, TaskModel>>` in
+  `build-task-model.ts`). Sound because every settings write replaces the
+  settings object wholesale — the flow editor always builds **new** status
+  arrays (`[...statuses, x]`, `cloneTemplate`, filtered copies), never
+  mutates one in place. **Keep it that way:** any future editor that
+  `push`es into / splices a flow's existing `statuses` array would serve a
+  stale memoised model until the next save. `''` and `undefined`
+  `migratedStatus` deliberately share a cache slot (both falsy → identical
+  model).
+- **`findDocumentTaskLines` takes pre-split lines, not the file text.**
+  Post-processors run per block per render and `getSectionInfo().text` is
+  the whole file — callers split once (`document-tasks-processor.ts`) and
+  share the array with the raw-line lookup. Its fence lockstep with
+  `extractTasks` (shared `fence-tracker.ts`) is unchanged.
+- **Cold-cache task reads go through `mapWithConcurrency`**
+  (`journal-tasks/concurrency.ts`, pool of `TASK_READ_CONCURRENCY = 16`,
+  order-preserving worker pool — not chunked batches, so no straggler
+  stalls a batch boundary). Both walk sites (`computeTaskSnapshot`, the
+  in-note block's render) zip results back by candidate index. Reuse the
+  helper for any future per-file `cachedRead` walk.
+- **Live-preview `selectionSet` rebuilds are gated, per extension.** The
+  signifier extension rebuilds on selection only when tag-hiding is on;
+  the migration-reference extension only when the **last build found
+  marker spans in the viewport** (`shouldRebuildMigrationDecorations`,
+  pure). The span flag must be recorded *before* the reveal-on-selection
+  filter — a revealed span emits no decoration but still needs re-hiding
+  on the next cursor move. Apply the same gate to any future decoration
+  extension: a bare cursor move should cost nothing in the common
+  (decoration-free) document. The scan in
+  `document-task-live-preview.ts` likewise resolves the model **once per
+  scan pass**, not per checkbox.
 
 ### Task flows (configurable task statuses)
 

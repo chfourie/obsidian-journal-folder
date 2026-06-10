@@ -14,7 +14,7 @@ describe('findDocumentTaskLines', () => {
       '## Other section',
       '- [ ] off-section',
     ].join('\n')
-    expect(findDocumentTaskLines(text, 0, 4, simpleTaskModel)).toEqual([
+    expect(findDocumentTaskLines(text.split('\n'), 0, 4, simpleTaskModel)).toEqual([
       { line: 2, status: 'open' },
       { line: 4, status: 'done' },
     ])
@@ -23,14 +23,14 @@ describe('findDocumentTaskLines', () => {
   it('ignores tasks the active model does not recognise', () => {
     const text = ['- [ ] one', '- [/] mid', '- [x] done'].join('\n')
     expect(
-      findDocumentTaskLines(text, 0, 2, simpleTaskModel).map((t) => t.line)
+      findDocumentTaskLines(text.split('\n'), 0, 2, simpleTaskModel).map((t) => t.line)
     ).toEqual([0, 2])
   })
 
   it('recognises bullet-journal statuses when that model is active', () => {
     const text = ['- [/] mid', '- [>] migrated'].join('\n')
     expect(
-      findDocumentTaskLines(text, 0, 1, bulletJournalTaskModel)
+      findDocumentTaskLines(text.split('\n'), 0, 1, bulletJournalTaskModel)
     ).toEqual([
       { line: 0, status: 'in-progress' },
       { line: 1, status: 'migrated' },
@@ -39,7 +39,7 @@ describe('findDocumentTaskLines', () => {
 
   it('clamps lineEnd to the available content', () => {
     const text = ['- [ ] one'].join('\n')
-    expect(findDocumentTaskLines(text, 0, 99, simpleTaskModel)).toEqual([
+    expect(findDocumentTaskLines(text.split('\n'), 0, 99, simpleTaskModel)).toEqual([
       { line: 0, status: 'open' },
     ])
   })
@@ -52,7 +52,7 @@ describe('findDocumentTaskLines', () => {
       '```',
       '- [x] two',
     ].join('\n')
-    expect(findDocumentTaskLines(text, 0, 4, simpleTaskModel)).toEqual([
+    expect(findDocumentTaskLines(text.split('\n'), 0, 4, simpleTaskModel)).toEqual([
       { line: 0, status: 'open' },
       { line: 4, status: 'done' },
     ])
@@ -69,7 +69,7 @@ describe('findDocumentTaskLines', () => {
       '  ```',
       '- [ ] real two',
     ].join('\n')
-    const result = findDocumentTaskLines(text, 0, 4, simpleTaskModel)
+    const result = findDocumentTaskLines(text.split('\n'), 0, 4, simpleTaskModel)
     expect(result).toHaveLength(2)
     expect(result[1]).toEqual({ line: 4, status: 'open' })
   })
@@ -79,12 +79,12 @@ describe('findDocumentTaskLines', () => {
     // `lineStart` suppresses the section's lines — matching the renderer,
     // which shows that content as code, not as task items.
     const text = ['```', '- [ ] fake', '- [ ] fake 2'].join('\n')
-    expect(findDocumentTaskLines(text, 1, 2, simpleTaskModel)).toEqual([])
+    expect(findDocumentTaskLines(text.split('\n'), 1, 2, simpleTaskModel)).toEqual([])
   })
 
   it('treats a fence closed before lineStart as inactive', () => {
     const text = ['```', 'code', '```', '- [ ] real'].join('\n')
-    expect(findDocumentTaskLines(text, 3, 3, simpleTaskModel)).toEqual([
+    expect(findDocumentTaskLines(text.split('\n'), 3, 3, simpleTaskModel)).toEqual([
       { line: 3, status: 'open' },
     ])
   })

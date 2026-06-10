@@ -357,13 +357,16 @@ class LivePreviewPlugin implements PluginValue {
     const inputs = this.view.dom.querySelectorAll<HTMLInputElement>(
       'input.task-list-item-checkbox'
     )
-    inputs.forEach((input) => this.swapInput(input))
+    // One model resolution per scan pass — `resolveModel` builds maps +
+    // closures, so calling it per checkbox per MutationObserver burst
+    // added avoidable allocation churn.
+    const model = this.ctx.resolveModel()
+    inputs.forEach((input) => this.swapInput(input, model))
   }
 
-  private swapInput(input: HTMLInputElement): void {
+  private swapInput(input: HTMLInputElement, model: TaskModel): void {
     const pos = this.view.posAtDOM(input)
     const line = this.view.state.doc.lineAt(pos)
-    const model = this.ctx.resolveModel()
     const parsed = model.parseLine(line.text)
 
     const existing = input.nextElementSibling

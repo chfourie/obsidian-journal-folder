@@ -61,17 +61,17 @@ export function processDocumentTasks(
   if (!(sourceFile instanceof TFile)) return
 
   const model = context.resolveModel()
+  // `getSectionInfo().text` is the whole file — split it once and share
+  // the lines: an absolute line index is the raw task line, captured for
+  // the picker's migrate action (the migration writer re-checks the line
+  // on write, so a later edit can't corrupt it).
+  const docLines = section.text.split('\n')
   const taskLines = findDocumentTaskLines(
-    section.text,
+    docLines,
     section.lineStart,
     section.lineEnd,
     model
   )
-  // `getSectionInfo().text` is the whole file, so an absolute line index
-  // is the raw task line — captured here for the picker's migrate action
-  // (the migration writer re-checks the line on write, so a later edit
-  // can't corrupt it).
-  const docLines = section.text.split('\n')
 
   items.forEach((li, idx) => {
     const entry = taskLines[idx]

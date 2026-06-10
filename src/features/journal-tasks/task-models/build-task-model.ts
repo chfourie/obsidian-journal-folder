@@ -24,6 +24,15 @@ import type {
 } from '../../../data-access/task-model.type'
 import { TASK_LINE_REGEX } from './task-line-regex'
 
+// Memo over `createTaskModel`, keyed on the statuses array's identity
+// (WeakMap) plus the scalar options. Sound because the settings object —
+// flows and their status arrays included — is replaced wholesale on every
+// save (the flow editor always builds new arrays), so a same-reference
+// array always carries the same contents. This makes the per-event-path
+// `resolveTaskModel` calls (live-preview scans, editor-menu, clicks)
+// allocation-free between saves.
+const modelCache = new WeakMap<readonly TaskStatus[], Map<string, TaskModel>>()
+
 // Builds a `TaskModel` from a user-edited (or built-in) status
 // array. The model is a pure function over the array — no global
 // state, no shared mutable refs — so cache invalidation only needs
@@ -36,6 +45,33 @@ export function buildTaskModel(
   // instead of cycling — `opensPickerOnClick` then returns true for every
   // status. Driven by the global `taskClickOpensPicker` setting.
   clickOpensPicker = false
+): TaskModel {
+  // `''` (user-cleared) and `undefined` (never set) deliberately share a
+  // cache slot — both are falsy, so `createTaskModel` treats them
+  // identically (no migrated status).
+  const variantKey = `${rendering}|${clickOpensPicker ? 1 : 0}|${migratedStatus ?? ''}`
+  let variants = modelCache.get(statuses)
+  if (!variants) {
+    variants = new Map()
+    modelCache.set(statuses, variants)
+  }
+  const cached = variants.get(variantKey)
+  if (cached) return cached
+  const model = createTaskModel(
+    statuses,
+    rendering,
+    migratedStatus,
+    clickOpensPicker
+  )
+  variants.set(variantKey, model)
+  return model
+}
+
+function createTaskModel(
+  statuses: TaskStatus[],
+  rendering: TaskRendering,
+  migratedStatus: TaskStatusId | undefined,
+  clickOpensPicker: boolean
 ): TaskModel {
   const byChar = new Map<string, TaskStatus>()
   const byId = new Map<TaskStatusId, TaskStatus>()

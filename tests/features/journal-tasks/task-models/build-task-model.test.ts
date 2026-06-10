@@ -166,4 +166,51 @@ describe('buildTaskModel', () => {
       expect(withMigrated.id).toBe(without.id)
     })
   })
+
+  describe('memoisation', () => {
+    const statuses = () => [
+      status({ id: 'open', char: ' ', next: 'done' }),
+      status({ id: 'done', char: 'x', isDone: true, next: 'open' }),
+    ]
+
+    it('returns the same model instance for the same statuses array and options', () => {
+      const shared = statuses()
+      expect(buildTaskModel(shared)).toBe(buildTaskModel(shared))
+      expect(buildTaskModel(shared, 'theme', 'done', true)).toBe(
+        buildTaskModel(shared, 'theme', 'done', true)
+      )
+    })
+
+    it('returns a new instance for a new statuses array (a settings swap)', () => {
+      // A settings save replaces the settings object — flows and status
+      // arrays included — so a content-equal but reference-distinct array
+      // must produce a fresh model.
+      expect(buildTaskModel(statuses())).not.toBe(buildTaskModel(statuses()))
+    })
+
+    it('caches each option variant of one statuses array independently', () => {
+      const shared = statuses()
+      const cycle = buildTaskModel(shared, 'plugin', undefined, false)
+      const pick = buildTaskModel(shared, 'plugin', undefined, true)
+      const theme = buildTaskModel(shared, 'theme', undefined, false)
+      const migrated = buildTaskModel(shared, 'plugin', 'done', false)
+      expect(pick).not.toBe(cycle)
+      expect(theme).not.toBe(cycle)
+      expect(migrated).not.toBe(cycle)
+      expect(migrated.migratedStatusId).toBe('done')
+      expect(cycle.migratedStatusId).toBeNull()
+      // Re-requesting each variant hits its own cache slot.
+      expect(buildTaskModel(shared, 'plugin', 'done', false)).toBe(migrated)
+      expect(buildTaskModel(shared, 'plugin', undefined, false)).toBe(cycle)
+    })
+
+    it("treats a cleared ('') and an unset migratedStatus as one variant", () => {
+      // Both are falsy → behaviour-identical (no migrated status), so
+      // they deliberately share a cache slot.
+      const shared = statuses()
+      expect(buildTaskModel(shared, 'plugin', '', false)).toBe(
+        buildTaskModel(shared, 'plugin', undefined, false)
+      )
+    })
+  })
 })

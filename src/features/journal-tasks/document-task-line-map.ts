@@ -25,24 +25,26 @@ export interface DocumentTaskLine {
   status: TaskStatusId
 }
 
-// Walks the section [`lineStart`, `lineEnd`] inclusive of `fullText`
-// and returns every line that parses as a task for the active model,
-// paired with its absolute file line index. Pure so we can unit-test
-// the zip-by-order contract the post-processor relies on without
-// touching the DOM. The reading-view / live-preview renderer emits
-// `<li class="task-list-item">` elements in source order, so a
-// positional zip of this result against the rendered items is safe.
-// Lines inside fenced code blocks are skipped — the renderer emits no
-// task item for them, so counting them would desync the zip. Fence
-// state is tracked from line 0 (not `lineStart`) so this function and
-// `extractTasks` agree on the fence status of every absolute line.
+// Walks the section [`lineStart`, `lineEnd`] inclusive of `lines`
+// (the file's pre-split lines — callers split once per render, not
+// per block; post-processors run per block per render, so re-splitting
+// here was O(blocks × file length)) and returns every line that parses
+// as a task for the active model, paired with its absolute file line
+// index. Pure so we can unit-test the zip-by-order contract the
+// post-processor relies on without touching the DOM. The reading-view
+// / live-preview renderer emits `<li class="task-list-item">` elements
+// in source order, so a positional zip of this result against the
+// rendered items is safe. Lines inside fenced code blocks are skipped
+// — the renderer emits no task item for them, so counting them would
+// desync the zip. Fence state is tracked from line 0 (not `lineStart`)
+// so this function and `extractTasks` agree on the fence status of
+// every absolute line.
 export function findDocumentTaskLines(
-  fullText: string,
+  lines: readonly string[],
   lineStart: number,
   lineEnd: number,
   model: TaskModel
 ): DocumentTaskLine[] {
-  const lines = fullText.split('\n')
   const out: DocumentTaskLine[] = []
   const end = Math.min(lineEnd, lines.length - 1)
   const first = Math.max(0, lineStart)
