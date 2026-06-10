@@ -145,9 +145,20 @@ fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
 - **Requirements:** Obsidian **1.12.7+**, the **Settings → General → "Command
   line interface"** toggle enabled *in the target vault*, and the app running
   (`which obsidian` → `/usr/local/bin/obsidian`).
-- **Run with the sandbox OFF** (`dangerouslyDisableSandbox: true`) — the CLI uses
-  a local IPC socket the sandbox blocks (symptom: "The CLI is unable to find
-  Obsidian…"; `pgrep` also fails under the sandbox).
+- **⚠ Run EVERY CLI invocation with the sandbox OFF** (`dangerouslyDisableSandbox:
+  true`) — the CLI uses a local IPC socket the sandbox blocks. **This mistake is
+  made regularly** because the failure modes masquerade as app/vault problems:
+  - *"The CLI is unable to find Obsidian…"*
+  - `Error: Command "eval" not found. It may require a plugin to be enabled.`
+    (looks like the dev toggle is off or the vault is wrong — it often isn't)
+  - intermittent empty replies / a command that works on one call and fails the
+    next (when *some* calls in a session were sandboxed and others weren't)
+  - `pgrep` also fails under the sandbox, so even the "is Obsidian running?"
+    probe lies.
+  Before diagnosing a CLI error as wrong-vault / toggle-off / app-not-running,
+  first confirm the call actually ran sandbox-off. The rule applies to *every*
+  `obsidian …` call in a session, not just the first one — mixed-mode sessions
+  produce maddening intermittent failures.
 - **Invocation:** `obsidian [vault=<name>] <command> [param=value] [flag]` (quote
   values with spaces).
 - **⚠ Confirm the vault first — recurring mistake.** The repo ROOT
