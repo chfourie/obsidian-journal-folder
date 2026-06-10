@@ -539,6 +539,26 @@ These features are shipped; the canonical detail lives in `CLAUDE.md` and the
 per-feature `docs/*.md`. Recorded here are the *why*s and reverted-approach
 history that the code alone doesn't explain.
 
+### Fence-aware task parsing (the shared `fence-tracker.ts`)
+
+Task parsing must skip fenced code blocks, and **both** scanners must apply the
+identical rule: `extractTasks` (cache/sidebar/in-note lists) and
+`findDocumentTaskLines` (the positional zip against rendered
+`li.task-list-item` elements). The renderer emits no task item for fenced
+lines, so a parser that counts a fenced `- [ ] …` desyncs the zip for every
+task after the fence — and a status click could rewrite a line *inside* the
+code block via `vault.process`. The single source of truth is
+`src/features/journal-tasks/fence-tracker.ts` (`createFenceTracker()`); any
+future surface that walks file lines for tasks must use it, never a local
+fence regex. Deliberate rule choices (documented in the file): openers at any
+indent (catches list-nested fences; diverges from CommonMark's 0–3 spaces —
+over-suppressing inside an indented code block is the safer failure), tilde +
+backtick fences, CommonMark closer rules (same char, ≥ length, whitespace-only
+tail), unclosed fence runs to EOF, blockquote fences out of scope (the `>`
+prefix already defeats the task regex). `findDocumentTaskLines` tracks fence
+state from line 0, not `lineStart`, so both functions agree on every absolute
+line.
+
 ### Task flows (configurable task statuses)
 
 Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where

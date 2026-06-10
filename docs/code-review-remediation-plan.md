@@ -33,7 +33,17 @@ NOT act on it; the current behaviour stands.
 
 ---
 
-## Step 1 — Fence-aware task parsing (HIGH, data-corruption risk)
+## Step 1 — Fence-aware task parsing (HIGH, data-corruption risk) ✅ DONE
+
+> **Completed.** Shared helper `src/features/journal-tasks/fence-tracker.ts`
+> (`createFenceTracker()`) used by both `extractTasks` and
+> `findDocumentTaskLines` (the latter tracks state from line 0 so both agree
+> on absolute lines). Decisions: openers at any indent (deliberate CommonMark
+> divergence — catches list-nested fences), `~~~` supported, CommonMark
+> closer rules, unclosed fence runs to EOF, blockquote fences out of scope
+> (documented in the helper). Tests in `tests/features/journal-tasks/
+> {fence-tracker,extract-tasks,document-task-line-map}.test.ts`. Durable
+> notes appended to `docs/agent-notes.md`.
 
 **Finding:** `extractTasks` (`src/features/journal-tasks/extract-tasks.ts`) iterates every
 line of a file with zero fenced-code-block awareness. A line like `- [ ] example` inside a

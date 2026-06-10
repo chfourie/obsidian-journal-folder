@@ -126,6 +126,49 @@ describe('extractTasks', () => {
     expect(task.categoryIds).toEqual(['important'])
   })
 
+  it('skips task-like lines inside a fenced code block', () => {
+    const { file, note } = buildDailyNote()
+    const content = [
+      '- [ ] before',
+      '```',
+      '- [ ] fake',
+      '```',
+      '- [ ] after',
+    ].join('\n')
+    const tasks = extractTasks(content, simpleTaskModel, file, note)
+    expect(tasks.map((t) => t.displayText)).toEqual(['before', 'after'])
+    expect(tasks.map((t) => t.sourceLine)).toEqual([0, 4])
+  })
+
+  it('skips task-like lines inside a tilde fence', () => {
+    const { file, note } = buildDailyNote()
+    const content = ['~~~', '- [ ] fake', '~~~', '- [ ] real'].join('\n')
+    const tasks = extractTasks(content, simpleTaskModel, file, note)
+    expect(tasks.map((t) => t.sourceLine)).toEqual([3])
+  })
+
+  it('skips everything after an unclosed fence', () => {
+    const { file, note } = buildDailyNote()
+    const content = ['- [ ] real', '```', '- [ ] fake', '- [ ] fake 2'].join(
+      '\n'
+    )
+    const tasks = extractTasks(content, simpleTaskModel, file, note)
+    expect(tasks.map((t) => t.sourceLine)).toEqual([0])
+  })
+
+  it('skips task-like lines inside an indented (list-nested) fence', () => {
+    const { file, note } = buildDailyNote()
+    const content = [
+      '- [ ] parent',
+      '  ```',
+      '  - [ ] fake',
+      '  ```',
+      '- [ ] sibling',
+    ].join('\n')
+    const tasks = extractTasks(content, simpleTaskModel, file, note)
+    expect(tasks.map((t) => t.sourceLine)).toEqual([0, 4])
+  })
+
   it('leaves signifierIds / categoryIds empty when nothing matches', () => {
     const { file, note } = buildDailyNote()
     const [task] = extractTasks('- [ ] Buy milk #groceries', simpleTaskModel, file, note)

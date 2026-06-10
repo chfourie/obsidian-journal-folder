@@ -30,6 +30,7 @@ import {
   stripTags,
 } from '../../data-access'
 import type { TaskModel } from './task-models'
+import { createFenceTracker } from './fence-tracker'
 
 // Number of calendar days each tier covers. Used for sorting (smaller =
 // higher priority in the list) and for the chip's short-title selection.
@@ -98,7 +99,9 @@ export function extractTasks(
   const noteTitle = journalNote.getTitle()
   const folderPath = file.parent?.path ?? ''
   const tasks: JournalTask[] = []
+  const fence = createFenceTracker()
   for (let i = 0; i < lines.length; i++) {
+    if (fence.next(lines[i])) continue
     const parsed = model.parseLine(lines[i])
     if (!parsed) continue
     // Match signifiers / categories against the tags on the task text,
