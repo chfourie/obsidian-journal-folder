@@ -452,6 +452,26 @@ suite. Run `npm run test:e2e:build`; full docs in
   prepend to the content host (`<p>` for loose items, the `<li>` for tight). A
   marker placed as an `<li>` child *before* the `<p>` lands on its own line. See
   `process-signifiers.ts` `placeMarker`.
+- **The community-review scanner lints `styles.css` too** (warnings page at
+  `community.obsidian.md/plugins/journal-folder`), beyond what `npm run lint`
+  reproduces, and pattern-matches properties without context:
+  - a bare `column-gap` is misread as the CSS *multi-column* feature even
+    inside `display: grid` — always write the `gap: <row> <col>` shorthand;
+  - duplicate same-property declarations (the `height: 1.5em; height: 1lh`
+    progressive-fallback idiom) are flagged — express the fallback as a base
+    declaration + an `@supports (height: 1lh)` override instead;
+  - every `:has()` is flagged for broad selector invalidation. Inside our own
+    Svelte components, stamp a modifier class instead (e.g.
+    `.journal-folder-header-options.jf-has-calendar`). The two remaining
+    `:has()` uses (hide `journal-folder.md` in the file explorer) are a
+    **deliberate keep**: the declarative body-class-gated rule beats a
+    `MutationObserver` on the explorer DOM, and it's inert unless the user
+    enables the setting;
+  - `display: contents` draws a partial-support warning (old-engine a11y-tree
+    removal) — harmless at Obsidian's Chromium baseline, but avoid new uses.
+  The scanner's *Vault Enumeration* disclosure (from `getMarkdownFiles` in
+  `journal-folder-detection.ts`) is inherent to config-note discovery — not
+  removable.
 - **Indentation guides force `li { position: relative }`.** With
   `show-indentation-guide` on, Obsidian makes every list `<li>` a positioning
   context, so an absolutely-positioned descendant anchors to its nearest `<li>`,
@@ -564,6 +584,16 @@ screenshots (`docs/screenshots/`, via `npm run screenshots`) are a **separate**
 feature and stay committed. If you re-introduce a report, expect the history-bloat
 problem to return — host the images outside `master` (orphan branch / release
 assets / LFS) rather than committing regenerated PNGs each release.
+
+### Release-asset attestations
+
+`release.yml` runs `actions/attest-build-provenance@v2` over `main.js` /
+`manifest.json` / `styles.css` before `gh release create` — the community-review
+scanner checks release assets for GitHub artifact attestations and reports
+"Missing GitHub artifact attestations" otherwise. The job carries an explicit
+`permissions:` block (`contents: write`, `id-token: write`,
+`attestations: write`); if you add steps needing other scopes, extend that block
+— declaring any `permissions:` drops the default grants.
 
 ---
 

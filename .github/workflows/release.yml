@@ -9,6 +9,14 @@ jobs:
     build:
         runs-on: ubuntu-latest
 
+        # contents: write — gh release create; id-token + attestations —
+        # actions/attest-build-provenance (the community-review scanner checks
+        # release assets for artifact attestations).
+        permissions:
+            contents: write
+            id-token: write
+            attestations: write
+
         steps:
             -   uses: actions/checkout@v4
 
@@ -21,6 +29,14 @@ jobs:
                 run: |
                     npm install --force
                     npm run build
+
+            -   name: Attest build provenance
+                uses: actions/attest-build-provenance@v2
+                with:
+                    subject-path: |
+                        main.js
+                        manifest.json
+                        styles.css
 
             -   name: Extract release notes
                 run: |

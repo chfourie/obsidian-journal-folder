@@ -180,7 +180,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 	<h1 class="journal-folder-header-title">{info.title}</h1>
 
-	<div class="journal-folder-header-options">
+	<div class="journal-folder-header-options" class:jf-has-calendar={$calendarVisible}>
 		<div class="journal-folder-header-links">
 			{#if info.backwardLink}
 				<NoteLink

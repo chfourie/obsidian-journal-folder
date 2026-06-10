@@ -7,6 +7,48 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.2.1]
+
+### Fixed
+- **Tasks inside code blocks are no longer parsed as tasks.** A line like
+  `- [ ] example` inside a fenced code block used to show up in the task
+  lists, and cycling its status could rewrite a line *inside* the code block.
+  Fenced lines are now skipped everywhere tasks are scanned.
+- **Popout windows render plugin popovers correctly.** The header's More
+  popover, the calendar's date picker, and the task status picker now open in
+  the popout window they belong to (and clamp to its viewport) instead of the
+  main window.
+- **Settings changes no longer re-render unrelated views.** Toggling a sidebar
+  option such as *Show completed* used to clear the whole task cache and
+  re-render every open reading view; invalidation is now scoped to what the
+  changed setting actually affects.
+- **Sidebar task counts are consistent.** Hidden completed tasks no longer
+  consume list-cap slots, and the header count always matches the truncation
+  footer.
+- **Sidebar panels position correctly on first open** (the More... menu and
+  scope panels could briefly mis-position before).
+- **Embedded code-block config values are type-coerced.** Numeric and boolean
+  `key: value` overrides in a `journal-header` block now parse by the field's
+  type instead of being taken as raw strings.
+- **Task migration guards against a same-note destination**, and a settings
+  change saved while the one-time template migration ran is no longer
+  overwritten.
+
+### Performance
+- The sidebar now reacts only to vault changes that affect its scope
+  (filtered + debounced) instead of recomputing on every vault event, and
+  large journal folders no longer pay a quadratic sibling scan. Cold
+  task-cache reads are pooled, and live preview skips decoration rebuilds in
+  documents without migration markers.
+
+### Internal
+- Release assets now ship with GitHub artifact attestations.
+- CSS cleanups for the community-review scanner: `gap` shorthand instead of
+  `column-gap`, an `@supports` fallback instead of a duplicate `height`
+  declaration, and a class stamp instead of a `:has()` selector in the header.
+- ESLint now covers `.svelte` sources with the same type-aware
+  community-review ruleset.
+
 ## [3.2.0]
 
 ### Added

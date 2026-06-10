@@ -59,8 +59,11 @@
    default 1rem margin leaves too much air between the More-row and the
    Today/Month-Year link strip; halve the collapsed margin in that case
    only (when the calendar is hidden, the 1rem still spaces the options
-   bar from the markdown content below). */
-.journal-folder-header-options:has(+ .journal-folder-calendar) {
+   bar from the markdown content below). JournalHeader.svelte stamps
+   `jf-has-calendar` when the calendar renders — a sibling `:has()` would
+   work too, but the community-review scanner flags `:has` for its broad
+   invalidation cost, and inside our own component a class is free. */
+.journal-folder-header-options.jf-has-calendar {
 	margin-bottom: .5rem;
 }
 
@@ -279,8 +282,9 @@ a.internal-link.journal-folder-note-link.needs-confirmation {
 .journal-folder-calendar-grid {
 	display: grid;
 	grid-template-columns: 1.4rem .35rem repeat(7, 1.32rem);
-	row-gap: 1px;
-	column-gap: 2.25px;
+	/* `gap` shorthand (not row-gap/column-gap): the community-review scanner
+	 * misreads a bare `column-gap` as the CSS multi-column feature. */
+	gap: 1px 2.25px;
 	font-size: .75rem;
 	justify-content: center;
 }
@@ -439,8 +443,7 @@ a.internal-link.journal-folder-note-link.needs-confirmation {
 
 .journal-folder-calendar.is-mobile .journal-folder-calendar-grid {
 	grid-template-columns: 2rem .5rem repeat(7, 1.8rem);
-	row-gap: 4px;
-	column-gap: 9px;
+	gap: 4px 9px;
 	font-size: .95rem;
 }
 
@@ -1588,7 +1591,7 @@ input[data-jf-task-swapped] {
 	display: grid;
 	grid-template-columns: auto auto auto 1fr auto auto;
 	align-items: center;
-	column-gap: 0.75em;
+	gap: 0 0.75em;
 	padding: 0.4em 0.6em;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
@@ -2302,7 +2305,6 @@ input[data-jf-task-swapped] {
 	top: 0;
 	bottom: auto;
 	height: 1.5em;
-	height: 1lh;
 	/* `left` is overwritten by the measured value; this is only the pre-paint
 	 * fallback (the marker is hidden until measured anyway). */
 	left: 0;
@@ -2321,6 +2323,16 @@ input[data-jf-task-swapped] {
 	white-space: nowrap;
 	pointer-events: none;
 	visibility: hidden;
+}
+
+/* `1lh` (the line height) is the height we actually want; the `1.5em` above is
+ * the older-engine fallback (some stale Android WebViews lack `lh`). Kept in a
+ * separate @supports block rather than a duplicate `height` declaration, which
+ * the community-review scanner flags. */
+@supports (height: 1lh) {
+	.jf-signifier-gutter {
+		height: 1lh;
+	}
 }
 
 /* Revealed by the positioner once `left` has been measured. */
