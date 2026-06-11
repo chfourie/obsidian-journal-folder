@@ -377,6 +377,18 @@ suite. Run `npm run test:e2e:build`; full docs in
   `getName()==='demo-vault'` → build/deploy → reload → detach leaves → visibility
   gate → force light mode → readiness probe). Run **sandbox-off**; demo vault open
   + visible. See `scripts/screenshots/README.md`.
+- **Check the demo vault's `app.json` before capturing** — the harness restores
+  `data.json` (plugin settings) but does NOT normalise Obsidian's own
+  `app.json`, so stray vault state silently changes capture geometry. The
+  3.2.1 release shots were taken with `readableLineLength: false` left over
+  from a manual session: every pane rendered full-width (headers 1818px
+  instead of the 1456px readable pane) and had to be retaken (readable line
+  length toggled back on via
+  `obsidian vault=demo-vault eval code="app.vault.setConfig('readableLineLength', true)"`,
+  which also persists it to `app.json`). Same risk applies to the host
+  display/window: a laptop-sized window changes layout, and `hero-overview`'s
+  width tracks the window. Sanity-check a retake against the previous
+  known-good PNG dimensions (`sips -g pixelWidth -g pixelHeight`).
 - **Each scene is self-setting.** A scene may carry a `settings` fixture
   (shallow-merged over the demo `data.json`, which is **backed up and restored**
   around the run — it's gitignored + user-configured), `tempFiles` (a throwaway
