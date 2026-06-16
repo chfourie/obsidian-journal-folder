@@ -883,7 +883,6 @@ class SettingsFormBuilder {
         slider
           .setLimits(0, 100, 5)
           .setValue(settings.taskMigrationReferenceOpacity)
-          .setDynamicTooltip()
           .onChange((value) => {
             settings.taskMigrationReferenceOpacity = value
             // noinspection JSIgnoredPromiseFromCall
