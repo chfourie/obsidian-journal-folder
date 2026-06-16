@@ -262,6 +262,7 @@ class SettingsFormBuilder {
     }
     if (!isFolder) {
       this.createStartOfWeekSetting(settings)
+      this.createEditModeIndicatorSetting(settings)
     }
     this.createQuartersEnabledSetting(settings)
 
@@ -1155,6 +1156,38 @@ class SettingsFormBuilder {
           .onClick(() => {
             component.setValue(DEFAULT_SETTINGS.hideJournalFolderNotes)
             onChange(DEFAULT_SETTINGS.hideJournalFolderNotes)
+          })
+      })
+  }
+
+  createEditModeIndicatorSetting(settings: JournalFolderSettings): Setting {
+    let component: ToggleComponent
+
+    const onChange = (value: boolean) => {
+      settings.editModeIndicator = value
+      // noinspection JSIgnoredPromiseFromCall
+      void this.saveSettings(settings)
+    }
+
+    return new Setting(this.containerEl)
+      .setName('Edit-mode indicator')
+      .setDesc(
+        'Marks the editing surface with a coloured left-edge rule so it ' +
+          'is obvious at a glance you are editing, not reading: an accent ' +
+          'rule in Live Preview and a muted-grey rule in Source mode. ' +
+          'Applies to every note.'
+      )
+      .addToggle((toggle) => {
+        component = toggle
+        toggle.setValue(settings.editModeIndicator).onChange(onChange)
+      })
+      .addExtraButton((btn) => {
+        btn
+          .setIcon('reset')
+          .setTooltip('Reset to default value')
+          .onClick(() => {
+            component.setValue(DEFAULT_SETTINGS.editModeIndicator)
+            onChange(DEFAULT_SETTINGS.editModeIndicator)
           })
       })
   }

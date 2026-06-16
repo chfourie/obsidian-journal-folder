@@ -184,6 +184,7 @@ describe('readingViewRenderAffected (rerender(true) gate)', () => {
     expect(rerenders(withChange({ todayButtonPlacement: 'ribbon' }))).toBe(
       false
     )
+    expect(rerenders(withChange({ editModeIndicator: true }))).toBe(false)
   })
 
   it('fires on render-relevant fields', () => {

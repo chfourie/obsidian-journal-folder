@@ -36,6 +36,7 @@ import { suite as sidebar } from './sidebar.spec.mjs'
 import { suite as folderConfig } from './folder-config.spec.mjs'
 import { suite as ribbonTheme } from './ribbon-theme.spec.mjs'
 import { suite as today } from './today.spec.mjs'
+import { suite as editModeIndicator } from './edit-mode-indicator.spec.mjs'
 
 export const suites = [
   smoke,
@@ -56,4 +57,5 @@ export const suites = [
   folderConfig,
   ribbonTheme,
   today,
+  editModeIndicator,
 ]

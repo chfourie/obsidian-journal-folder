@@ -7,6 +7,20 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.3.0]
+
+### Added
+- **Edit-mode indicator.** A new optional setting (Settings → Journal Folder →
+  General → *Edit-mode indicator*, off by default) draws a thin coloured rule
+  down the left edge of the editor so it's obvious at a glance whether a note is
+  being edited or read: an accent rule in Live Preview, a muted-grey rule in
+  Source mode, and nothing in reading view. It follows your theme's colours,
+  adds no layout shift, and applies to every note in the vault.
+
+### Changed
+- Updated the build toolchain and dependencies (TypeScript 6, Svelte, Vitest,
+  esbuild, typescript-eslint, and others). No behavioural change.
+
 ## [3.2.1]
 
 ### Fixed

@@ -32,6 +32,7 @@ const GLOBAL_ONLY_FIELDS: ReadonlySet<keyof JournalFolderSettings> = new Set([
   'startOfWeek',
   'defaultJournalFolder',
   'hideJournalFolderNotes',
+  'editModeIndicator',
   'sidebarMode',
   'todayButtonPlacement',
   'templateFolder',

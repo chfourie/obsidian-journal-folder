@@ -17,6 +17,7 @@ You can run as many independent journals as you like in the same vault. A folder
 - **Tasks** — surface Markdown tasks from journal notes in the sidebar panel or in any note via a `journal-tasks` code block, with user-defined task flows, a scope picker (anchor × range + folder) for choosing exactly which tasks appear, tag-driven **task categories** (optionally range-capped so day-local chores stay out of wider rollups), and bullet-journal **task migration** that rolls unfinished tasks between notes with a reference trail. [Read more →](#tasks)
 - **Signifiers** — bind an icon to a tag (BUJO-style) and it appears in the left margin wherever the tag does, so you can scan a note at a glance. [Read more →](#signifiers)
 - **A "start a new line below" command** — begin a fresh line (continuing any bullet, checkbox, or quote) as if you'd pressed Enter at the line's end, without moving the cursor there first. Bind it to a shortcut of your choice. [Read more →](#starting-a-new-line)
+- **An edit-mode indicator** — an optional left-edge rule on the editor so you can tell at a glance whether a note is being edited or read. Off by default. [Read more →](#the-edit-mode-indicator)
 
 ## Why folder-based?
 
@@ -93,6 +94,7 @@ User guide (everything below is in this page):
 - [Tasks](#tasks)
 - [Signifiers](#signifiers)
 - [Starting a new line](#starting-a-new-line)
+- [The edit-mode indicator](#the-edit-mode-indicator)
 - [Using with a theme that styles tasks](#using-with-a-theme-that-styles-tasks)
 - [Using with the Obsidian Tasks plugin](#using-with-the-obsidian-tasks-plugin)
 - [Advanced configuration](#advanced-configuration)
@@ -725,6 +727,23 @@ The command ships **without a shortcut** so it can't clash with anything you've
 already set. Bind it under **Settings → Hotkeys** (search for *Start a new line
 below*) — Ctrl+Enter (Cmd+Enter on macOS) is a natural choice — the same way you'd
 assign any of the plugin's other commands.
+
+---
+
+## The edit-mode indicator
+
+In Obsidian it isn't always obvious whether the note you're looking at is being
+**edited** (Live Preview) or **read** (reading view) — the two can look almost
+identical. Turn on **Settings → Journal Folder → General → Edit-mode indicator**
+and the plugin draws a thin coloured rule down the left edge of the editor so the
+state is clear at a glance:
+
+- **Live Preview** — an accent-coloured rule.
+- **Source mode** — a muted-grey rule (you're editing, but in raw markdown).
+- **Reading view** — nothing; the rendered note is left untouched.
+
+The rule follows your theme's colours and adds no layout shift. The setting is
+**off by default** and applies to every note in the vault, not just journal notes.
 
 ---
 

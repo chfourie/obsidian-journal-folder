@@ -105,6 +105,14 @@ export type JournalFolderSettings = {
   // sidebar's *Edit configuration* action — they just don't clutter the
   // tree. **Global only** because the file-explorer DOM is process-wide.
   hideJournalFolderNotes: boolean
+  // When true, the editing surface gets a coloured left-edge rule so it's
+  // immediately obvious you're editing rather than in reading view: an
+  // accent rule in Live Preview, a muted-grey rule in Source mode, and
+  // nothing in reading view. Driven by a body-class-scoped CSS rule keyed
+  // off Obsidian's own mode classes (no JS, no per-note state). Applies to
+  // every note, not just journal notes. **Global only** because it styles
+  // the process-wide editor chrome, and a pure-UI preference.
+  editModeIndicator: boolean
   // Controls how the sidebar follows (or doesn't follow) the active leaf.
   // `'dynamic'` switches the sidebar's selected folder whenever the active
   // file is a recognised journal note in a journal folder, and scrolls the
@@ -419,6 +427,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   startOfWeek: 'locale-default',
   defaultJournalFolder: '',
   hideJournalFolderNotes: true,
+  editModeIndicator: false,
   sidebarMode: 'dynamic',
   todayButtonPlacement: 'menu',
   includeInTodayPicker: false,

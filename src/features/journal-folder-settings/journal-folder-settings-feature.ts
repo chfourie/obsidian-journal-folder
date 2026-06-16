@@ -52,6 +52,7 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     // Pull the body-class off if the plugin disables — leaving it set would
     // continue to hide journal-folder.md notes after the plugin is gone.
     activeDocument.body.classList.remove('journal-folder-hide-config-notes')
+    activeDocument.body.classList.remove('journal-folder-edit-mode-indicator')
   }
 
   // Public so sibling features (e.g. the sidebar) can mutate global
@@ -66,6 +67,10 @@ export class JournalFolderSettingsFeature extends PluginFeature {
     activeDocument.body.classList.toggle(
       'journal-folder-hide-config-notes',
       !!settings.hideJournalFolderNotes
+    )
+    activeDocument.body.classList.toggle(
+      'journal-folder-edit-mode-indicator',
+      !!settings.editModeIndicator
     )
     this.propagateSettings(settings)
   }

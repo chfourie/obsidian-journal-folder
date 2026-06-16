@@ -114,6 +114,7 @@ export const RENDER_INERT_FIELDS = [
   'todayButtonPlacement',
   'includeInTodayPicker',
   'hideJournalFolderNotes',
+  'editModeIndicator',
   'tasksSidebarEnabled',
   'tasksSidebarAnchor',
   'tasksSidebarRange',

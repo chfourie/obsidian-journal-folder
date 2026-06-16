@@ -785,6 +785,28 @@ body.journal-folder-hide-config-notes
 	display: none;
 }
 
+/* When the global "Edit-mode indicator" setting is on, the settings feature
+ * toggles `journal-folder-edit-mode-indicator` on the <body>. We draw a
+ * left-edge rule on the editing surface so it reads at a glance as "editing"
+ * rather than reading view, keyed off Obsidian's own mode classes:
+ *   - Live Preview  → accent rule  (`.markdown-source-view.is-live-preview`)
+ *   - Source mode   → muted rule   (`...:not(.is-live-preview)`)
+ *   - Reading view  → nothing      (it's `.markdown-reading-view`, not matched)
+ * The rule is an INSET box-shadow on the non-scrolling `.cm-editor` wrapper, so
+ * it stays pinned to the pane's left edge, never scrolls, and — unlike a border
+ * — adds no box and so can't shift content or collide with theme padding. */
+body.journal-folder-edit-mode-indicator
+	.markdown-source-view.is-live-preview
+	.cm-editor {
+	box-shadow: inset 2px 0 0 0 var(--interactive-accent);
+}
+
+body.journal-folder-edit-mode-indicator
+	.markdown-source-view:not(.is-live-preview)
+	.cm-editor {
+	box-shadow: inset 2px 0 0 0 var(--text-muted);
+}
+
 /* Sidebar view */
 .journal-folder-sidebar .jf-sidebar-root {
 	display: flex;

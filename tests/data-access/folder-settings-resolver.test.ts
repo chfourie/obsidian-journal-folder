@@ -150,6 +150,7 @@ describe('FolderSettingsResolver', () => {
             'start-of-week': 'monday',
             'default-journal-folder': 'OtherFolder',
             'hide-journal-folder-notes': false,
+            'edit-mode-indicator': true,
             'sidebar-mode': 'static',
             // Signifiers / categories are global-only too — a folder must
             // not be able to redefine them.
@@ -171,6 +172,9 @@ describe('FolderSettingsResolver', () => {
       )
       expect(resolved.hideJournalFolderNotes).toBe(
         DEFAULT_SETTINGS.hideJournalFolderNotes
+      )
+      expect(resolved.editModeIndicator).toBe(
+        DEFAULT_SETTINGS.editModeIndicator
       )
       expect(resolved.sidebarMode).toBe(DEFAULT_SETTINGS.sidebarMode)
       expect(resolved.signifiers).toBe(DEFAULT_SETTINGS.signifiers)

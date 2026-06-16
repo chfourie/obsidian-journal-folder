@@ -33,6 +33,7 @@
   "startOfWeek": "sunday",
   "defaultJournalFolder": "Journal",
   "hideJournalFolderNotes": false,
+  "editModeIndicator": false,
   "sidebarMode": "dynamic",
   "todayButtonPlacement": "menu",
   "includeInTodayPicker": false,
