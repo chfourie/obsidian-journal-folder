@@ -1,3 +1,3 @@
-%% EDITING %%
+%% JOURNAL NOTE %%
 ```journal-header
 ```
