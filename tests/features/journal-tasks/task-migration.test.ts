@@ -247,6 +247,28 @@ describe('computeInsertion', () => {
     )
   })
 
+  it('heading: creates a missing heading at the configured level', () => {
+    expect(computeInsertion('prose\n', NEW, 'heading', 'Tasks', 4)).toBe(
+      'prose\n\n#### Tasks\n- [ ] migrated task\n'
+    )
+  })
+
+  it('heading: clamps an out-of-range level into 1–6', () => {
+    expect(computeInsertion('prose\n', NEW, 'heading', 'Tasks', 9)).toBe(
+      'prose\n\n###### Tasks\n- [ ] migrated task\n'
+    )
+    expect(computeInsertion('prose\n', NEW, 'heading', 'Tasks', 0)).toBe(
+      'prose\n\n# Tasks\n- [ ] migrated task\n'
+    )
+  })
+
+  it('heading: level is ignored when the heading already exists', () => {
+    const content = '## tasks\n- [ ] existing\n'
+    expect(computeInsertion(content, NEW, 'heading', 'Tasks', 5)).toBe(
+      '## tasks\n- [ ] migrated task\n- [ ] existing\n'
+    )
+  })
+
   it('returns content unchanged when there are no lines to insert', () => {
     expect(computeInsertion('x\n', [], 'end', 'Tasks')).toBe('x\n')
   })

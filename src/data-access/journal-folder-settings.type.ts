@@ -248,9 +248,16 @@ export type JournalFolderSettings = {
   taskMigrationPlacement: TaskMigrationPlacement
   // Heading text used when `taskMigrationPlacement` is `'heading'`.
   // Matched case-insensitively against existing `#`-level headings;
-  // created as a level-2 heading at the end of the note when missing.
-  // **Folder-honored** via `task-migration-heading`.
+  // created at `taskMigrationHeadingLevel` at the end of the note when
+  // missing. **Folder-honored** via `task-migration-heading`.
   taskMigrationHeading: string
+  // Heading level (1–6) used when `taskMigrationPlacement` is `'heading'`
+  // and the `taskMigrationHeading` does not already exist in the note —
+  // the new heading is created with this many `#` characters. Has no
+  // effect when a heading of that text already exists (tasks slot under
+  // it at whatever level it already is). **Folder-honored** via
+  // `task-migration-heading-level`.
+  taskMigrationHeadingLevel: number
   // Whether migration writes the forward reference (`toMarker [[dest]]`)
   // onto the **origin** task. When false, the origin is only re-stamped
   // with the migrated status — no link is added. **Global only.**
@@ -455,6 +462,7 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   taskClickOpensPicker: false,
   taskMigrationPlacement: 'after-last-task',
   taskMigrationHeading: 'Tasks',
+  taskMigrationHeadingLevel: 2,
   taskMigrationAddToReference: true,
   taskMigrationAddFromReference: true,
   taskMigrationReferenceStyle: 'lucide',

@@ -748,7 +748,7 @@ class SettingsFormBuilder {
         .setName('Migration heading')
         .setDesc(
           'Heading migrated tasks are placed under (matched ' +
-            'case-insensitively; created as a level-2 heading if missing).'
+            'case-insensitively; created at the level below if missing).'
         )
         .addText((text) => {
           text.setValue(settings.taskMigrationHeading).onChange(
@@ -758,6 +758,38 @@ class SettingsFormBuilder {
               void this.saveSettings(settings)
             }, 250, true)
           )
+        })
+
+      let levelDropdown: DropdownComponent
+      const onLevel = (value: string) => {
+        settings.taskMigrationHeadingLevel = Number(value)
+        // noinspection JSIgnoredPromiseFromCall
+        void this.saveSettings(settings)
+      }
+      new Setting(this.containerEl)
+        .setName('Migration heading level')
+        .setDesc(
+          'Heading level used when the migration heading is created ' +
+            "(H1–H6). Ignored when a heading of that text already exists — " +
+            'tasks then slot under it at its current level.'
+        )
+        .addDropdown((dd) => {
+          levelDropdown = dd
+          for (let level = 1; level <= 6; level++) {
+            dd.addOption(String(level), `Heading ${level} (${'#'.repeat(level)})`)
+          }
+          dd.setValue(String(settings.taskMigrationHeadingLevel)).onChange(onLevel)
+        })
+        .addExtraButton((btn) => {
+          btn
+            .setIcon('reset')
+            .setTooltip('Reset to default value')
+            .onClick(() => {
+              levelDropdown.setValue(
+                String(DEFAULT_SETTINGS.taskMigrationHeadingLevel)
+              )
+              onLevel(String(DEFAULT_SETTINGS.taskMigrationHeadingLevel))
+            })
         })
     }
   }

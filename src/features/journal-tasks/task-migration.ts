@@ -166,6 +166,15 @@ function afterFrontMatterIndex(lines: string[]): number {
   return 0
 }
 
+// Coerce a (possibly front-matter-sourced) heading level into a valid
+// Markdown heading depth. Anything non-numeric or out of range falls
+// back to 2 — the historical default before the level was configurable.
+function clampHeadingLevel(level: number): number {
+  const n = Math.floor(Number(level))
+  if (!Number.isFinite(n)) return 2
+  return Math.min(6, Math.max(1, n))
+}
+
 // Pure placement engine: returns `content` with `newLines` inserted
 // according to `placement`. Operates on a line array so an existing
 // trailing newline is preserved (a trailing newline splits to a final
@@ -174,7 +183,8 @@ export function computeInsertion(
   content: string,
   newLines: string[],
   placement: TaskMigrationPlacement,
-  headingText: string
+  headingText: string,
+  headingLevel = 2
 ): string {
   if (newLines.length === 0) return content
   const lines = content.split('\n')
@@ -205,10 +215,14 @@ export function computeInsertion(
       lines.splice(at + 1, 0, ...newLines)
       return lines.join('\n')
     }
-    // No such heading — create it as a level-2 heading at the end,
+    // No such heading — create it at the configured level at the end,
     // separated from any preceding content by a blank line.
+    const hashes = '#'.repeat(clampHeadingLevel(headingLevel))
     const end = endOfContentIndex(lines)
-    const block = end > 0 ? ['', `## ${heading}`, ...newLines] : [`## ${heading}`, ...newLines]
+    const block =
+      end > 0
+        ? ['', `${hashes} ${heading}`, ...newLines]
+        : [`${hashes} ${heading}`, ...newLines]
     lines.splice(end, 0, ...block)
     return lines.join('\n')
   }
@@ -234,6 +248,9 @@ export interface MigrateTasksInput {
   model: TaskModel
   placement: TaskMigrationPlacement
   headingText: string
+  // Heading level used when `placement` is `'heading'` and the heading
+  // must be created (1–6; defaults to 2 when omitted).
+  headingLevel?: number
   // Cross-reference markers (global-only settings). `toMarker` prefixes
   // the forward link on the origin; `fromMarker` prefixes the back link
   // on the copy. The `add*Reference` flags omit a reference entirely.
@@ -255,6 +272,7 @@ export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
     model,
     placement,
     headingText,
+    headingLevel,
     toMarker,
     fromMarker,
     addToReference,
@@ -329,7 +347,7 @@ export async function migrateTasks(input: MigrateTasksInput): Promise<void> {
       buildMigratedLine(t, model, fromMarker, addFromReference)
     )
     await app.vault.process(destFile, (content) =>
-      computeInsertion(content, newLines, placement, headingText)
+      computeInsertion(content, newLines, placement, headingText, headingLevel)
     )
     new Notice(
       `Migrated ${migrated.length} task${migrated.length === 1 ? '' : 's'} → ${destFile.basename}`

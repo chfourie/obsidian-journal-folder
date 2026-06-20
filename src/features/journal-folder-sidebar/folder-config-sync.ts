@@ -52,6 +52,7 @@ export const PER_FOLDER_FIELDS = [
   'autoTemplateEnabled',
   'taskMigrationPlacement',
   'taskMigrationHeading',
+  'taskMigrationHeadingLevel',
 ] as const satisfies ReadonlyArray<keyof JournalFolderSettings>
 
 type PerFolderField = (typeof PER_FOLDER_FIELDS)[number]
