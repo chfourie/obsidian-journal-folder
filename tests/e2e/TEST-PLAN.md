@@ -47,7 +47,7 @@ in `specs/` and is wired in `specs/index.mjs`.
 | 5 | Tasks grouped under source note | `[data-jf-task-group="note"]` | ✅ |
 | 6 | Category section for matching tasks | `[data-jf-task-group="category"][data-jf-group-id="important"]` | ✅ |
 | 7 | Truncation footer at the cap | `[data-jf-increase-cap]` with `tasksMaxItems:1` | ✅ |
-| — | Group collapse/expand interaction | | ⬜ |
+| 8 | Group collapse/expand interaction | caret `aria-expanded` flips; `[data-jf-task-item]` count → 0 then restored | ✅ |
 
 ### Task status — `task-status.spec.mjs`
 | # | Scenario | Assertion | Status |
@@ -57,7 +57,15 @@ in `specs/` and is wired in `specs/index.mjs`.
 | 3 | Picking a status persists | note contains `- [-]` | ✅ |
 | 4 | Sidebar panel cycle writes to disk | note contains `- [/]` | ✅ |
 | 5 | Theme-rendering flow keeps native checkbox | native input, no `[data-jf-doc-icon]` | ✅ |
+| 6 | `taskClickOpensPicker` makes left-click open the picker | `[data-jf-status-picker]`, status unchanged | ✅ |
 | — | Self-cycling status opens picker on click | | ⬜ |
+
+### Task status — live preview — `task-live-preview.spec.mjs`
+| # | Scenario | Assertion | Status |
+|---|----------|-----------|--------|
+| 1 | Left-click the live-preview icon cycles open→in-progress | `data-jf-icon-status`=in-progress; editor buffer `- [/]`; persists to disk after save | ✅ |
+| 2 | Click in the marker gap right of the icon still cycles (regression) | `elementFromPoint` in the gap resolves to `[data-jf-task-icon]`; gap-click cycles the buffer to `- [/]` | ✅ |
+| 3 | Right-click opens the status picker | `[data-jf-status-picker]` + ≥3 options; task unchanged | ✅ |
 
 ### Task migration — `task-migration.spec.mjs`
 | # | Scenario | Assertion | Status |
@@ -151,14 +159,22 @@ in `specs/` and is wired in `specs/index.mjs`.
 
 Only a handful of low-value / awkward-to-automate cases remain ⬜:
 - **Self-cycling status opens picker on click** — needs a task pre-seeded in a
-  self-cycling status; the behaviour is unit-tested via `opensPickerOnClick`.
+  self-cycling status (no built-in flow has one — `next === id` only arises from
+  custom config); the behaviour is unit-tested via `opensPickerOnClick`, and the
+  global `taskClickOpensPicker` opt-in (the same picker-on-click path) is now
+  covered in `task-status.spec.mjs`.
 - **Reference opacity styling / `migrate-task-on-line` / `from-note` flows** —
   migration mechanics + cross-references are covered; these are extra entry
   points and a CSS opacity detail.
 - **Reserve-gutter padding** and **live-preview tag-reveal edge cases** — the
   pure logic (`computeReserve`, `computeTagHideRanges`) is unit-tested; the DOM
   measurement is theme-dependent and brittle to assert exactly.
-- **Group collapse/expand**, **note-month jump**, **sidebar single-month parity**.
+- **note-month jump**, **sidebar single-month parity**.
+
+Live-preview task interaction — previously an untested surface — is now covered
+in `task-live-preview.spec.mjs`, including a regression test for the marker-gap
+click-through fix (a gap click resolving to the icon rather than the editor
+line). Group collapse/expand is covered in `tasks-render.spec.mjs`.
 
 Each is a straightforward addition using the same `ctx` helpers and `data-jf-*`
 hooks — append a `[name, async (ctx)=>{…}]` entry to the relevant spec. The

@@ -129,6 +129,46 @@ export const suite = {
       },
     ],
     [
+      'collapsing a note group hides its tasks; expanding restores them',
+      async (ctx) => {
+        // Note-anchored so the day's tasks are in scope regardless of the real
+        // date. The day can span several source notes (so several note groups),
+        // and the panel's collapse state is component-local and persists across
+        // tests — so target ONE group by its path and normalise it to expanded
+        // before toggling, rather than assuming a single, freshly-expanded group.
+        await ctx.applySettings({ tasksSidebarAnchor: 'note' })
+        await ctx.openNote('Journal/2026-06-06', 'preview')
+        await ctx.openSidebar()
+        ctx.step('Open the sidebar task panel anchored on the note.')
+        const FIRST = '[data-jf-task-list="sidebar"] [data-jf-task-group="note"]'
+        ctx.assert.ok(await ctx.waitFor(() => ctx.exists(FIRST)), 'a note group is present')
+        const path = await ctx.attr(FIRST, 'data-jf-group-path')
+        const GROUP = `[data-jf-task-list="sidebar"] [data-jf-task-group="note"][data-jf-group-path="${path}"]`
+        const CARET = `${GROUP} .journal-folder-tasks-group-caret`
+        const ITEMS = `${GROUP} [data-jf-task-item]`
+
+        // Normalise to expanded (a prior test may have left it collapsed).
+        if ((await ctx.attr(CARET, 'aria-expanded')) === 'false') {
+          await ctx.click(CARET, { settleMs: 400 })
+        }
+        ctx.assert.eq(await ctx.attr(CARET, 'aria-expanded'), 'true', 'group expanded to start')
+        const expanded = await ctx.count(ITEMS)
+        ctx.assert.ok(expanded >= 1, 'group lists its tasks when expanded')
+
+        ctx.step('Click the group caret to collapse it.')
+        await ctx.click(CARET, { settleMs: 400 })
+        ctx.assert.eq(await ctx.attr(CARET, 'aria-expanded'), 'false', 'caret reports collapsed')
+        ctx.assert.eq(await ctx.count(ITEMS), 0, 'collapsing removes the group’s task rows')
+        await ctx.shot('Collapsed note group', { rect: "bodyRect('[data-jf-task-list=\"sidebar\"]')" })
+
+        ctx.step('Click the caret again to expand it.')
+        await ctx.click(CARET, { settleMs: 400 })
+        ctx.assert.eq(await ctx.attr(CARET, 'aria-expanded'), 'true', 'caret reports expanded')
+        ctx.assert.eq(await ctx.count(ITEMS), expanded, 'expanding restores the task rows')
+        await ctx.closeSidebar()
+      },
+    ],
+    [
       'the truncation footer appears when the item cap is hit',
       async (ctx) => {
         // Note-anchored so 2026-06-06's four tasks (> the cap of 1) are in
