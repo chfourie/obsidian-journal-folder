@@ -82,6 +82,8 @@ export class FolderConfigModal extends Modal {
       containerEl: this.contentEl,
       mode: 'folder',
       getCurrentSettings: () => this.readEffectiveSettings(file),
+      getGlobalSettings: this.getGlobalSettings,
+      getOverriddenFields: () => this.readOverriddenFields(file),
       saveSettings: (settings) => this.saveToFrontMatter(file, settings),
     })
   }
@@ -120,6 +122,22 @@ export class FolderConfigModal extends Modal {
       }
     }
     return { ...global, ...overrides }
+  }
+
+  // The settings-type field keys this folder currently overrides — the
+  // camelCased front-matter keys that map to a known setting. Drives the
+  // folder form's per-field "Default" (inherit) vs. explicit-override
+  // distinction, which value comparison alone can't make (an override may
+  // legitimately equal the global value mid-edit).
+  private readOverriddenFields(file: TFile): Set<string> {
+    const fm: FrontMatterCache =
+      this.app.metadataCache.getFileCache(file)?.frontmatter ?? {}
+    const fields = new Set<string>()
+    for (const key of Object.keys(fm)) {
+      const camel = camelCase(key)
+      if (camel in DEFAULT_SETTINGS) fields.add(camel)
+    }
+    return fields
   }
 
   private saveToFrontMatter(

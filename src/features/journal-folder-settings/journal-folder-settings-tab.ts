@@ -91,6 +91,36 @@ type SettingsStringFieldName =
   | 'journalFolderTitle'
   | 'templateFolder'
   | 'templateOverrideFolderName'
+  | 'taskMigrationHeading'
+
+// Sentinel option value for the folder-mode "inherit the global config"
+// choice. Distinct from any real setting value.
+const FOLDER_DEFAULT = '__jf_default__'
+
+// The settings keys whose value is a plain scalar — the only fields the
+// folder-mode override dropdowns render (and the only ones safe to
+// stringify into option values).
+type ScalarSettingField = {
+  [K in keyof JournalFolderSettings]: JournalFolderSettings[K] extends
+    | string
+    | number
+    | boolean
+    ? K
+    : never
+}[keyof JournalFolderSettings]
+
+// Coerce a dropdown's string value back into the field's primitive type
+// (booleans and numbers arrive as strings from the `<select>`). Mirrors
+// the type carried by the field's `DEFAULT_SETTINGS` entry.
+function coerceToFieldType(
+  field: keyof JournalFolderSettings,
+  value: string
+): string | number | boolean {
+  const sample = DEFAULT_SETTINGS[field]
+  if (typeof sample === 'boolean') return value === 'true'
+  if (typeof sample === 'number') return Number(value)
+  return value
+}
 
 // `'global'` renders the full plugin-settings tab; `'folder'` skips
 // global-only fields (start-of-week, hide-config-notes, sidebar section)
@@ -103,6 +133,13 @@ export type SettingsFormConfig = {
   mode: SettingsFormMode
   getCurrentSettings: () => JournalFolderSettings
   saveSettings: (settings: JournalFolderSettings) => Promise<void>
+  // Folder mode only. `getGlobalSettings` is the config a folder inherits
+  // from; `getOverriddenFields` is the set of camelCase field keys the
+  // folder currently overrides (i.e. the keys present in its front
+  // matter). Together they drive the per-field "Default" (inherit) choice
+  // the folder modal offers for every overridable setting.
+  getGlobalSettings?: () => JournalFolderSettings
+  getOverriddenFields?: () => Set<string>
 }
 
 /***************************************************************************************************
@@ -245,26 +282,54 @@ class SettingsFormBuilder {
 
   renderGeneralTab(settings: JournalFolderSettings, isFolder: boolean): void {
     new Setting(this.containerEl).setName('General').setHeading()
-    this.createUseFolderNameAsDefaultTitleSetting(settings)
-    if (!settings.useFolderNameAsDefaultTitle) {
-      this.createTextSetting(
+    if (isFolder) {
+      this.createFolderBooleanOverride(
         settings,
-        'journalFolderTitle',
-        isFolder ? 'Folder title' : 'Default journal folder title'
-      ).setDesc(
-        isFolder
-          ? "Display title shown above the H1 in this folder's journal " +
-              'headers. Leave blank to inherit the global default.'
-          : 'Used in the rendering of journal headers and to identify the folder ' +
-              'in other views. Typically configured per folder via front matter; ' +
-              'most users should leave this blank.'
+        'useFolderNameAsDefaultTitle',
+        'Use folder name as default folder title',
+        'When on (and no folder title is set), the folder name is used as ' +
+          'the journal folder title.',
+        { rerender: true }
       )
+    } else {
+      this.createUseFolderNameAsDefaultTitleSetting(settings)
+    }
+    if (!settings.useFolderNameAsDefaultTitle) {
+      if (isFolder) {
+        this.createFolderTextOverride(
+          settings,
+          'journalFolderTitle',
+          'Folder title',
+          "Display title shown above the H1 in this folder's journal headers."
+        )
+      } else {
+        this.createTextSetting(
+          settings,
+          'journalFolderTitle',
+          'Default journal folder title'
+        ).setDesc(
+          'Used in the rendering of journal headers and to identify the folder ' +
+            'in other views. Typically configured per folder via front matter; ' +
+            'most users should leave this blank.'
+        )
+      }
     }
     if (!isFolder) {
       this.createStartOfWeekSetting(settings)
       this.createEditModeIndicatorSetting(settings)
     }
-    this.createQuartersEnabledSetting(settings)
+    if (isFolder) {
+      this.createFolderBooleanOverride(
+        settings,
+        'quartersEnabled',
+        'Enable quarterly notes',
+        'Recognise "YYYY-Q[1-4]" notes as a quarterly tier between yearly ' +
+          'and monthly.',
+        { rerender: true }
+      )
+    } else {
+      this.createQuartersEnabledSetting(settings)
+    }
 
     if (!isFolder) {
       new Setting(this.containerEl).setName('Sidebar').setHeading().setDesc(
@@ -287,19 +352,46 @@ class SettingsFormBuilder {
     if (!isFolder) {
       this.createTodayButtonPlacementSetting(settings)
     }
-    this.createIncludeInTodayPickerSetting(settings, isFolder)
+    if (isFolder) {
+      this.createFolderBooleanOverride(
+        settings,
+        'includeInTodayPicker',
+        'Include this folder in the Today picker',
+        'When the Today action has several eligible folders, it offers a ' +
+          'folder only when this is on.'
+      )
+    } else {
+      this.createIncludeInTodayPickerSetting(settings, isFolder)
+    }
 
     new Setting(this.containerEl).setName('Calendar').setHeading()
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleDesktop',
-      'Show calendar by default on desktop'
-    )
-    this.createDefaultCalendarVisibleSetting(
-      settings,
-      'defaultCalendarVisibleMobile',
-      'Show calendar by default on mobile'
-    )
+    if (isFolder) {
+      this.createFolderBooleanOverride(
+        settings,
+        'defaultCalendarVisibleDesktop',
+        'Show calendar by default on desktop',
+        'Whether the calendar picker is visible when Obsidian starts on ' +
+          'desktop.'
+      )
+      this.createFolderBooleanOverride(
+        settings,
+        'defaultCalendarVisibleMobile',
+        'Show calendar by default on mobile',
+        'Whether the calendar picker is visible when Obsidian starts on ' +
+          'mobile.'
+      )
+    } else {
+      this.createDefaultCalendarVisibleSetting(
+        settings,
+        'defaultCalendarVisibleDesktop',
+        'Show calendar by default on desktop'
+      )
+      this.createDefaultCalendarVisibleSetting(
+        settings,
+        'defaultCalendarVisibleMobile',
+        'Show calendar by default on mobile'
+      )
+    }
   }
 
   renderTemplatesTab(
@@ -320,7 +412,18 @@ class SettingsFormBuilder {
           "'auto-template-enabled: false' to that folder's journal-folder.md " +
           "front matter."
       )
-    this.createAutoTemplateEnabledSetting(settings)
+    if (isFolder) {
+      this.createFolderBooleanOverride(
+        settings,
+        'autoTemplateEnabled',
+        'Auto-fill new journal notes',
+        'Seed new journal notes in this folder from the matching template ' +
+          'note.',
+        { rerender: true }
+      )
+    } else {
+      this.createAutoTemplateEnabledSetting(settings)
+    }
     if (!settings.autoTemplateEnabled) return
 
     if (isFolder) {
@@ -410,95 +513,110 @@ class SettingsFormBuilder {
     return written
   }
 
-  renderPatternsTab(settings: JournalFolderSettings): void {
+  renderPatternsTab(settings: JournalFolderSettings, isFolder = false): void {
     this.createPatternsHeading()
 
+    // In folder mode each pattern is rendered as a Default/Custom override
+    // (moment input shown only when Custom); globally it's a plain moment
+    // input. One local dispatcher keeps the tier layout below identical.
+    const pattern = (
+      field: SettingsStringFieldName,
+      name: string,
+      desc: string
+    ): void => {
+      if (isFolder) {
+        this.createFolderTextOverride(settings, field, name, desc, {
+          moment: true,
+        })
+      } else {
+        this.createMomentSetting(settings, field, name).setDesc(desc)
+      }
+    }
+
     new Setting(this.containerEl).setName('Daily notes').setHeading()
-    this.createMomentSetting(
-      settings,
+    pattern(
       'dailyNoteTitlePattern',
-      'Title pattern'
-    ).setDesc('Rendered as the title of a daily note.')
-    this.createMomentSetting(
-      settings,
+      'Title pattern',
+      'Rendered as the title of a daily note.'
+    )
+    pattern(
       'dailyNoteShortTitlePattern',
-      'Short link pattern'
-    ).setDesc('Used for compact in-line links to daily notes.')
-    this.createMomentSetting(
-      settings,
+      'Short link pattern',
+      'Used for compact in-line links to daily notes.'
+    )
+    pattern(
       'dailyNoteMediumTitlePattern',
-      'Cross-year link pattern'
-    ).setDesc('Used for links to daily notes that fall in a different year.')
+      'Cross-year link pattern',
+      'Used for links to daily notes that fall in a different year.'
+    )
 
     new Setting(this.containerEl).setName('Weekly notes').setHeading().setDesc(
       "Use 'gg' or 'gggg' (not 'YY' / 'YYYY') for the year component so it " +
         'tracks the ISO/locale week year.'
     )
-    this.createMomentSetting(
-      settings,
+    pattern(
       'weeklyNoteTitlePattern',
-      'Title pattern'
-    ).setDesc('Rendered as the title of a weekly note.')
-    this.createMomentSetting(
-      settings,
+      'Title pattern',
+      'Rendered as the title of a weekly note.'
+    )
+    pattern(
       'weeklyNoteShortTitlePattern',
-      'Short link pattern'
-    ).setDesc('Used for compact in-line links to weekly notes.')
-    this.createMomentSetting(
-      settings,
+      'Short link pattern',
+      'Used for compact in-line links to weekly notes.'
+    )
+    pattern(
       'weeklyNoteMediumTitlePattern',
-      'Cross-year link pattern'
-    ).setDesc('Used for links to weekly notes that fall in a different year.')
+      'Cross-year link pattern',
+      'Used for links to weekly notes that fall in a different year.'
+    )
 
     new Setting(this.containerEl).setName('Monthly notes').setHeading()
-    this.createMomentSetting(
-      settings,
+    pattern(
       'monthlyNoteTitlePattern',
-      'Title pattern'
-    ).setDesc('Rendered as the title of a monthly note.')
-    this.createMomentSetting(
-      settings,
+      'Title pattern',
+      'Rendered as the title of a monthly note.'
+    )
+    pattern(
       'monthlyNoteShortTitlePattern',
-      'Short link pattern'
-    ).setDesc('Used for compact in-line links to monthly notes.')
-    this.createMomentSetting(
-      settings,
+      'Short link pattern',
+      'Used for compact in-line links to monthly notes.'
+    )
+    pattern(
       'monthlyNoteMediumTitlePattern',
-      'Cross-year link pattern'
-    ).setDesc('Used for links to monthly notes that fall in a different year.')
+      'Cross-year link pattern',
+      'Used for links to monthly notes that fall in a different year.'
+    )
 
     if (settings.quartersEnabled) {
       new Setting(this.containerEl).setName('Quarterly notes').setHeading()
-      this.createMomentSetting(
-        settings,
+      pattern(
         'quarterlyNoteTitlePattern',
-        'Title pattern'
-      ).setDesc('Rendered as the title of a quarterly note.')
-      this.createMomentSetting(
-        settings,
+        'Title pattern',
+        'Rendered as the title of a quarterly note.'
+      )
+      pattern(
         'quarterlyNoteShortTitlePattern',
-        'Short link pattern'
-      ).setDesc('Used for compact in-line links to quarterly notes.')
-      this.createMomentSetting(
-        settings,
+        'Short link pattern',
+        'Used for compact in-line links to quarterly notes.'
+      )
+      pattern(
         'quarterlyNoteMediumTitlePattern',
-        'Cross-year link pattern'
-      ).setDesc(
+        'Cross-year link pattern',
         'Used for links to quarterly notes that fall in a different year.'
       )
     }
 
     new Setting(this.containerEl).setName('Yearly notes').setHeading()
-    this.createMomentSetting(
-      settings,
+    pattern(
       'yearlyNoteTitlePattern',
-      'Title pattern'
-    ).setDesc('Rendered as the title of a yearly note.')
-    this.createMomentSetting(
-      settings,
+      'Title pattern',
+      'Rendered as the title of a yearly note.'
+    )
+    pattern(
       'yearlyNoteShortTitlePattern',
-      'Short link pattern'
-    ).setDesc('Used for compact in-line links to yearly notes.')
+      'Short link pattern',
+      'Used for compact in-line links to yearly notes.'
+    )
   }
 
   renderTasksTab(settings: JournalFolderSettings): void {
@@ -691,20 +809,67 @@ class SettingsFormBuilder {
           'tasks render.'
       )
     this.createFolderTaskFlowSection(settings)
-    this.createMigrationPlacementSettings(settings)
+    this.createMigrationPlacementSettings(settings, true)
   }
 
   // Migration placement is one of the few task fields a folder may
   // override (it's a per-note layout concern), so this renders in both
   // the global Tasks overview and the per-folder modal's Tasks tab. The
-  // heading text input only shows when placement is "Under a heading";
-  // a re-render toggles it as the dropdown changes.
-  createMigrationPlacementSettings(settings: JournalFolderSettings): void {
+  // heading text / level inputs only show when placement resolves to
+  // "Under a heading"; a re-render toggles them as the dropdown changes.
+  // In folder mode each control offers the inherit-global "Default" choice.
+  createMigrationPlacementSettings(
+    settings: JournalFolderSettings,
+    isFolder = false
+  ): void {
     const PLACEMENT_LABELS: Record<TaskMigrationPlacement, string> = {
       'after-last-task': 'After the last task',
       heading: 'Under a heading',
       top: 'Top of note',
       end: 'End of note',
+    }
+    const LEVEL_OPTIONS = Array.from({ length: 6 }, (_, i) => ({
+      value: String(i + 1),
+      label: `Heading ${i + 1} (${'#'.repeat(i + 1)})`,
+    }))
+    const placementDesc =
+      'Where the task-migration commands insert copied tasks in the ' +
+      'destination note.'
+    const headingDesc =
+      'Heading migrated tasks are placed under (matched ' +
+      'case-insensitively; created at the level below if missing).'
+    const levelDesc =
+      'Heading level used when the migration heading is created (H1–H6). ' +
+      'Ignored when a heading of that text already exists — tasks then ' +
+      'slot under it at its current level.'
+
+    if (isFolder) {
+      this.createFolderEnumOverride(
+        settings,
+        'taskMigrationPlacement',
+        'Migration placement',
+        placementDesc,
+        (Object.keys(PLACEMENT_LABELS) as TaskMigrationPlacement[]).map(
+          (value) => ({ value, label: PLACEMENT_LABELS[value] })
+        ),
+        { rerender: true }
+      )
+      if (settings.taskMigrationPlacement === 'heading') {
+        this.createFolderTextOverride(
+          settings,
+          'taskMigrationHeading',
+          'Migration heading',
+          headingDesc
+        )
+        this.createFolderEnumOverride(
+          settings,
+          'taskMigrationHeadingLevel',
+          'Migration heading level',
+          levelDesc,
+          LEVEL_OPTIONS
+        )
+      }
+      return
     }
 
     let dropdown: DropdownComponent
@@ -720,10 +885,7 @@ class SettingsFormBuilder {
 
     new Setting(this.containerEl)
       .setName('Migration placement')
-      .setDesc(
-        'Where the task-migration commands insert copied tasks in the ' +
-          'destination note.'
-      )
+      .setDesc(placementDesc)
       .addDropdown((dd) => {
         dropdown = dd
         for (const value of Object.keys(
@@ -746,10 +908,7 @@ class SettingsFormBuilder {
     if (settings.taskMigrationPlacement === 'heading') {
       new Setting(this.containerEl)
         .setName('Migration heading')
-        .setDesc(
-          'Heading migrated tasks are placed under (matched ' +
-            'case-insensitively; created at the level below if missing).'
-        )
+        .setDesc(headingDesc)
         .addText((text) => {
           text.setValue(settings.taskMigrationHeading).onChange(
             debounce((value: string) => {
@@ -768,17 +927,13 @@ class SettingsFormBuilder {
       }
       new Setting(this.containerEl)
         .setName('Migration heading level')
-        .setDesc(
-          'Heading level used when the migration heading is created ' +
-            "(H1–H6). Ignored when a heading of that text already exists — " +
-            'tasks then slot under it at its current level.'
-        )
+        .setDesc(levelDesc)
         .addDropdown((dd) => {
           levelDropdown = dd
-          for (let level = 1; level <= 6; level++) {
-            dd.addOption(String(level), `Heading ${level} (${'#'.repeat(level)})`)
-          }
-          dd.setValue(String(settings.taskMigrationHeadingLevel)).onChange(onLevel)
+          for (const o of LEVEL_OPTIONS) dd.addOption(o.value, o.label)
+          dd.setValue(String(settings.taskMigrationHeadingLevel)).onChange(
+            onLevel
+          )
         })
         .addExtraButton((btn) => {
           btn
@@ -1067,6 +1222,153 @@ class SettingsFormBuilder {
       .setName('Note title patterns')
       .setHeading()
       .setDesc(desc)
+  }
+
+  // ---- folder-mode "Default" overrides ------------------------
+  //
+  // In the per-folder modal, every overridable field can either inherit
+  // the global config ("Default") or carry an explicit override. These
+  // helpers render that choice. Picking "Default" is persisted by writing
+  // the *global* value back, which `computeFrontMatterDiff` then drops
+  // from the folder's front matter — so the folder transparently tracks
+  // future global edits.
+  //
+  // Text fields gate a real input behind a Default/Custom dropdown. A
+  // freshly-picked "Custom" whose value still equals global would be
+  // dropped on save (indistinguishable from inheriting), so the chosen-
+  // Custom fields are tracked here for the lifetime of the open modal —
+  // keeping their input visible until the user types a diverging value.
+  private folderCustomText = new Set<string>()
+
+  private get folderGlobal(): JournalFolderSettings {
+    return this.config.getGlobalSettings?.() ?? this.config.getCurrentSettings()
+  }
+
+  private isFolderOverride(field: keyof JournalFolderSettings): boolean {
+    return this.config.getOverriddenFields?.().has(field) ?? false
+  }
+
+  private clearFolderOverride(
+    settings: JournalFolderSettings,
+    field: keyof JournalFolderSettings
+  ): void {
+    // Writing the global value makes the save-diff treat the field as
+    // "same as global" and remove its front-matter key → inherit restored.
+    ;(settings as Record<string, unknown>)[field] = this.folderGlobal[field]
+  }
+
+  // Single dropdown: "Default (<inherited>)" followed by each concrete
+  // option. Selecting a concrete value writes an override; "Default"
+  // clears it. `rerender` redraws the form after a change for fields that
+  // show/hide dependent settings.
+  private createFolderEnumOverride(
+    settings: JournalFolderSettings,
+    field: ScalarSettingField,
+    name: string,
+    desc: string,
+    options: Array<{ value: string; label: string }>,
+    opts: { rerender?: boolean } = {}
+  ): Setting {
+    const overridden = this.isFolderOverride(field)
+    const globalValue = String(this.folderGlobal[field])
+    const globalLabel =
+      options.find((o) => o.value === globalValue)?.label ?? globalValue
+
+    const onChange = async (raw: string) => {
+      if (raw === FOLDER_DEFAULT) {
+        this.clearFolderOverride(settings, field)
+      } else {
+        ;(settings as Record<string, unknown>)[field] = coerceToFieldType(
+          field,
+          raw
+        )
+      }
+      await this.saveSettings(settings)
+      if (opts.rerender) this.render()
+    }
+
+    const setting = new Setting(this.containerEl)
+    setting.settingEl.dataset.jfSetting = field
+    return setting
+      .setName(name)
+      .setDesc(desc)
+      .addDropdown((dd) => {
+        dd.addOption(FOLDER_DEFAULT, `Default (${globalLabel})`)
+        for (const o of options) dd.addOption(o.value, o.label)
+        dd.setValue(overridden ? String(settings[field]) : FOLDER_DEFAULT)
+        dd.onChange(onChange)
+      })
+  }
+
+  // Boolean field as Default / On / Off.
+  private createFolderBooleanOverride(
+    settings: JournalFolderSettings,
+    field: ScalarSettingField,
+    name: string,
+    desc: string,
+    opts: { rerender?: boolean } = {}
+  ): Setting {
+    return this.createFolderEnumOverride(
+      settings,
+      field,
+      name,
+      desc,
+      [
+        { value: 'true', label: 'On' },
+        { value: 'false', label: 'Off' },
+      ],
+      opts
+    )
+  }
+
+  // Text / moment field: a Default/Custom gate plus the real input,
+  // shown only while "Custom" is selected.
+  private createFolderTextOverride(
+    settings: JournalFolderSettings,
+    field: SettingsStringFieldName,
+    name: string,
+    desc: string,
+    opts: { moment?: boolean } = {}
+  ): void {
+    const isCustom =
+      this.isFolderOverride(field) || this.folderCustomText.has(field)
+    const globalValue = String(this.folderGlobal[field])
+
+    const onChange = async (raw: string) => {
+      if (raw === 'custom') {
+        this.folderCustomText.add(field)
+        // Seed the input from the inherited value so the user edits from a
+        // sensible starting point rather than an empty box.
+        if (!this.isFolderOverride(field)) {
+          settings[field] = this.folderGlobal[field]
+        }
+      } else {
+        this.folderCustomText.delete(field)
+        this.clearFolderOverride(settings, field)
+        await this.saveSettings(settings)
+      }
+      this.render()
+    }
+
+    const setting = new Setting(this.containerEl)
+    setting.settingEl.dataset.jfSetting = `${field}-mode`
+    setting
+      .setName(name)
+      .setDesc(desc)
+      .addDropdown((dd) => {
+        dd.addOption(FOLDER_DEFAULT, `Default (${globalValue || '—'})`)
+        dd.addOption('custom', 'Custom')
+        dd.setValue(isCustom ? 'custom' : FOLDER_DEFAULT)
+        dd.onChange(onChange)
+      })
+
+    if (isCustom) {
+      if (opts.moment) {
+        this.createMomentSetting(settings, field, 'Custom value')
+      } else {
+        this.createTextSetting(settings, field, 'Custom value')
+      }
+    }
   }
 
   createMomentSetting(
@@ -1618,7 +1920,8 @@ const TABS: TabDef[] = [
     id: 'patterns',
     label: 'Note patterns',
     isVisible: () => true,
-    render: (builder, settings) => builder.renderPatternsTab(settings),
+    render: (builder, settings, isFolder) =>
+      builder.renderPatternsTab(settings, isFolder),
   },
   {
     id: 'tasks',
