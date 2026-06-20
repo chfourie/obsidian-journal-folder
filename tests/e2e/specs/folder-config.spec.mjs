@@ -22,10 +22,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 const MORE = '[data-jf-sidebar-root] .jf-sidebar-header [data-jf-menu-trigger]'
 
+// Sentinel value the folder-mode override dropdowns use for the "inherit the
+// global config" choice (FOLDER_DEFAULT in journal-folder-settings-tab.ts).
+const FOLDER_DEFAULT = '__jf_default__'
+
 async function openMore(ctx) {
   await ctx.openNote('Journal/2026-06-06', 'preview')
   await ctx.openSidebar()
   await ctx.click(MORE, { settleMs: 300 })
+}
+
+async function openFolderConfig(ctx) {
+  await openMore(ctx)
+  await ctx.click(
+    '[data-jf-menu-panel] [data-jf-menu-item-title="Edit folder configuration"]',
+    { settleMs: 500 }
+  )
 }
 
 export const suite = {
@@ -68,11 +80,7 @@ export const suite = {
     [
       'Edit folder configuration writes a kebab-case override to front matter',
       async (ctx) => {
-        await openMore(ctx)
-        await ctx.click(
-          '[data-jf-menu-panel] [data-jf-menu-item-title="Edit folder configuration"]',
-          { settleMs: 500 }
-        )
+        await openFolderConfig(ctx)
         ctx.step('Open Edit folder configuration to get the folder’s own settings form.')
         ctx.assert.ok(
           await ctx.exists('.modal-container [data-jf-settings-tab]'),
@@ -80,6 +88,17 @@ export const suite = {
         )
         // Switch to Patterns and change a per-folder field to diverge from global.
         await ctx.click('.modal-container [data-jf-settings-tab="patterns"]', { settleMs: 400 })
+        // Each per-folder pattern is gated behind a Default/Custom dropdown — the
+        // moment input only renders once "Custom" is chosen, so flip the gate first.
+        await ctx.setValue(
+          '.modal-container [data-jf-setting="dailyNoteShortTitlePattern-mode"] select',
+          'custom',
+          { settleMs: 400 }
+        )
+        ctx.assert.ok(
+          await ctx.exists('.modal-container [data-jf-setting="dailyNoteShortTitlePattern"] input'),
+          'choosing Custom reveals the moment input'
+        )
         await ctx.setValue(
           '.modal-container [data-jf-setting="dailyNoteShortTitlePattern"] input',
           '[folder]D',
@@ -98,6 +117,60 @@ export const suite = {
           '[folder]D',
           'the new value is persisted'
         )
+      },
+    ],
+    [
+      'choosing a concrete value writes an override; "Default" removes it (inherit)',
+      async (ctx) => {
+        // Round-trip the per-folder "Default (inherit global)" choice on a
+        // boolean override. The Journal folder starts with no `quarters-enabled`
+        // key (it inherits the global default of off); picking a concrete value
+        // writes a sparse override, and picking Default again must remove that
+        // key — without disturbing the folder's other front-matter overrides.
+        ctx.assert.eq(
+          ctx.readNote('Journal/journal-folder.md').includes('quarters-enabled'),
+          false,
+          'precondition: folder has no quarters-enabled override (inherits global)'
+        )
+
+        await openFolderConfig(ctx)
+        await ctx.click('.modal-container [data-jf-settings-tab="general"]', { settleMs: 400 })
+        const DD = '.modal-container [data-jf-setting="quartersEnabled"] select'
+        ctx.assert.ok(
+          await ctx.exists(DD),
+          'folder override dropdown for quartersEnabled present in folder mode'
+        )
+
+        // Pick a concrete value that diverges from the global default → override.
+        await ctx.setValue(DD, 'true', { settleMs: 500 })
+        ctx.step('Set "Enable quarterly notes" to On for this folder only.')
+        ctx.assert.ok(
+          await ctx.waitFor(() =>
+            ctx.readNote('Journal/journal-folder.md').includes('quarters-enabled: true')
+          ),
+          'concrete choice writes the kebab-cased override to front matter'
+        )
+        await ctx.shot('Folder override set to a concrete value', {
+          rect: "bodyRect('.journal-folder-config-modal-wrap')",
+        })
+
+        // Back to Default → the override key must be dropped (inherit restored).
+        await ctx.setValue(DD, FOLDER_DEFAULT, { settleMs: 500 })
+        ctx.step('Switch it back to Default (inherit the global setting).')
+        ctx.assert.ok(
+          await ctx.waitFor(
+            () => !ctx.readNote('Journal/journal-folder.md').includes('quarters-enabled')
+          ),
+          'choosing Default removes the override key (inherit restored)'
+        )
+        // The folder's other override (its title) must survive the round-trip —
+        // the save is a sparse diff, not a full rewrite.
+        ctx.assert.contains(
+          ctx.readNote('Journal/journal-folder.md'),
+          'journal-folder-title: Journal',
+          'unrelated front-matter overrides are preserved'
+        )
+        ctx.step('Returning to Default clears just that key, leaving other overrides intact.')
       },
     ],
   ],

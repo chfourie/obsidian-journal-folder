@@ -137,7 +137,8 @@ in `specs/` and is wired in `specs/index.mjs`.
 | # | Scenario | Assertion | Status |
 |---|----------|-----------|--------|
 | 1 | Initialise a new journal folder | `journal-folder.md` seeded with title | ✅ |
-| 2 | Edit folder config writes kebab front matter | `daily-note-short-title-pattern:` in config note | ✅ |
+| 2 | Edit folder config writes kebab front matter | Default/Custom gate → `daily-note-short-title-pattern:` in config note | ✅ |
+| 3 | Concrete value writes override; "Default" removes it (inherit) | `quarters-enabled: true` written, then key removed; title override preserved | ✅ |
 
 ### Sidebar — `sidebar.spec.mjs`
 | # | Scenario | Assertion | Status |
