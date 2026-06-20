@@ -1581,6 +1581,33 @@ input[data-jf-task-swapped] {
 	display: none;
 }
 
+/* Live-preview only: the native checkbox is `display: none`, so the marker
+ * gap to the right of our icon (the icon's `margin-right`) is empty editor
+ * surface. A click there lands on the `cm-line`, not the icon, so CodeMirror
+ * places the caret and drops the line into source view instead of cycling the
+ * status — the "click the right-hand side and it edits" bug. Widen the icon's
+ * hit target across that gap with a transparent absolute overlay. Routing it
+ * through a pseudo-element keeps the click's `evt.target` as the icon span
+ * itself (so `taskCheckboxTarget`'s `closest([data-jf-task-icon])` resolves),
+ * without inflating the shell's painted background the way padding would, and
+ * without touching layout. `data-jf-task-icon` is unique to the live-preview
+ * icon (reading view uses `data-jf-doc-icon`), so reading view / sidebar icons
+ * are untouched. `left: 100%` + the marker-gap width mirrors the base
+ * `margin-right` exactly, so the overlay ends precisely where the task text
+ * begins. */
+[data-jf-task-icon].jf-task-status {
+	position: relative;
+}
+
+[data-jf-task-icon].jf-task-status::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 100%;
+	width: var(--list-marker-gap, 0.4em);
+}
+
 /* Panel rows already establish their own flex layout — the icon
  * sits as a flex child and the row's `align-items: center` does
  * the vertical work. Override the document-body defaults to a
