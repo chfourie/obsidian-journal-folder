@@ -97,6 +97,7 @@ User guide (everything below is in this page):
 - [The edit-mode indicator](#the-edit-mode-indicator)
 - [Using with a theme that styles tasks](#using-with-a-theme-that-styles-tasks)
 - [Using with the Obsidian Tasks plugin](#using-with-the-obsidian-tasks-plugin)
+- [Known issues](#known-issues)
 - [Advanced configuration](#advanced-configuration)
 
 [Developer & contributor docs](#developer--contributor-docs) are separate files in the repo.
@@ -837,6 +838,25 @@ The two block types target different needs and can both live in the same note:
 - **`journal-tasks` block (Journal Folder)** — surface tasks from journal notes whose date range intersects the host note's range.
 
 A weekly review note can hold both: a `journal-tasks` block at the top to list everything written down during the week, and a Tasks-plugin block below it for `due before tomorrow` rollups.
+
+---
+
+## Known issues
+
+A short, honest list of rough edges we're aware of. None of these touch your notes or your data — they're cosmetic.
+
+### Fold arrows can overlap margin icons on collapsible lines
+
+When a list item has sub-items, Obsidian draws a small **fold arrow** — the little triangle you click to collapse the item — just to its left. On those collapsible lines that arrow sits in the same left-margin strip the plugin uses for its own icons, so the two can overlap:
+
+- **Reading view** — the fold arrow can overlap a **signifier** icon in the margin.
+- **Live Preview (editing)** — the fold arrow can overlap a **task's checkbox / status** icon.
+
+It only shows up on lines that actually have sub-items (the ones you can fold), and often only while your pointer is hovering the line. It's purely visual: clicking still does the right thing, the icons still work, and nothing is changed in your note.
+
+**Why it happens:** the fold arrow is drawn by Obsidian itself, in the same margin space the plugin places its icons — and exactly where it lands depends on your theme, so there's no single position that's correct for everyone.
+
+**Planned fix (no promises on timing):** a future version may add an **optional, off-by-default setting** that nudges the margin icons clear of the fold arrow, by an amount you can fine-tune to suit your theme. Being opt-in, it would leave existing setups exactly as they are. One related case — Obsidian's editor **line numbers** overlapping the margin icons — is intentionally left out, as there's no clean way to handle it without trade-offs elsewhere.
 
 ---
 
