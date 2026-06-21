@@ -856,7 +856,15 @@ It only shows up on lines that actually have sub-items (the ones you can fold), 
 
 **Why it happens:** the fold arrow is drawn by Obsidian itself, in the same margin space the plugin places its icons — and exactly where it lands depends on your theme, so there's no single position that's correct for everyone.
 
-**Planned fix (no promises on timing):** a future version may add an **optional, off-by-default setting** that nudges the margin icons clear of the fold arrow, by an amount you can fine-tune to suit your theme. Being opt-in, it would leave existing setups exactly as they are. One related case — Obsidian's editor **line numbers** overlapping the margin icons — is intentionally left out, as there's no clean way to handle it without trade-offs elsewhere.
+**Planned fix (no promises on timing):** a future version may add an **optional, off-by-default setting** that nudges the margin icons clear of the fold arrow, by an amount you can fine-tune to suit your theme. Being opt-in, it would leave existing setups exactly as they are.
+
+### Editor line numbers can overlap margin icons
+
+If you turn on Obsidian's **Show line numbers** (*Settings → Editor → Show line numbers*), the line numbers appear down the left edge of the editor in **Live Preview** — and on lines that carry a signifier, a number can overlap the margin icon.
+
+This one is **not** on the planned-fix list, on purpose. The line numbers and the fold arrow pull the margin icons in **opposite directions** — a line number sits at the far left, while a fold arrow sits right next to the text — so a single "nudge" can't clear both at once. And with the **Per entry** signifier placement, where icons follow each line's indentation, there's no consistent gap to slide them into. Fixing it cleanly would mean reworking the gutter layout for a fairly niche combination (line numbers on, signifiers in the margin), which isn't a trade-off worth making right now.
+
+If line numbers and signifiers clash for you, the simplest workarounds are to turn line numbers off, or to use a signifier placement / theme where they don't collide.
 
 ---
 
