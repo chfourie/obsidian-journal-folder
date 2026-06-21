@@ -1559,8 +1559,19 @@ li.task-list-item[data-task="-"] {
  * without measuring geometry, and reflows naturally. The
  * `jf-doc-task-status` marker is added only by the reading-view swap —
  * live preview positions its icon correctly on its own, and the
- * sidebar/panel rows keep their own flex spacing. */
+ * sidebar/panel rows keep their own flex spacing.
+ *
+ * `position: relative` is load-bearing for collapsible tasks (a task
+ * with a sub-list). Obsidian draws a `.list-collapse-indicator` as an
+ * `position: absolute` box that is wide enough to overlap the checkbox
+ * column; left static, our icon paints *under* that box, so a click on
+ * the icon lands on the indicator and folds the sub-list instead of
+ * cycling the status. Obsidian's own native checkbox dodges this by
+ * being `position: relative` — we mirror it, so the icon (later in DOM
+ * than the indicator) paints on top and captures its own clicks, while
+ * the indicator's exposed left edge stays foldable. */
 .jf-doc-task-status.jf-task-status {
+	position: relative;
 	margin-inline-start: calc(-1 * var(--checkbox-size, 1em));
 	margin-inline-end: var(--list-marker-gap, 0.5em);
 }

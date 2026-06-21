@@ -23,6 +23,7 @@ import { suite as headerNav } from './header-nav.spec.mjs'
 import { suite as calendar } from './calendar.spec.mjs'
 import { suite as tasksRender } from './tasks-render.spec.mjs'
 import { suite as taskStatus } from './task-status.spec.mjs'
+import { suite as taskNestedCollapse } from './task-nested-collapse.spec.mjs'
 import { suite as taskLivePreview } from './task-live-preview.spec.mjs'
 import { suite as taskMigration } from './task-migration.spec.mjs'
 import { suite as migrationReferenceRender } from './migration-reference-render.spec.mjs'
@@ -45,6 +46,7 @@ export const suites = [
   calendar,
   tasksRender,
   taskStatus,
+  taskNestedCollapse,
   taskLivePreview,
   taskMigration,
   migrationReferenceRender,

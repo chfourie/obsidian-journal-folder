@@ -60,6 +60,13 @@ in `specs/` and is wired in `specs/index.mjs`.
 | 6 | `taskClickOpensPicker` makes left-click open the picker | `[data-jf-status-picker]`, status unchanged | ✅ |
 | — | Self-cycling status opens picker on click | | ⬜ |
 
+### Task nested collapse — `task-nested-collapse.spec.mjs`
+| # | Scenario | Assertion | Status |
+|---|----------|-----------|--------|
+| 1 | Collapsible task icon owns its centre (regression) | `elementFromPoint` at the icon centre resolves to `[data-jf-doc-icon]`, not `.list-collapse-indicator` (with overlap guard) | ✅ |
+| 2 | Coordinate click cycles the status, does not fold | `li` not `is-collapsed`; note contains `- [/] parent task` | ✅ |
+| 3 | Fold control still folds on its exposed edge | `is-collapsed` toggles after clicking the indicator edge | ✅ |
+
 ### Task status — live preview — `task-live-preview.spec.mjs`
 | # | Scenario | Assertion | Status |
 |---|----------|-----------|--------|
