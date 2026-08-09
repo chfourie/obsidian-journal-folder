@@ -92,11 +92,16 @@ export const suite = {
     [
       'tasks are grouped under their source note',
       async (ctx) => {
+        // Note-anchored: the baseline panel scope is `today` + `day`, so on any
+        // real date other than the pinned fixture date the fixture's tasks fall
+        // out of scope and there are no groups at all.
+        await ctx.applySettings({ tasksSidebarAnchor: 'note' })
         await ctx.openNote('Journal/2026-06-06', 'preview')
         await ctx.openSidebar()
         ctx.step('Open the daily note and reveal the sidebar task panel.')
+        const GROUPS = '[data-jf-task-list="sidebar"] [data-jf-task-group="note"]'
         ctx.assert.ok(
-          (await ctx.count('[data-jf-task-list="sidebar"] [data-jf-task-group="note"]')) >= 1,
+          await ctx.waitFor(async () => (await ctx.count(GROUPS)) >= 1),
           'at least one note group'
         )
         ctx.step('Tasks in the sidebar are grouped under the note they came from.')

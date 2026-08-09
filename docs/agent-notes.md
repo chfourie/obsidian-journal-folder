@@ -212,11 +212,24 @@ scenario matrix in `tests/e2e/TEST-PLAN.md`. Selectors are the shipped `data-jf-
     retries on empty stdout with escalating backoff `[300,500,800,1200]`ms.
   - **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is `"{}"`; the helper
     wraps as `Promise.resolve(x).then(JSON.stringify)`.
+- **The settings dialog can open in a POPOUT WINDOW, and then no `document.querySelector` in the
+  main window can see it.** Obsidian's global *"Open settings in a separate window"*
+  (`vault.getConfig('settingsPopoutWindow')`, gated on `canPopoutWindow`) makes `app.setting.open()`
+  spawn a second Electron window and mount `app.setting.containerEl` in **its** document. The
+  symptom is maximally misleading: `app.setting.activeTab.containerEl.innerHTML` holds a fully
+  rendered tab strip while `{attached:false, inDoc:false, modalsInDom:0}` — the plugin is fine, only
+  the *lookup* window is wrong. Plugin `Modal` subclasses (FolderConfigModal, …) never popout, so
+  every other modal suite keeps passing. Pinned off two ways: the committed fixture
+  `jf-e2e-vault/.obsidian/app.json` (vault config beats the global) **and** a preflight
+  `setConfig('settingsPopoutWindow', false)`. Both are needed — `resetVault`'s `git checkout` restores
+  app.json between tests and Obsidian re-reads it, so a runtime-only fix is reverted after test one.
 - **Fixtures are date-pinned to 2026-06-06, so date-sensitive tests rot by the day.** The fragile
   spot is the sidebar **task panel**: its baseline scope is `anchor: today` + `range: day`, so on
   any other real date a daily-note fixture's tasks fall out of scope and a monthly/yearly note
   takes over. When adding a task-panel test, `applySettings({ tasksSidebarAnchor: 'note' })` (plus
-  `ctx.waitFor`) unless you're specifically testing the `today` anchor on the fixture date.
+  `ctx.waitFor`) unless you're specifically testing the `today` anchor on the fixture date. The
+  other rot-prone shape is any assertion on a control that means "**now**": the calendar's `Current`
+  quick-jump goes to the *real* today's month, so assert `ctx.todayDaily()`, never the fixture date.
 
 ---
 

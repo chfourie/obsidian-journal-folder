@@ -119,6 +119,19 @@ async function preflight(deploy) {
     }
   }
 
+  // 5c. Force the settings dialog to render INSIDE this window. Obsidian's
+  //     global "Open settings in a separate window" (`settingsPopoutWindow`,
+  //     honoured whenever `canPopoutWindow`) makes `app.setting.open()` spawn a
+  //     popout Electron window and mount `app.setting.containerEl` in *that*
+  //     window's document — so `document.querySelector` here sees no modal at
+  //     all, even though the tab rendered fine. The vault's app.json pins this
+  //     to false; re-assert it at runtime so an already-running app that cached
+  //     the global `true` is corrected too. Vault config overrides the global,
+  //     and writing the value already in app.json is churn-free.
+  await evalRaw(
+    `(()=>{app.setting.close(); app.vault.setConfig('settingsPopoutWindow', false); return 'ok'})()`
+  )
+
   // 6. Clear any modal/panel a previous run left open, then wait until the
   //    render pipeline is fully warm. After a plugin reload the header can
   //    render before the journal-tasks / signifier post-processors catch up, so

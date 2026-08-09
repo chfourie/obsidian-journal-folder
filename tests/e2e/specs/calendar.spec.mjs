@@ -119,9 +119,13 @@ export const suite = {
         await ctx.click(`${CAL} [data-jf-nav="next"]`, { settleMs: 400 })
         ctx.assert.ok(await ctx.exists(`${CAL} [data-jf-quick-jump="today"]`), 'Current link shown')
         await ctx.click(`${CAL} [data-jf-quick-jump="today"]`, { settleMs: 400 })
+        // `Current` jumps to the REAL today's month, not the fixture's month —
+        // so assert against today's date, or this rots the day the clock passes
+        // the pinned fixture date.
+        const today = ctx.todayDaily()
         ctx.assert.ok(
-          await ctx.exists(`${CAL} [data-jf-cell="day"][data-jf-date="2026-06-06"]`),
-          'jumped back to the current month'
+          await ctx.exists(`${CAL} [data-jf-cell="day"][data-jf-date="${today}"]`),
+          `jumped back to the current month (${today})`
         )
         ctx.step('Clicking Current jumps the calendar back to today’s month.')
         await ctx.shot('Back to current month', { rect: "rectOf('.journal-folder-calendar')" })

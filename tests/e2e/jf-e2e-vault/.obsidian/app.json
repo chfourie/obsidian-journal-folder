@@ -8,5 +8,6 @@
   "newFileLocation": "current",
   "attachmentFolderPath": ".",
   "showInlineTitle": false,
-  "defaultViewMode": "preview"
+  "defaultViewMode": "preview",
+  "settingsPopoutWindow": false
 }
