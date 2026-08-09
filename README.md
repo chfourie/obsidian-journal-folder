@@ -281,6 +281,8 @@ Items:
 - **Switch to default folder** — resets the picker to the configured `default-journal-folder`. Shown only when you're on a non-default folder *and* the configured default still exists in the known list.
 - **Set as default folder** — promotes the currently selected folder to the new global default. Shown only when the picker is on a non-default journal folder. The default folder itself has no global-settings-tab UI — set it from here.
 - **Edit folder configuration** — opens a modal containing the same form rows as the plugin settings tab, but writing to the selected folder's `journal-folder.md` front matter instead of the plugin's `data.json`. Global-only fields (`start-of-week`, `hide-journal-folder-notes`, the *Sidebar* section, the destructive *Reset all* button) are hidden. Per-folder fields show their **effective** value (global merged with the folder's existing front matter), and edits are stored sparsely — fields that match the global config are *removed* from the front matter so subsequent global edits keep flowing through, while diverging fields are written as kebab-cased keys.
+
+  Every overridable row makes inheriting explicit rather than implicit. Dropdowns carry a **Default (*value*)** entry above the concrete choices, toggles become a **Default / On / Off** dropdown, and text and date-pattern fields sit behind a **Default / Custom** selector that reveals the input only under *Custom*. Choosing *Default* drops the folder's override, so that field follows the global setting again from then on.
 - **Initialise a new journal folder** — opens a fuzzy folder picker showing every folder that *isn't* already a journal folder (the vault root is excluded — it's not a supported journal folder elsewhere in the plugin). Picking a folder creates a `journal-folder.md` in it seeded with `journal-folder-title: <folder name>`, then switches the sidebar's selected folder to the new one.
 
 ### Hiding the config notes
@@ -596,6 +598,10 @@ concern):
 - **Migration placement / heading** — where copies land in the destination:
   *After the last task*, *Top of note*, *End of note*, or *Under a heading* (with
   the heading text you specify).
+- **Migration heading level** — the level (*H1*–*H6*, default *H2*) the migration
+  heading is created at when the destination note doesn't have one yet. If a
+  heading with that text already exists, it's left alone and tasks slot under it
+  at whatever level it already is.
 - **Reference on the original task** / **Reference on the migrated copy** —
   toggle either direction off if you only want one trail.
 - **Reference style** — *text*, *emoji*, or *lucide* (the default; markers are
@@ -940,7 +946,7 @@ A handful of fields are intentionally **not** honoured at the folder or embedded
 - `taskInteractionScope` — interception runs at process-wide layers (markdown post-processor, editor extension).
 - `signifiers`, `signifierPlacement`, `signifierHideTagInReadingView`, `signifierHideTagInLivePreview`, `signifierShowTagsOnActiveLine`, `signifierReserveGutter` — one signifier set per vault; see [Signifiers](#signifiers).
 - `taskCategories`, `taskCategoryShowUnderNote` — category definitions are vault-wide.
-- the migration *reference* fields (`taskMigrationAddToReference`, `taskMigrationAddFromReference`, `taskMigrationReferenceStyle`, `taskMigrationToMarker`, `taskMigrationFromMarker`, `taskMigrationReferenceOpacity`). The **exception** is `taskMigrationPlacement` / `taskMigrationHeading`, which *are* folder-honoured — they're a per-note layout concern, not a process-wide preference.
+- the migration *reference* fields (`taskMigrationAddToReference`, `taskMigrationAddFromReference`, `taskMigrationReferenceStyle`, `taskMigrationToMarker`, `taskMigrationFromMarker`, `taskMigrationReferenceOpacity`). The **exception** is `taskMigrationPlacement` / `taskMigrationHeading` / `taskMigrationHeadingLevel`, which *are* folder-honoured — they're a per-note layout concern, not a process-wide preference.
 
 ### Layer 2 — per-folder `journal-folder.md`
 
@@ -962,7 +968,7 @@ The **body** of `journal-folder.md` (everything below the closing `---`) is the 
 `task-flow` is the only task-related field that a folder may override — flow contents (`taskFlows`) are still edited globally, and everything else in the *Tasks* section is global-only.
 
 > [!TIP]
-> The recommended way to edit per-folder settings is the **sidebar tab → More… → *Edit folder configuration*** action. It opens a form pre-populated with the effective values, validates as you go, and writes a sparse diff to `journal-folder.md` so the folder still inherits future global changes for any field you didn't deliberately diverge on.
+> The recommended way to edit per-folder settings is the **sidebar tab → More… → *Edit folder configuration*** action. It opens a form pre-populated with the effective values, validates as you go, and writes a sparse diff to `journal-folder.md` so the folder still inherits future global changes for any field you didn't deliberately diverge on. Each row's **Default** option is the UI equivalent of deleting that key from the front matter.
 
 > [!CAUTION]
 > Anything set at folder level applies to every journal header in that folder, but does *not* affect the actual folder name on disk. `journal-folder-title` is a display label only.
@@ -1030,6 +1036,7 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `task-interaction-scope`             | `'lists'` (default) — interactions only on the plugin's own task surfaces. `'everywhere'` — intercept every task checkbox in rendered documents. **Global only.** |
 | `task-migration-placement`           | Where migrated task copies land in the destination note: `after-last-task` (default), `top`, `end`, or `heading`. Per-folder. See [Migrating tasks](#migrating-tasks-between-notes). |
 | `task-migration-heading`             | Heading text used when `task-migration-placement` is `heading` (default `Tasks`). Per-folder. |
+| `task-migration-heading-level`       | Heading level (1–6, default 2) the migration heading is *created* at when it's missing; ignored when a heading of that text already exists. Per-folder. |
 | `task-migration-add-to-reference`    | Whether the origin task gets a forward reference to the destination (default true). **Global only.** |
 | `task-migration-add-from-reference`  | Whether the migrated copy gets a back reference to its origin (default true). **Global only.** |
 | `task-migration-reference-style`     | `text` / `emoji` / `lucide` (default) — how reference markers render. **Global only.** |

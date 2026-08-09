@@ -7,6 +7,42 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.4.0]
+
+### Added
+- **Migration heading level.** When task-migration placement is *Under a
+  heading* and that heading doesn't exist yet, it's now created at a level you
+  choose (H1–H6) instead of always H2. The new *Migration heading level*
+  setting sits next to *Migration heading* and, like it, can be overridden
+  per folder (`task-migration-heading-level`). It only governs heading
+  *creation* — when a heading of that text already exists, tasks still slot
+  under it at its current level.
+- **Per-folder "Default" (inherit) choice.** In *More… → Edit folder
+  configuration*, every overridable setting now shows inheriting-from-global as
+  an explicit option instead of leaving you to guess: dropdowns gain a
+  *Default (&lt;value&gt;)* entry, toggles become *Default / On / Off*, and text
+  and date-pattern fields sit behind a *Default / Custom* selector that only
+  reveals the input under *Custom*. Picking *Default* clears the folder's
+  override, so the folder tracks future global edits again.
+
+### Fixed
+- **Clicking a task icon on a collapsible task no longer folds the list.** In
+  reading view, a task with sub-items is collapsible and Obsidian draws its fold
+  control over the checkbox column; clicks on the plugin's status icon landed on
+  that control (toggling the sub-list) instead of cycling the status, and the two
+  glyphs visibly overlapped. The icon now paints above it and owns its clicks,
+  while the fold control still folds on its exposed left edge.
+- **Clicking the gap next to a task icon in Live Preview no longer drops the line
+  into source view.** The space between the status icon and the task text fell
+  through to the editor and placed the caret; that gap is now part of the icon's
+  hit target and cycles the status like the icon itself.
+
+### Documentation
+- Added a **Known issues** section to the README covering the two cosmetic
+  margin-icon overlaps we're aware of (Obsidian's fold arrows, and the editor's
+  optional line numbers), including which one is on the planned-fix list and why
+  the other isn't.
+
 ## [3.3.0]
 
 ### Added

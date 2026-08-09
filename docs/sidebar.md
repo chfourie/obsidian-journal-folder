@@ -52,6 +52,16 @@ The synthetic anchor's `noteNames` array is captured *once* at construction (the
 - Keys whose new value matches the global config land in `diff.remove` and are deleted from front matter, so future global edits flow through.
 - Keys that diverge from global land in `diff.set` (kebab-cased) and are written.
 
+### The per-field "Default" (inherit) choice
+
+Sparse saving alone left inheritance invisible — a row showed the effective value with no way to tell an inherited value from an explicit override, and no way to *un*-override short of hand-editing the front matter. Folder mode therefore passes two extra callbacks into `renderSettingsForm`: `getGlobalSettings` (the config the folder inherits from) and `getOverriddenFields` (`readOverriddenFields`, the camelCase field keys the folder's front matter actually sets). With those, each overridable row renders inheritance as a literal option:
+
+- **Enums** — a `Default (<global label>)` option ahead of the concrete values.
+- **Booleans** — a Default / On / Off dropdown instead of a toggle.
+- **Text / moment patterns** — a Default / Custom gate; the real input renders only under *Custom*.
+
+Picking *Default* writes the **global value** into the settings object, which `computeFrontMatterDiff` then routes to `diff.remove` — no new save path, the existing sparse diff does the erasing. The override set comes from the front matter rather than from comparing values, because a deliberate override may legitimately equal the global value mid-edit. Freshly-picked *Custom* fields (still equal to global, so not yet in front matter) are tracked in `folderCustomText` for the lifetime of the open modal so the input doesn't snap shut on re-render. The **global** settings tab is unchanged — it has nothing to inherit from.
+
 `PER_FOLDER_FIELDS` is the canonical list of fields the modal lets users edit, typed as `const satisfies ReadonlyArray<keyof JournalFolderSettings>` so adding a new settings field without an entry trips a type error. The diff helper handles the boolean-vs-stringified-boolean mismatch (`true` in JS vs `"true"` in YAML, which `FolderSettingsResolver` already coerces) so opening and closing the modal without changes doesn't churn the front matter.
 
 ## File-explorer hide

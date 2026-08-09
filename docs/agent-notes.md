@@ -464,6 +464,25 @@ suite. Run `npm run test:e2e:build`; full docs in
   prepend to the content host (`<p>` for loose items, the `<li>` for tight). A
   marker placed as an `<li>` child *before* the `<p>` lands on its own line. See
   `process-signifiers.ts` `placeMarker`.
+- **A collapsible task's fold control overlaps the checkbox column.** In reading
+  view a task with sub-items gets a `.list-collapse-indicator` — an
+  `position: absolute` box wide enough to cover the checkbox. A swapped-in status
+  icon left at `position: static` paints *under* it, so clicks on the icon fold
+  the sub-list instead of cycling the status (and the glyphs visibly overlap).
+  Give the icon `position: relative` — exactly what Obsidian's own native
+  checkbox does — so it paints on top and owns its clicks while the indicator's
+  exposed left edge stays foldable. Covered by the `task-nested-collapse` E2E
+  spec (coordinate hit-test + real click + fold-still-works).
+- **`margin` is outside the hit box; grow a hit target with `::after`, not
+  padding.** In live preview the native checkbox is `display: none` and clicks
+  route to the plugin's icon span; the gap to the task text was a
+  `margin-right`, so a click landing in it fell through to the `.cm-line` and
+  CodeMirror placed the caret (dropping the line into source view). Widen with a
+  transparent absolutely-positioned `::after` overlay: a pseudo-element keeps
+  `evt.target` on the icon span (so `closest('[data-jf-task-icon]')` still
+  resolves) without inflating the painted background the way padding would, and
+  without touching layout. Scope it to `data-jf-task-icon` so reading-view and
+  sidebar icons are untouched.
 - **The community-review scanner lints `styles.css` too** (warnings page at
   `community.obsidian.md/plugins/journal-folder`), beyond what `npm run lint`
   reproduces, and pattern-matches properties without context:
