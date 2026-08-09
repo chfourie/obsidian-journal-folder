@@ -70,7 +70,7 @@ export function processSignifiers(
       if (marker.querySelector(`[data-sig-id="${cssEscape(signifier.id)}"]`)) {
         continue
       }
-      const icon = activeDocument.createElement('span')
+      const icon = activeWindow.createSpan()
       icon.className = 'jf-signifier'
       icon.dataset.sigId = signifier.id
       icon.setAttribute('aria-label', signifier.label)
@@ -130,7 +130,7 @@ function lineSegmentFor(anchor: HTMLElement, block: HTMLElement): HTMLElement {
   let end = idx
   while (end < children.length - 1 && children[end + 1].nodeName !== 'BR') end++
 
-  const span = activeDocument.createElement('span')
+  const span = activeWindow.createSpan()
   span.className = 'jf-signifier-line'
   block.insertBefore(span, children[start])
   for (let i = start; i <= end; i++) span.appendChild(children[i])
@@ -171,7 +171,7 @@ function ensureMarker(
   const existing = findOwnMarker(block, MARKER_CLASS)
   if (existing) return existing
 
-  const marker = activeDocument.createElement('span')
+  const marker = activeWindow.createSpan()
   marker.className = MARKER_CLASS
   if (placement === 'margin-column') {
     marker.classList.add(COLUMN_CLASS)

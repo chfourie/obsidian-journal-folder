@@ -32,3 +32,26 @@ if (typeof g.activeDocument === 'undefined' && typeof document !== 'undefined') 
 if (typeof g.activeWindow === 'undefined' && typeof window !== 'undefined') {
   g.activeWindow = window
 }
+
+// Obsidian also hangs `createEl` / `createDiv` / `createSpan` / `createFragment` off every
+// window (verified live: a popout window's copies create nodes owned by *its* document, which
+// is why `activeWindow.createSpan()` — the form `obsidianmd/prefer-create-el` mandates — is the
+// popout-safe one). jsdom has none of them. The plugin only ever calls them with no arguments,
+// so the polyfill covers exactly that: a detached node in this window's document.
+type ObsidianDomHelpers = {
+  createEl?: <K extends keyof HTMLElementTagNameMap>(
+    tag: K
+  ) => HTMLElementTagNameMap[K]
+  createDiv?: () => HTMLDivElement
+  createSpan?: () => HTMLSpanElement
+  createFragment?: () => DocumentFragment
+}
+
+if (typeof window !== 'undefined') {
+  const w = window as Window & ObsidianDomHelpers
+  w.createEl ??= <K extends keyof HTMLElementTagNameMap>(tag: K) =>
+    w.document.createElement(tag)
+  w.createDiv ??= () => w.document.createElement('div')
+  w.createSpan ??= () => w.document.createElement('span')
+  w.createFragment ??= () => w.document.createDocumentFragment()
+}

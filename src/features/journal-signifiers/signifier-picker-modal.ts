@@ -48,7 +48,7 @@ export class SignifierPickerModal extends Modal {
       const setting = new Setting(contentEl)
         .setName(signifier.label)
         .setDesc(signifier.tags.map((t) => `#${t}`).join(' '))
-      const icon = activeDocument.createElement('span')
+      const icon = activeWindow.createSpan()
       icon.className = 'jf-signifier'
       renderSignifierIcon(icon, signifier.icon)
       setting.nameEl.prepend(icon)

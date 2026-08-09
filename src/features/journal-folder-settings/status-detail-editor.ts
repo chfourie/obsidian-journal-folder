@@ -154,7 +154,7 @@ function renderPreview(
   const shell = row.createSpan({ cls: 'jf-status-edit-preview-icon' })
 
   if (rendering === 'theme') {
-    const input = activeDocument.createElement('input')
+    const input = activeWindow.createEl('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
     input.setAttribute('data-task', status.char)
@@ -162,7 +162,7 @@ function renderPreview(
     input.disabled = true
     shell.appendChild(input)
   } else {
-    const iconShell = activeDocument.createElement('span')
+    const iconShell = activeWindow.createSpan()
     iconShell.className = 'jf-task-status'
     shell.appendChild(iconShell)
     const model = buildTaskModel([status], 'plugin')

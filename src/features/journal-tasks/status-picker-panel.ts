@@ -89,7 +89,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   // Only one picker at a time — drop any previous instance first.
   closeStatusPicker()
 
-  const panel = activeDocument.createElement('div')
+  const panel = activeWindow.createDiv()
   panel.className = 'jf-status-picker-panel'
   panel.setAttribute('role', 'menu')
   panel.setAttribute('data-jf-status-picker', '')
@@ -99,7 +99,7 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
   let selectedEl: HTMLElement | null = null
 
   for (const status of opts.model.statuses) {
-    const row = activeDocument.createElement('span')
+    const row = activeWindow.createSpan()
     row.className = 'jf-status-picker-item'
     row.setAttribute('role', 'menuitemradio')
     row.setAttribute('data-jf-status-option', status.id)
@@ -112,13 +112,13 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
     }
     if (!firstFocusable) firstFocusable = row
 
-    const iconHost = activeDocument.createElement('span')
+    const iconHost = activeWindow.createSpan()
     iconHost.className = 'jf-status-picker-icon'
     iconHost.setAttribute('aria-hidden', 'true')
     renderStatusIconById(iconHost, status.id, opts.model)
     row.appendChild(iconHost)
 
-    const label = activeDocument.createElement('span')
+    const label = activeWindow.createSpan()
     label.className = 'jf-status-picker-label'
     label.textContent = status.label || status.id
     row.appendChild(label)
@@ -149,24 +149,24 @@ export function openStatusPicker(opts: StatusPickerOptions): void {
       ? migrationProvider(opts.migrateTarget)
       : null
   if (migrateRun) {
-    const sep = activeDocument.createElement('div')
+    const sep = activeWindow.createDiv()
     sep.className = 'jf-status-picker-sep'
     panel.appendChild(sep)
 
-    const row = activeDocument.createElement('span')
+    const row = activeWindow.createSpan()
     row.className = 'jf-status-picker-item jf-status-picker-migrate'
     row.setAttribute('role', 'menuitem')
     row.setAttribute('data-jf-migrate-row', '')
     row.tabIndex = 0
     if (!firstFocusable) firstFocusable = row
 
-    const iconHost = activeDocument.createElement('span')
+    const iconHost = activeWindow.createSpan()
     iconHost.className = 'jf-status-picker-icon'
     iconHost.setAttribute('aria-hidden', 'true')
     setIcon(iconHost, 'arrow-right-from-line')
     row.appendChild(iconHost)
 
-    const label = activeDocument.createElement('span')
+    const label = activeWindow.createSpan()
     label.className = 'jf-status-picker-label'
     label.textContent = 'Migrate task…'
     row.appendChild(label)

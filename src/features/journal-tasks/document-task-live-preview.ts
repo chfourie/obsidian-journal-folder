@@ -417,7 +417,7 @@ class LivePreviewPlugin implements PluginValue {
   }
 
   private buildIcon(statusId: TaskStatusId, model: TaskModel): HTMLElement {
-    const span = activeDocument.createElement('span')
+    const span = activeWindow.createSpan()
     span.setAttribute(ICON_ATTR, '')
     // Purely decorative: a mouse affordance only, so it's `aria-hidden`
     // and not focusable. It deliberately does NOT carry `role="button"`

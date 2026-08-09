@@ -62,7 +62,7 @@ export class JournalRibbonMenuFeature extends PluginFeature {
   async load(): Promise<void> {
     // The panel lives in a detached host and portals itself to <body>; it is
     // driven imperatively through the registered api.
-    const host = activeDocument.createElement('div')
+    const host = activeWindow.createDiv()
     this.#host = host
     this.#component = mount(RibbonMenuPanel, {
       target: host,

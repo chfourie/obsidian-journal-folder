@@ -1203,13 +1203,13 @@ class SettingsFormBuilder {
   }
 
   createPatternsHeading() {
-    const desc = activeDocument.createDocumentFragment()
+    const desc = activeWindow.createFragment()
     desc.append(
       'Date format strings used to render note titles and links. Each ' +
         "pattern should not render units shorter than its tier (e.g. don't " +
         'use day components in a monthly pattern). '
     )
-    const link = activeDocument.createElement('a')
+    const link = activeWindow.createEl('a')
     link.href = 'https://momentjs.com/docs/#/displaying/format/'
     link.textContent = 'Pattern syntax reference'
     link.setAttribute('target', '_blank')
@@ -1376,7 +1376,7 @@ class SettingsFormBuilder {
     name: string
   ): Setting {
     let component: MomentFormatComponent
-    const sampleValueEl = activeDocument.createElement('div')
+    const sampleValueEl = activeWindow.createDiv()
     sampleValueEl.addClass('journal-folder-config-sample-value')
 
     const setting = new Setting(this.containerEl)
@@ -1409,10 +1409,10 @@ class SettingsFormBuilder {
           })
       })
 
-    const sampleEl = activeDocument.createElement('div')
+    const sampleEl = activeWindow.createDiv()
     sampleEl.addClass('journal-folder-config-hints-row')
 
-    const sampleLabelEl = activeDocument.createElement('div')
+    const sampleLabelEl = activeWindow.createDiv()
     sampleLabelEl.addClass('journal-folder-config-sample-label')
     sampleLabelEl.setText('Sample value:')
 

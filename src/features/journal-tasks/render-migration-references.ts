@@ -100,7 +100,7 @@ export function processMigrationReferences(
     // Keep the label text in place; move the marker + link into the
     // dimmed inline wrapper.
     prev.textContent = text.slice(0, match.index)
-    const ref = activeDocument.createElement('span')
+    const ref = activeWindow.createSpan()
     ref.className = 'jf-migration-ref'
     ref.style.setProperty('--jf-migration-ref-opacity', String(opacity / 100))
     appendMarker(ref, match.marker)

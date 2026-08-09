@@ -43,7 +43,7 @@ export function renderSignifierIcon(el: HTMLElement, icon: IconSpec): void {
   } else if (src.kind === 'emoji') {
     el.textContent = src.emoji
   } else if (src.kind === 'image') {
-    const img = activeDocument.createElement('img')
+    const img = activeWindow.createEl('img')
     img.src = src.url
     img.alt = ''
     el.appendChild(img)

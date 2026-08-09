@@ -231,13 +231,13 @@ class MigrationMarkerWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const wrapper = activeDocument.createElement('span')
+    const wrapper = activeWindow.createSpan()
     wrapper.className = 'jf-migration-ref jf-migration-ref-live'
     wrapper.style.setProperty(
       '--jf-migration-ref-opacity',
       String(this.opacity / 100)
     )
-    const icon = activeDocument.createElement('span')
+    const icon = activeWindow.createSpan()
     icon.className = 'jf-migration-ref-icon'
     setIcon(icon, this.name)
     wrapper.appendChild(icon)

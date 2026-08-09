@@ -164,7 +164,7 @@ function swapCheckbox(
     existing.remove()
   }
 
-  const iconEl = activeDocument.createElement('span')
+  const iconEl = activeWindow.createSpan()
   iconEl.setAttribute(DOC_ICON_ATTR, '')
   iconEl.setAttribute('role', 'button')
   iconEl.setAttribute('tabindex', '0')

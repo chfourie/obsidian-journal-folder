@@ -123,26 +123,36 @@ describe('openStatusPicker', () => {
   })
 })
 
-// The panel must read viewport geometry and attach its resize listener on
-// `activeWindow` (the window hosting the focused leaf), not the bare
-// `window` global — in a popout window the two differ and a bare-`window`
-// clamp positions against the wrong viewport. Simulated by swapping the
-// `activeWindow` polyfill for a stub with its own dimensions/listeners.
+// The panel must read viewport geometry, attach its resize listener, and
+// *construct its elements* on `activeWindow` (the window hosting the focused
+// leaf), not the bare `window` global — in a popout window the two differ, a
+// bare-`window` clamp positions against the wrong viewport, and a node built
+// by the wrong window belongs to the wrong document. Simulated by swapping the
+// `activeWindow` polyfill for a stub with its own dimensions/listeners/factories.
 describe('popout window compatibility (activeWindow)', () => {
   const g = globalThis as typeof globalThis & { activeWindow: unknown }
   const realActiveWindow = g.activeWindow
+
+  // The element factories delegate to the real jsdom document (so the panel
+  // stays queryable) but count their calls, which is what proves the module
+  // routed construction through `activeWindow` rather than the global.
+  function popoutWindowStub() {
+    return {
+      innerWidth: 500,
+      innerHeight: 400,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      createDiv: vi.fn(() => document.createElement('div')),
+      createSpan: vi.fn(() => document.createElement('span')),
+    }
+  }
 
   afterEach(() => {
     g.activeWindow = realActiveWindow
   })
 
   it('attaches and removes its resize listener on activeWindow', () => {
-    const popoutWindow = {
-      innerWidth: 500,
-      innerHeight: 400,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }
+    const popoutWindow = popoutWindowStub()
     g.activeWindow = popoutWindow
 
     openStatusPicker({ anchor: anchor(), model, currentStatus: 'open', onSelect: () => {} })
@@ -158,16 +168,25 @@ describe('popout window compatibility (activeWindow)', () => {
     )
   })
 
+  it('builds the panel and its rows through activeWindow, not the global window', () => {
+    const popoutWindow = popoutWindowStub()
+    g.activeWindow = popoutWindow
+
+    openStatusPicker({ anchor: anchor(), model, currentStatus: 'open', onSelect: () => {} })
+
+    expect(panel()).not.toBeNull()
+    expect(popoutWindow.createDiv).toHaveBeenCalled()
+    // One row per status, each built from the popout window.
+    expect(popoutWindow.createSpan.mock.calls.length).toBeGreaterThanOrEqual(
+      rows().length
+    )
+  })
+
   it('clamps the panel into the activeWindow viewport, not the global one', () => {
     // A tiny active viewport forces the clamp paths; jsdom's own `window`
     // reports 1024×768, so a position inside [0, 500/400] proves the
     // stub's dimensions were the ones read.
-    g.activeWindow = {
-      innerWidth: 500,
-      innerHeight: 400,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }
+    g.activeWindow = popoutWindowStub()
 
     openStatusPicker({ anchor: anchor(), model, currentStatus: 'open', onSelect: () => {} })
     const el = panel()!

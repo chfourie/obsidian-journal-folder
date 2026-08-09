@@ -57,7 +57,7 @@ export function renderStatusIcon(
   el.classList.toggle('is-done', status.isDone)
   applyShellStyles(el, status.shell)
 
-  const iconWrapper = activeDocument.createElement('span')
+  const iconWrapper = activeWindow.createSpan()
   iconWrapper.classList.add('jf-task-status-icon')
   const color = colorRefToCss(status.icon.color)
   if (color) iconWrapper.style.color = color
@@ -72,7 +72,7 @@ export function renderStatusIcon(
   } else if (src.kind === 'emoji') {
     iconWrapper.textContent = src.emoji
   } else if (src.kind === 'image') {
-    const img = activeDocument.createElement('img')
+    const img = activeWindow.createEl('img')
     // `src` is set via the DOM property (not `innerHTML`) so the
     // value can't escape into markup — safe to take from settings.
     img.src = src.url

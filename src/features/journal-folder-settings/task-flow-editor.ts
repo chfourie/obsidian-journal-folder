@@ -674,7 +674,7 @@ function paintStatusPreview(
 ): void {
   while (el.firstChild) el.removeChild(el.firstChild)
   if (rendering === 'theme') {
-    const input = activeDocument.createElement('input')
+    const input = activeWindow.createEl('input')
     input.type = 'checkbox'
     input.className = 'task-list-item-checkbox'
     input.setAttribute('data-task', status.char)
@@ -683,7 +683,7 @@ function paintStatusPreview(
     el.appendChild(input)
     return
   }
-  const iconShell = activeDocument.createElement('span')
+  const iconShell = activeWindow.createSpan()
   iconShell.className = 'jf-task-status'
   el.appendChild(iconShell)
   // The model is only consulted for its `id` (stamped as a data attr

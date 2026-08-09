@@ -630,14 +630,14 @@ class SignifierWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const marker = activeDocument.createElement('span')
+    const marker = activeWindow.createSpan()
     marker.className = `${this.className} jf-signifier-live`
     marker.setAttribute('aria-hidden', 'true')
     if (this.depth !== null) {
       marker.style.setProperty('--jf-sig-depth', String(this.depth))
     }
     for (const signifier of this.signifiers) {
-      const icon = activeDocument.createElement('span')
+      const icon = activeWindow.createSpan()
       icon.className = 'jf-signifier'
       icon.dataset.sigId = signifier.id
       renderSignifierIcon(icon, signifier.icon)
@@ -670,13 +670,13 @@ class SignifierAddWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const marker = activeDocument.createElement('span')
+    const marker = activeWindow.createSpan()
     marker.className = `${this.className} jf-signifier-add-gutter jf-signifier-live`
     marker.setAttribute('aria-label', 'Edit signifiers on this line')
     if (this.depth !== null) {
       marker.style.setProperty('--jf-sig-depth', String(this.depth))
     }
-    const add = activeDocument.createElement('span')
+    const add = activeWindow.createSpan()
     add.className = 'jf-signifier jf-signifier-add'
     setIcon(add, 'plus')
     marker.appendChild(add)

@@ -92,6 +92,16 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
   Folder` to `brands` instead would have flagged every legitimate lowercase "journal folder" in
   prose. Re-declaring the rule replaces its options wholesale — carry `enforceCamelCaseLower:
   true` over from upstream.
+- **`prefer-create-el`'s autofix is right but doesn't typecheck out of the box.** It rewrites
+  `activeDocument.createElement('span')` → `activeWindow.createSpan()`, and `obsidian.d.ts`
+  (1.13.1) declares `createEl`/`createDiv`/`createSpan`/`createSvg`/`createFragment` as ambient
+  globals and on `Node` — but **not on `Window`**. Running `--fix` therefore turns 37 warnings
+  into ~320 `no-unsafe-*` errors on an unresolved return type. `src/obsidian-window-dom.d.ts`
+  augments `Window` with the same five signatures. Verified live before typing it, not assumed:
+  all five exist on `window`, are identical to the globals, and a **popout window's own copies
+  create detached nodes owned by that popout's document** — which is precisely why `activeWindow`
+  (never bare `window`) is the correct receiver. jsdom has none of them, so `tests/setup-globals.ts`
+  polyfills the no-argument forms alongside its `activeDocument`/`activeWindow` shims.
 - **Colocated `src/**/*.spec.ts` run under Vitest + jsdom**, where Obsidian's `createEl` /
   `createSpan` prototype extensions don't exist, so `prefer-create-el` is off for spec files
   only. (`tests/` is ignored wholesale; `src/contracts/*/*.spec.ts` is not.)

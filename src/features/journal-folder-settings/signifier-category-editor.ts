@@ -182,7 +182,7 @@ export function renderSignifiersSection(config: SignifierSectionConfig): void {
           ? signifier.tags.map((t) => `#${t}`).join(' ')
           : '(no tags — won’t match anything)'
       )
-    const icon = activeDocument.createElement('span')
+    const icon = activeWindow.createSpan()
     icon.className = 'jf-signifier'
     renderSignifierIcon(icon, signifier.icon)
     setting.nameEl.prepend(icon)
@@ -302,7 +302,7 @@ export function renderCategoriesSection(config: CategorySectionConfig): void {
           : tagsDesc
       )
     if (category.icon) {
-      const icon = activeDocument.createElement('span')
+      const icon = activeWindow.createSpan()
       icon.className = 'jf-signifier'
       renderSignifierIcon(icon, category.icon)
       setting.nameEl.prepend(icon)
@@ -425,7 +425,7 @@ function renderIconEditor(
 ): void {
   host.empty()
 
-  const preview = activeDocument.createElement('span')
+  const preview = activeWindow.createSpan()
   preview.className = 'jf-signifier'
   const repaint = () => renderSignifierIcon(preview, getIcon())
   repaint()
