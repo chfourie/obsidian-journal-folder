@@ -175,7 +175,7 @@ export const SCENES = [
   // ---- Task migration (reading view) ------------------------------------
   {
     name: 'task-migration-reading',
-    note: 'Personal/2026-06-04',
+    note: 'Personal/2026-06-15',
     setup: (c) => c.ensureCalendar(false),
     rect: `union('.journal-folder-header-title','.markdown-preview-sizer ul, .markdown-preview-sizer .contains-task-list')`,
     pad: 10,
@@ -212,7 +212,7 @@ export const SCENES = [
 
   // ---- Sidebar ----------------------------------------------------------
   { name: 'sidebar-dynamic', setup: (c) => openWithSidebar(c, 'Personal/2026-05-04'), rect: sidebarRect(), pad: 0 },
-  { name: 'sidebar-tasks-panel', setup: (c) => openWithSidebar(c, 'Personal/2026-06-04'), rect: sidebarRect(), pad: 0 },
+  { name: 'sidebar-tasks-panel', setup: (c) => openWithSidebar(c, 'Personal/2026-06-15'), rect: sidebarRect(), pad: 0 },
   {
     name: 'sidebar-more-menu',
     setup: async (c) => { await openWithSidebar(c, 'Personal/2026-05-04'); await openSidebarMenu(c, '.jf-sidebar-more-link') },
@@ -251,7 +251,7 @@ export const SCENES = [
   {
     name: 'task-status-picker',
     setup: async (c) => {
-      await openWithSidebar(c, 'Personal/2026-06-04')
+      await openWithSidebar(c, 'Personal/2026-06-15')
       await c.inPage(
         `const i=[...document.querySelectorAll('.journal-folder-tasks-row [data-jf-status-icon]')].find(e=>{const s=e.getAttribute('data-jf-status-icon');return s==='open'||s==='in-progress';}); ` +
           `if(!i) return false; const r=i.getBoundingClientRect(); ` +
@@ -265,11 +265,15 @@ export const SCENES = [
   // ---- Task category range cap (edit modal) -----------------------------
   {
     name: 'task-category-edit',
+    // Targets the FIRST category row offering an Edit control rather than a
+    // category by name: the previous version looked for 'Local', a category the
+    // baseline data.json no longer defines, so the scene silently stopped
+    // opening any modal. Only category rows carry an Edit button, so the first
+    // match is the first category whatever the baseline renames them to.
     setup: async (c) => {
       await c.openSettings('tasks')
       await c.inPage(
-        `const row=[...document.querySelectorAll('.setting-item')].find(r=>{const n=r.querySelector('.setting-item-name');return n&&n.textContent.trim()==='Local';}); ` +
-          `if(!row) return false; const b=row.querySelector('[aria-label="Edit"]'); if(!b) return false; ` +
+        `const b=document.querySelector('.setting-item [aria-label="Edit"]'); if(!b) return false; ` +
           `b.dispatchEvent(new MouseEvent('click',{bubbles:true})); await new Promise(r=>setTimeout(r,400)); return true;`
       )
     },
@@ -281,7 +285,7 @@ export const SCENES = [
   // ---- Migration picker modal -------------------------------------------
   {
     name: 'migration-picker',
-    note: 'Personal/2026-06-04',
+    note: 'Personal/2026-06-15',
     setup: async (c) => {
       await c.evalRaw(
         `(async()=>{app.commands.executeCommandById('journal-folder:migrate-tasks-from-note'); ` +

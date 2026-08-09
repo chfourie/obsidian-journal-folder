@@ -140,6 +140,35 @@ export async function command(args, opts) {
   return obsWithRetry([`vault=${VAULT}`, ...args], opts)
 }
 
+// Make the MAIN window the one that `document.querySelector` sees.
+//
+// The plugin mounts overlays (ribbon menu, status picker, modals) on
+// `activeDocument` — correct, and what popout support requires. Obsidian's
+// global "Open settings in a separate window" (`settingsPopoutWindow`) spawns a
+// second Electron window for the settings dialog, and while it is up
+// `activeDocument` is THAT window's document. Every harness selector runs
+// against the main window's `document`, so overlays mount somewhere the harness
+// cannot see: `getBoundingClientRect` of null, on a surface that is rendering
+// perfectly.
+//
+// The committed vault `app.json` fixtures pin the key off, but that is NOT
+// enough on its own — an app already running with the global `true` keeps a
+// stale popout, and `resetVault`'s `git checkout` + re-read can reinstate it.
+// So close the dialog (which tears the popout down), pin the config at runtime,
+// and report whether `activeDocument` actually came home.
+export async function ensureMainWindow() {
+  try {
+    await evalRaw(
+      `(()=>{ app.setting.close(); app.vault.setConfig('settingsPopoutWindow', false); return 'ok' })()`
+    )
+    await sleep(400)
+    const same = await evalJSON(`activeDocument === document`)
+    return { ok: same, reason: same ? null : 'activeDocument is not the main window' }
+  } catch (e) {
+    return { ok: false, reason: e.message }
+  }
+}
+
 // The floor both harnesses hold the Obsidian window to. Obsidian remembers a
 // window size per vault, so a vault last used at 1024x800 comes back that
 // small — which silently degrades every capture: the in-note calendar collapses
@@ -156,12 +185,17 @@ export const MIN_WINDOW = {
   height: Number.isFinite(ENV_H) && ENV_H > 0 ? ENV_H : 1050,
 }
 
-// Grow the focused vault window to at least MIN_WINDOW (clamped to the screen's
-// available area and centred on it), and report what happened. Never throws and
+// Size the focused vault window and report what happened. Never throws and
 // never fails a run: a window that can't be resized — fullscreen, or an Electron
 // build without `remote` — still produces valid, if smaller, output, so the
 // caller warns and carries on.
-export async function ensureWindowSize(min = MIN_WINDOW) {
+//
+// Default semantics are a MINIMUM (grow if smaller, otherwise leave the user's
+// arrangement alone), which is what the E2E suite wants. Pass `{ exact: true }`
+// to pin the size in both directions: screenshot dimensions must be
+// reproducible run-to-run, and the window demonstrably drifts mid-run (a scene
+// or a closing popout can grow it), which silently changes every crop after it.
+export async function ensureWindowSize(min = MIN_WINDOW, { exact = false } = {}) {
   // Semicolons are load-bearing here: `oneLine` collapses this to a single
   // line, and the repo's semicolon-free style would then run statements
   // together ("Unexpected token 'const'"). Same reason `//` comments are banned
@@ -171,10 +205,14 @@ export async function ensureWindowSize(min = MIN_WINDOW) {
       const avail = { width: activeWindow.screen.availWidth, height: activeWindow.screen.availHeight };
       const before = { width: activeWindow.innerWidth, height: activeWindow.innerHeight };
       const want = { width: Math.min(${min.width}, avail.width), height: Math.min(${min.height}, avail.height) };
-      if (before.width >= want.width && before.height >= want.height) return { ok: true, resized: false, before, want };
+      const satisfied = ${exact}
+        ? before.width === want.width && before.height === want.height
+        : before.width >= want.width && before.height >= want.height;
+      if (satisfied) return { ok: true, resized: false, before, want };
       const win = require('electron').remote.getCurrentWindow();
       if (win.isFullScreen()) return { ok: false, resized: false, before, want, reason: 'fullscreen' };
-      if (win.isMaximized()) return { ok: true, resized: false, before, want };
+      if (win.isMaximized() && !${exact}) return { ok: true, resized: false, before, want };
+      if (win.isMaximized()) win.unmaximize();
       const bounds = win.getBounds();
       const width = want.width + (bounds.width - before.width);
       const height = want.height + (bounds.height - before.height);

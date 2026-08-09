@@ -45,7 +45,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { evalRaw, evalJSON, ensureWindowSize, MIN_WINDOW, VAULT } from '../../tests/e2e/lib/cli.mjs'
+import { evalRaw, evalJSON, ensureMainWindow, ensureWindowSize, MIN_WINDOW, VAULT } from '../../tests/e2e/lib/cli.mjs'
 import {
   inPage,
   openNote,
@@ -179,12 +179,26 @@ async function preflight(deploy) {
     }
   }
 
-  // 5b. Size gate — every shot is cropped out of a full-window frame, so the
+  // 5b. Keep overlays in THIS window. The plugin mounts the ribbon menu, status
+  //     picker and modals on `activeDocument`; while a settings popout window is
+  //     up that is the popout's document, and every overlay scene fails to
+  //     measure a rect it cannot reach. See ensureMainWindow in lib/cli.mjs.
+  const mainWindow = await ensureMainWindow()
+  if (!mainWindow.ok) {
+    fail(
+      `The settings dialog is opening in a popout window (${mainWindow.reason}).\n` +
+        `Overlay scenes (settings-*, plugin-menu, task-status-picker, migration-picker)\n` +
+        `mount on activeDocument and cannot be measured from this window.\n` +
+        `Turn off Settings → General → "Open settings in a separate window" and re-run.`
+    )
+  }
+
+  // 5c. Size gate — every shot is cropped out of a full-window frame, so the
   //     window size IS the layout these images document. The demo vault comes
   //     back at whatever size it was last closed at; at 1024x800 the in-note
   //     calendar collapses to fewer months and the sidebar crowds the note.
   //     Hold it to MIN_WINDOW (see lib/cli.mjs) before capturing anything.
-  const sized = await ensureWindowSize()
+  const sized = await ensureWindowSize(MIN_WINDOW, { exact: true })
   if (!sized.ok) {
     console.warn(
       `${C.red}⚠ Could not resize the Obsidian window to ${MIN_WINDOW.width}x${MIN_WINDOW.height} ` +
@@ -224,6 +238,11 @@ async function preflight(deploy) {
 // re-cut the crop offline.
 async function captureScene(scene) {
   await resetUi()
+  // Re-pin the window before every scene. Committed PNG dimensions must be
+  // reproducible, and the window drifts mid-run (mobile emulation, a closing
+  // popout) — which silently rescales every crop after it. Cheap when already
+  // correct: one eval that measures and returns.
+  if (!scene.mobile) await ensureWindowSize(MIN_WINDOW, { exact: true })
   await applySettings(scene.settings || {})
   if (scene.tempFiles) await writeTempFiles(scene.tempFiles)
   if (scene.mobile) await setMobile(true)

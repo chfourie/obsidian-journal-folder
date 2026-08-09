@@ -262,6 +262,25 @@ the demo vault open and visible. See `scripts/screenshots/README.md`.
   with `readableLineLength: false` left over from a manual session (every pane full-width, 1818px
   instead of 1456px) and had to be retaken. Sanity-check a retake against the previous PNG's
   dimensions (`sips -g pixelWidth -g pixelHeight`).
+- **Window size is pinned EXACTLY here, not just floored.** The screenshots preflight and every
+  scene call `ensureWindowSize(MIN_WINDOW, { exact: true })`, because the window demonstrably drifts
+  mid-run (a hero shot came out 5419px wide instead of 2619px after the window grew to 3000x1750
+  partway through) and every crop after the drift silently rescales. E2E keeps minimum semantics;
+  screenshots need reproducible dimensions. The drift's cause was never pinned down — `dev:mobile`
+  and `dev:screenshot` were both ruled out — so re-pinning per scene is the guard.
+- **Scenes rot silently against the demo vault.** `Personal/2026-06-04` was deleted in f74a11f
+  ("rebuild demo vault…") but three scenes still opened it, and the auto-template feature helpfully
+  seeded an empty stub — so `migrate-tasks-from-note` reported "No active tasks" and the scene
+  failed on a *rect*, pointing nowhere near the real cause. Likewise `task-category-edit` looked for
+  a category named `Local` that the baseline no longer defines. Prefer structural targets ("the
+  first row with an Edit control") over names, and when a rect expression fails on
+  `null`/`undefined`, check the scene's fixtures still exist before suspecting the plugin.
+- **`deleteTempFiles` must never recursively delete a scratch path's top segment.** It used to
+  `rmSync(topmostSegment, {recursive:true})`, and since `TEMPLATE_FILES` writes into
+  `Templates/journal-folder/` — six COMMITTED template notes — every run deleted tracked vault
+  content and left the tree dirty, which then reads as a mysterious release-time clean-tree failure.
+  It now restores git-tracked temp paths (`git checkout --`), deletes only untracked ones, and
+  prunes directories with a non-recursive `rmdir` that fails harmlessly when real notes remain.
 - **Each scene is self-setting**: optional `settings` (shallow-merged over the backed-up demo
   `data.json`), `tempFiles`, `mobile: true`, and a `setup(ctx)` driving the UI through `data-jf-*`
   hooks. Light mode is forced and restored; the vault is pristine after a run.

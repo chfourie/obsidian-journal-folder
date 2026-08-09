@@ -33,6 +33,7 @@ import {
   existsSync,
   mkdirSync,
   rmSync,
+  rmdirSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -116,16 +117,48 @@ export async function writeTempFiles(files = []) {
   return files
 }
 
+// Undo writeTempFiles. Scene scratch paths are NOT always disposable: the
+// template-preview scene writes into `Templates/journal-folder/`, a folder that
+// holds six COMMITTED template notes. The old cleanup recursively removed the
+// topmost path segment (`Templates`), so every run deleted tracked demo-vault
+// content and left the tree dirty — which the release's clean-tree guard then
+// blames on the wrong thing. So: restore anything git tracks, delete only what
+// it doesn't, and prune directories one level at a time (a non-recursive rmdir
+// fails harmlessly on a folder that still holds real notes).
 export async function deleteTempFiles(files = []) {
   for (const f of files) {
     const abs = join(VAULT_DIR, f.path)
-    rmSync(abs, { force: true })
+    if (isTracked(abs)) {
+      execFileSync('git', ['checkout', '--', abs], { cwd: REPO_ROOT })
+    } else {
+      rmSync(abs, { force: true })
+    }
   }
-  // Remove now-empty scratch folders (their topmost path segment under the vault).
-  for (const dir of new Set(files.map((f) => f.path.split('/')[0]))) {
-    rmSync(join(VAULT_DIR, dir), { recursive: true, force: true })
+
+  // Deepest-first, so a scratch tree collapses from the leaves up.
+  const dirs = [...new Set(files.map((f) => dirname(join(VAULT_DIR, f.path))))].sort(
+    (a, b) => b.length - a.length
+  )
+  for (let dir of dirs) {
+    while (dir.startsWith(VAULT_DIR) && dir !== VAULT_DIR) {
+      try {
+        rmdirSync(dir)
+      } catch {
+        break // Non-empty (or gone) — leave it and everything above it alone.
+      }
+      dir = dirname(dir)
+    }
   }
   if (files.length) await sleep(600)
+}
+
+function isTracked(abs) {
+  try {
+    execFileSync('git', ['ls-files', '--error-unmatch', abs], { cwd: REPO_ROOT, stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // --- Mobile emulation ------------------------------------------------------

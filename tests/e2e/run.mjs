@@ -24,7 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //   node tests/e2e/run.mjs [--filter <text>] [--list] [--bail] [--no-deploy]
 
 import { execFileSync } from 'node:child_process'
-import { evalRaw, evalJSON, ensureWindowSize, MIN_WINDOW, VAULT } from './lib/cli.mjs'
+import { evalRaw, evalJSON, ensureMainWindow, ensureWindowSize, MIN_WINDOW, VAULT } from './lib/cli.mjs'
 import { deployBuild, reloadPlugin, resetVault, sleep } from './lib/vault.mjs'
 import { openNote, resetUi } from './lib/page.mjs'
 import { runSuites } from './lib/harness.mjs'
@@ -119,18 +119,17 @@ async function preflight(deploy) {
     }
   }
 
-  // 5c. Force the settings dialog to render INSIDE this window. Obsidian's
-  //     global "Open settings in a separate window" (`settingsPopoutWindow`,
-  //     honoured whenever `canPopoutWindow`) makes `app.setting.open()` spawn a
-  //     popout Electron window and mount `app.setting.containerEl` in *that*
-  //     window's document — so `document.querySelector` here sees no modal at
-  //     all, even though the tab rendered fine. The vault's app.json pins this
-  //     to false; re-assert it at runtime so an already-running app that cached
-  //     the global `true` is corrected too. Vault config overrides the global,
-  //     and writing the value already in app.json is churn-free.
-  await evalRaw(
-    `(()=>{app.setting.close(); app.vault.setConfig('settingsPopoutWindow', false); return 'ok'})()`
-  )
+  // 5c. Keep the settings dialog — and therefore `activeDocument` — in THIS
+  //     window, or every selector below runs against the wrong document. See
+  //     ensureMainWindow in lib/cli.mjs.
+  const mainWindow = await ensureMainWindow()
+  if (!mainWindow.ok) {
+    fail(
+      `The settings dialog is opening in a popout window (${mainWindow.reason}).\n` +
+        `Overlays mount on activeDocument, so no assertion in this window can see them.\n` +
+        `Turn off Settings → General → "Open settings in a separate window" and re-run.`
+    )
+  }
 
   // 5d. Hold the window to a realistic desktop size. Obsidian restores the size
   //     this vault was last closed at, and the suite makes geometry assertions

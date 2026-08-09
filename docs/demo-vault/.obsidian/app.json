@@ -9,5 +9,6 @@
   "attachmentFolderPath": ".",
   "showInlineTitle": false,
   "defaultViewMode": "preview",
-  "readableLineLength": true
+  "readableLineLength": true,
+  "settingsPopoutWindow": false
 }
