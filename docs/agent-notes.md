@@ -1,1143 +1,479 @@
 # Agent & contributor working notes
 
-Hard-won, non-obvious knowledge about working in this repo that isn't derivable
-from the code itself — working conventions the maintainer expects, how to verify
-behaviour in real Obsidian, the vault topology, Obsidian styling traps, the
-release flow, and design decisions behind shipped features.
-
-> **For AI agents (Claude Code etc.):** this file is the canonical, git-tracked
-> home for the kind of thing you'd otherwise keep in private session memory.
-> Read it at the start of non-trivial work, and **when you learn something
-> durable, add it here** (in the same change) rather than only in ephemeral
-> memory — memory outside the repo isn't shared and can be lost.
+Non-obvious knowledge that isn't derivable from the code. **For AI agents:** this is the
+canonical, git-tracked home for what you'd otherwise keep in private session memory. Read it
+before non-trivial work, and **append durable learnings here in the same change** — memory
+outside the repo isn't shared and can be lost. Keep entries terse; prune what the code now says.
 
 ---
 
-## Working conventions the maintainer expects
+## Maintainer conventions
 
-- **Always write tests with functionality.** Any non-trivial code change adds or
-  updates tests in `tests/` in the *same* change — no code-only changes. Pure
-  refactors can lean on the existing suite, but a changed public surface needs
-  new tests. Trivial edits (typos, comments, config bumps) don't. Reuse the
-  `tests/mocks/obsidian.ts` mock and `tests/helpers/fixtures.ts` fixtures. Run
-  `npm test` before reporting work done.
-  - **Live Obsidian/CLI verification supplements automated tests — it never
-    replaces them.** The CLI (see below) is the only way to exercise CodeMirror /
-    live-preview / DOM / theme behaviour that jsdom can't, so use it to *confirm*
-    the wiring end-to-end. But every new feature and behaviour change still gets
-    unit tests for its logic in the same change — factor the pure decision logic
-    out (as `task-range-cap.ts`, `reference-range.ts`, `build-task-model.ts` do)
-    so it's testable even when the surrounding surface is DOM-bound. Don't report
-    work done on the strength of a CLI screenshot alone.
-- **Lint with the Obsidian community ruleset before releasing.** `npm run lint`
-  runs `eslint-plugin-obsidianmd` (flat config in `eslint.config.mjs`) — the
-  *same* ruleset the community-review scanner runs against a submitted release,
-  type-checked against `tsconfig.json` (scoped to `src`; tests are excluded from
-  the tsconfig so the type-aware rules don't choke on them). Run it before
-  tagging so the public review has no surprises. A couple of its warnings target
-  *deliberate* choices here and should stay suppressed/justified rather than
-  "fixed": the declarative `:has` config-note hiding and the duck-typed
-  `as unknown as TFile` synthetic notes (the real `TFile` constructor crashes —
-  see the convention below). Prefer an inline
-  `// eslint-disable-next-line <rule> -- <why>` with a reason over loosening the
-  rule globally.
-  - **Lint covers `.svelte` files too** (flat-config block in `eslint.config.mjs`:
-    `svelte-eslint-parser` with `@typescript-eslint/parser` as
-    `parserOptions.parser`). It is fully **type-aware** via
-    `tsconfig.eslint.json` — a tsconfig that extends `tsconfig.json` and adds
-    `src/**/*.svelte` to `include`, read **only by ESLint** (the build's
-    `tsc -noEmit` keeps using `tsconfig.json`, which must never include
-    `.svelte` — tsc can't parse them). `extraFileExtensions: ['.svelte']` is
-    required or typescript-eslint rejects the files. The svelte block disables
-    core `no-undef`/`no-unused-vars` in favour of
-    `@typescript-eslint/no-unused-vars` (the core rules false-positive on TS
-    type-annotation parameter names and ambient globals); the
-    `@typescript-eslint` plugin must be re-declared there because the
-    obsidianmd config only registers it for `**/*.ts` (same plugin object, so
-    no redefinition conflict).
-  - **`prefer-active-doc` only flags bare `document` — bare `window` is NOT
-    linted.** The rule's replacement map has no `window → activeWindow` entry,
-    which is exactly how `status-picker-panel.ts` shipped `window.innerWidth`
-    clamps despite passing lint. Using `activeWindow` for viewport geometry
-    (`innerWidth`/`innerHeight`) and viewport listeners (`resize`) is a
-    **convention enforced by review, not lint** — sweep for it manually when
-    touching positioning code. Conversely `prefer-window-timers` *demands*
-    `window.`-prefixed timer calls and **rejects
-    `activeWindow.requestAnimationFrame`** ("timer functions should use
-    window") — so rAF/setTimeout stay on `window`, viewport reads go through
-    `activeWindow`, and the two rules are consistent only under that split.
-  - **`styles.css` carries no `!important`** (the community review flags "Avoid
-    `!important`"). Every override that used to need it — including the calendar
-    colour-lock — is now won by **specificity**: qualify with a shared ancestor +
-    the element/class so you sit just above the competing rule. The competitors
-    are almost always low-specificity `app.css` rules with no `!important`
-    (probe them live: iterate `document.styleSheets`, `el.matches(sel)`, read
-    `getPropertyPriority`). The calendar's competitor is
-    `.markdown-rendered .internal-link.is-unresolved` (0,3,0); cells beat it with
-    `.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell…`
-    (0,3,1+). Caveat that makes `!important` *technically* stronger: it beats any
-    non-important rule regardless of specificity, whereas a high-specificity
-    selector only beats lower-or-equal ones — so a theme with a very specific
-    non-important unresolved-link rule could win. None of the deploy-target
-    themes (AnuPpuccin et al.) do; this was a deliberate, user-approved trade for
-    a clean stylesheet.
-- **Prefer robust / theme-stable solutions over pixel-perfect cosmetics, and
-  surface the tradeoffs before implementing.** The maintainer explicitly dislikes
-  "works on my setup, breaks on yours" fragility. Reach for solutions that
-  inherit native/theme behaviour over ones that re-measure or hard-code geometry;
-  they will knowingly accept a minor cosmetic offset to avoid a fragile code
-  path. For theme/layout-affecting changes, present the robustness tradeoffs and
-  let them decide. (The per-flow **Theme-checkbox** rendering is the accepted
-  escape hatch for unusual themes; task rows keep native `list-item` flow, never
-  grid/flex.)
-- **Don't drive Obsidian + screenshot to iterate on UI layout.** When asked to
-  "match the styling of X", read X's source first — how it extends Obsidian base
-  classes and which CSS classes it picks up — and apply the same Obsidian-native
-  classes, rather than fighting widths/padding with custom CSS or
-  reload-and-screenshot loops. (The per-folder config modal was a one-line
-  `mod-settings` / `vertical-tab-content` fix, visible purely from reading the
-  settings-tab source.) Reserve screenshots for README updates or genuinely
-  theme-specific rendering you can't reason about from code.
-- **Toggle labels show the *current* state, not the action.** For inline link/
-  button toggles, render the label from the current value (`tasksSidebarReference
-  === 'today'` → "Today"; completed filter → "All tasks" vs "Active tasks"). Pair
-  with `aria-pressed` reflecting the current state. This intentionally overrides
-  the older `docs/tasks-design.md` "labels describe the action" line.
-- **"Themable" / "theme default colour" means *CSS variables*, not delegating to
-  Obsidian's link-resolution pass.** The plugin makes the accent-vs-normal call
-  itself and reads colours from theme tokens. Calendar specifics: link day cells
-  lock colour to `--text-normal` to defeat any theme's
-  `a.internal-link.is-unresolved` recolour (opacity from `is-unresolved` still
-  comes through); existing cells and Sundays get `--text-accent`. This is won by
-  **specificity, not `!important`** — see the lint bullet above for the selector
-  pattern (`.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell…`)
-  and the specificity ladder (base 0,3,1 → exists 0,4,1 → sunday 0,5,1 →
-  sunday-current 0,6,1).
-- **Source mode is a *raw* editing experience — no plugin enhancements there.**
-  Any CodeMirror/live-preview rendering (signifier gutter icons + tag-hiding,
-  `lucide:` migration-marker icons, future decoration extensions) must gate on
-  Obsidian's `editorLivePreviewField` and emit **no decorations in Source mode**:
-  no hidden tags, no substituted tokens, no moved/added affordances. The user
-  edits raw markdown in Source mode and expects to see it verbatim. Track the
-  live-preview flag (`lastLivePreview`) and rebuild on a Live Preview ⇄ Source
-  toggle (treat it like a settings change). Reading view + Live Preview are the
-  two *rendered* surfaces; Source mode is not. (`isLivePreview(view)` =
-  `view.state.field(editorLivePreviewField, false) ?? false`.)
-- **Update the demo vault (and deploy targets) after every source/style change.**
-  Run `npm run deploy` (build + copy `main.js` / `styles.css` / `manifest.json`
-  into the demo vault and every configured target). The demo-vault plugin is a
-  built copy, not a symlink, so it silently lags source until synced. Never copy
-  `data.json` (vault-local state). Skip only for docs-only / test-only / README
-  edits that don't change bundled output.
+- **Tests ship with functionality.** Non-trivial change → tests in `tests/` in the *same* change.
+  Pure refactors may lean on the existing suite; typos/config bumps need nothing. Reuse
+  `tests/mocks/obsidian.ts` + `tests/helpers/fixtures.ts`. Run `npm test` before reporting done.
+  Live CLI verification **supplements** unit tests, never replaces them — factor pure decision
+  logic out (as `task-range-cap.ts`, `reference-range.ts`, `build-task-model.ts` do) so it stays
+  testable even when the surface is DOM-bound. Never report work done on a screenshot alone.
+- **Prefer robust / theme-stable over pixel-perfect, and surface tradeoffs before implementing.**
+  The maintainer dislikes "works on my setup, breaks on yours"; they'll accept a minor cosmetic
+  offset to avoid a fragile path. Inherit native/theme behaviour rather than re-measuring or
+  hardcoding geometry. Task rows keep native `list-item` flow, never grid/flex; per-flow
+  **Theme-checkbox** rendering is the escape hatch for unusual themes.
+- **Source mode is a *raw* editing experience.** Every CodeMirror/live-preview extension gates on
+  `editorLivePreviewField` and emits **no** decorations in Source mode — no hidden tags, no
+  substituted tokens, no added affordances. Track the flag (`lastLivePreview`) and rebuild on a
+  Live Preview ⇄ Source toggle like a settings change.
+  `isLivePreview(view) = view.state.field(editorLivePreviewField, false) ?? false`.
+- **Toggle labels show the *current* state, not the action** (`'today'` → "Today"; completed
+  filter → "All tasks" / "Active tasks"), with `aria-pressed` reflecting it. Overrides the older
+  "labels describe the action" line in `tasks-design.md`.
+- **"Themable" means CSS variables**, not delegating to Obsidian's link-resolution pass. The
+  plugin makes the accent-vs-normal call itself. Calendar: link day cells lock to `--text-normal`
+  to defeat any theme's `a.internal-link.is-unresolved` recolour (opacity still comes through);
+  existing cells and Sundays get `--text-accent`.
+- **Don't drive Obsidian + screenshot to iterate on UI layout.** Asked to "match the styling of
+  X", read X's source and reuse the same Obsidian-native classes. (The per-folder config modal was
+  a one-line `mod-settings` / `vertical-tab-content` fix, visible from the settings-tab source.)
+  Reserve screenshots for README updates and genuinely theme-specific rendering.
+- **Run `npm run deploy` after every source/style change** — the demo-vault plugin is a built
+  copy, not a symlink, and silently lags source. Never copy `data.json`. Skip only for
+  docs/test-only edits.
+
+### Lint (`npm run lint` = `eslint-plugin-obsidianmd`)
+
+Same ruleset the community-review scanner runs against a submitted release — run before tagging.
+Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
+
+- **`.svelte` is linted too and is fully type-aware**, via `tsconfig.eslint.json` — extends
+  `tsconfig.json` and adds `src/**/*.svelte`, read **only by ESLint** (the build's `tsc` must
+  never see `.svelte`). Needs `extraFileExtensions: ['.svelte']`. The svelte block disables core
+  `no-undef`/`no-unused-vars` for the `@typescript-eslint` versions (core false-positives on TS
+  parameter type annotations and ambient globals) and must re-declare the plugin, which the
+  obsidianmd config registers only for `**/*.ts`.
+- **`prefer-active-doc` flags bare `document` but NOT bare `window`** — its replacement map has no
+  `window` entry, which is how `status-picker-panel.ts` shipped `window.innerWidth`. Using
+  `activeWindow` for viewport geometry and `resize` listeners is **review-enforced, not linted** —
+  sweep manually when touching positioning. Conversely `prefer-window-timers` *rejects*
+  `activeWindow.requestAnimationFrame`, so: rAF/setTimeout on `window`, viewport reads on
+  `activeWindow`.
+- **`styles.css` carries no `!important`** — every override is won by **specificity** (qualify
+  with a shared ancestor + element/class). Competitors are low-specificity `app.css` rules with
+  no `!important`; probe live by iterating `document.styleSheets` + `el.matches(sel)` +
+  `getPropertyPriority`. Calendar ladder: competitor
+  `.markdown-rendered .internal-link.is-unresolved` (0,3,0); cells win at 0,3,1 → exists 0,4,1 →
+  sunday 0,5,1 → sunday-current 0,6,1. Accepted caveat: `!important` would beat *any* specificity,
+  so a theme with a very specific non-important unresolved-link rule could still win — none of the
+  deploy-target themes do.
+- Two warnings target **deliberate** choices and stay justified rather than "fixed": the
+  declarative `:has` config-note hiding, and the duck-typed `as unknown as TFile`. Prefer an
+  inline `// eslint-disable-next-line <rule> -- <why>` over loosening a rule globally.
 
 ---
 
 ## Vault topology
 
-- **Demo vault** — `docs/demo-vault/` — a **pristine, vanilla** vault: default
-  theme, **zero CSS snippets**. It is the screenshot/repro target. Its plugin
-  `data.json` is git-ignored and configured (signifiers `important` /
-  `inspiration` / `explore`, `margin-column` placement). Reachable from the CLI
-  as `vault="demo-vault"`.
-- **Real deploy targets** (the maintainer's actual journals, listed in the
-  git-ignored `deploy-targets.json`):
-  - `/Users/ChFourie/Obsidian/Journal/Journal 2026` — CLI name `"Journal 2026"`
-  - `/Users/ChFourie/Obsidian/Momentum/Momentum 2026` — CLI name `"Momentum 2026"`
-    (uses the **AnuPpuccin** theme)
-  Both run ~7 enabled CSS snippets (custom-widths, dashboard, rounded-checkboxes,
-  hide-inline-title, …) and both have the Hot-Reload plugin, so `npm run deploy` /
-  `npm run push` reload them automatically.
-- **Why it matters:** CSS that relies on absolute positioning / geometry can look
-  perfect in the demo vault yet break in the real vaults, because snippets/themes
-  restyle bullets, checkboxes, indentation guides, and widths. This exact trap had
-  signifier icons overlapping the checkbox in the real vaults while rendering fine
-  in the demo. **Prefer flow-based rendering over absolute positioning**; treat
-  the demo vault as capable of false positives and verify layout in the real
-  vaults.
+- **Demo vault** `docs/demo-vault/` — pristine and vanilla: default theme, **zero snippets**. The
+  screenshot/repro target. Its `data.json` is gitignored and pre-configured (signifiers
+  `important`/`inspiration`/`explore`, `margin-column`). CLI name `demo-vault`.
+- **Real deploy targets** (gitignored `deploy-targets.json`): `…/Obsidian/Journal/Journal 2026`
+  and `…/Obsidian/Momentum/Momentum 2026` (the latter runs **AnuPpuccin**). Both run ~7 CSS
+  snippets (custom-widths, dashboard, rounded-checkboxes, hide-inline-title, …) and the
+  **Outliner** plugin, and both have Hot-Reload so `npm run deploy` reloads them.
+- **Why it matters:** geometry/absolute-positioning CSS can look perfect in the demo vault and
+  break in the real ones, where snippets restyle bullets, checkboxes, indentation, and widths.
+  This exact trap had signifier icons overlapping checkboxes in the real vaults only. **Treat the
+  demo vault as capable of false positives**; verify layout in a real vault.
 
 ---
 
 ## Verifying behaviour in real Obsidian
 
-CodeMirror **live-preview** behaviour (editor extensions, checkbox/marker clicks,
-gutter positioning) **cannot be reproduced in Vitest/jsdom** — drive the real app.
+Live-preview / CodeMirror / theme behaviour **cannot** be reproduced in Vitest+jsdom. Drive the
+real app via the Obsidian CLI (<https://obsidian.md/help/cli>) instead of asking for `outerHTML`.
 
-### The Obsidian CLI (preferred tool)
+Requires Obsidian 1.12.7+, **Settings → General → "Command line interface"** enabled *in that
+vault*, and the app running.
 
-Obsidian ships a CLI (<https://obsidian.md/help/cli>); drive it directly for
-fault-finding and screenshots instead of asking the maintainer for `outerHTML`.
+**⚠ Two recurring mistakes, both of which fake unrelated failures:**
 
-- **Requirements:** Obsidian **1.12.7+**, the **Settings → General → "Command
-  line interface"** toggle enabled *in the target vault*, and the app running
-  (`which obsidian` → `/usr/local/bin/obsidian`).
-- **⚠ Run EVERY CLI invocation with the sandbox OFF** (`dangerouslyDisableSandbox:
-  true`) — the CLI uses a local IPC socket the sandbox blocks. **This mistake is
-  made regularly** because the failure modes masquerade as app/vault problems:
-  - *"The CLI is unable to find Obsidian…"*
-  - `Error: Command "eval" not found. It may require a plugin to be enabled.`
-    (looks like the dev toggle is off or the vault is wrong — it often isn't)
-  - intermittent empty replies / a command that works on one call and fails the
-    next (when *some* calls in a session were sandboxed and others weren't)
-  - `pgrep` also fails under the sandbox, so even the "is Obsidian running?"
-    probe lies.
-  Before diagnosing a CLI error as wrong-vault / toggle-off / app-not-running,
-  first confirm the call actually ran sandbox-off. The rule applies to *every*
-  `obsidian …` call in a session, not just the first one — mixed-mode sessions
-  produce maddening intermittent failures.
-- **Invocation:** `obsidian [vault=<name>] <command> [param=value] [flag]` (quote
-  values with spaces).
-- **⚠ Confirm the vault first — recurring mistake.** The repo ROOT
-  (`/Users/ChFourie/Projects/Personal/obsidian-journal-folder`) sometimes gets
-  opened as a vault named **`obsidian-journal-folder`** — it is NOT the demo
-  vault, has no signifiers/config, and isn't a deploy target (stale build). The
-  bare `obsidian <command>` targets whatever vault is **focused**, which is often
-  that repo-root vault. **ALWAYS pass `vault="demo-vault"` explicitly** (the demo
-  vault's registered CLI name is its folder basename, `demo-vault`) AND verify
-  with `vault="demo-vault" eval code="app.vault.getName()"` → `demo-vault` before
-  trusting any result. The demo vault's CLI dev toggle **is enabled** — if `eval`
-  reports "not found", you're almost certainly hitting the wrong vault, not a
-  disabled toggle, so re-target before assuming the toggle is off.
-- **Listing registered vaults:** `~/Library/Application Support/obsidian/obsidian.json`
-  maps vault id → `{path, ts, open}`. Use it to find the demo vault's path
-  (`…/docs/demo-vault`, name `demo-vault`) and which vaults are currently open.
-- **Don't use `app:reload`.** It reloads the whole app, momentarily makes `eval`
-  unavailable, and churns the repo-root vault's `.obsidian/workspace.json` (and
-  per the CLI notes leaves the code-block processor unregistered). The demo
-  vault's committed `.hotreload` already reloads the plugin after `npm run push`;
-  to force it use `plugin:reload id=journal-folder`. Reload the plugin's settings
-  after editing its (gitignored) `data.json` with
+1. **Run EVERY invocation sandbox-OFF** (`dangerouslyDisableSandbox: true`) — the CLI uses a local
+   IPC socket the sandbox blocks. Symptoms that look like app/vault problems but aren't:
+   *"unable to find Obsidian…"*, `Command "eval" not found`, intermittent empty replies (in a
+   session that mixed sandboxed and unsandboxed calls), and a lying `pgrep` probe. Confirm the
+   call ran sandbox-off *before* diagnosing anything else. Applies to every call, not just the first.
+2. **Always pass `vault="demo-vault"` explicitly.** A bare `obsidian <cmd>` targets the *focused*
+   vault, which is often the repo root opened as a vault named `obsidian-journal-folder` — not the
+   demo vault, no signifiers, stale build. Verify with `eval code="app.vault.getName()"` before
+   trusting a result. If `eval` reports "not found", you're probably on the wrong vault rather
+   than a disabled toggle.
+
+Registered vaults live in `~/Library/Application Support/obsidian/obsidian.json` (id → path/open).
+
+**Commands:** `eval code=<js>` (runs in-app; `app` in scope, `require('obsidian')` is **not**;
+promises awaited; plugin at `app.plugins.plugins['journal-folder']`) · `dev:dom selector=<css>` ·
+`dev:screenshot [path=]` · `open file=<name> [newtab]` · `command id=` / `commands` ·
+`dev:mobile on|off` · `dev:console` / `dev:errors` · `dev:cdp` · `dev:css` · `outline format=json`.
+
+- **Reload with `plugin:reload id=journal-folder`, never `app:reload`** — the latter reloads the
+  whole app, makes `eval` briefly unavailable, churns `.obsidian/workspace.json`, and leaves the
+  code-block processor unregistered (header renders as raw `<pre>`). After editing the gitignored
+  `data.json`, re-read it with
   `eval code="app.plugins.plugins['journal-folder'].onExternalSettingsChange()"`.
-- **Verifying a vault-data change cleans up after itself.** Opening notes / editing
-  files via the app can leave incidental churn in tracked demo-vault notes (e.g. a
-  task status rewritten) and `.obsidian/workspace.json`. After a live verification,
-  `git status` the repo and `git checkout --` any file you didn't deliberately
-  change; back up any note you temporarily edit (`cp … /tmp/claude/…`) and restore
-  it. `data.json` is gitignored, but still revert experimental settings you added.
-- The dev commands (`eval` / `dev:dom` / `dev:screenshot`) are **gated per-vault**
-  by that General toggle. `Error: Command "eval" not found. It may require a
-  plugin to be enabled.` means the toggle is off in *that* vault **or** (more
-  often) you're targeting the wrong vault — confirm the target before concluding
-  the toggle is off (you can't toggle it via `eval`, since `eval` is what's
-  unavailable).
-
-**Most useful commands:**
-
-- `eval code=<js>` — run JS in the app and return the result. `app` is in scope;
-  `require('obsidian')` is **not** (use `app.*`). Promises are awaited. Plugin
-  instance: `app.plugins.plugins['journal-folder']`. Use for live geometry
-  (`getBoundingClientRect`, `getComputedStyle`, ancestor overflow chains), marker
-  `style.left`, etc.
-- `dev:dom selector=<css>` — query live DOM (text / innerHTML / attributes).
-- `dev:screenshot [path=<file>]` — capture the window (see Screenshots below).
-- `open file=<name> [newtab]`, `daily`, `read`, `outline format=json`.
-- `command id=<id>` / `commands [filter=]` — run/list command IDs.
-- `dev:mobile on|off` (mobile emulation), `dev:console` / `dev:errors` (captured
-  logs), `dev:cdp method= params=` (raw CDP), `dev:css selector= prop=`, `tasks`.
-- `plugin:reload id=journal-folder` — reload the plugin after `npm run push`
-  (preferred over `app:reload`, which leaves the markdown code-block processor
-  unregistered so the header renders as raw `<pre>`). *Note: `plugin:reload` and
-  `app:reload` are themselves gated and may report "not found" in some vaults —
-  the Hot-Reload plugin covers reloads after a deploy regardless.*
-
-- **A hidden window can sometimes be recovered programmatically — but never a
-  locked screen.** When `document.hidden === true` because the window is
-  minimized / occluded, `eval` can surface it:
-  `window.electronWindow.restore(); window.electronWindow.show(); window.electronWindow.focus()`
-  (`electronWindow` is Obsidian's renderer-exposed BrowserWindow handle;
-  `open -a Obsidian`, AppleScript `activate`, and CDP `Page.bringToFront` all
-  failed where this worked). When the cause is the **macOS lock screen**, nothing
-  programmatic helps — the maintainer confirms any screen lock makes the vault
-  report hidden and live checks fail. For any unattended CLI-driven verification
-  (not just releases), start `caffeinate -d -i -m -u -t <secs>` *while the screen
-  is unlocked* before the run, and probe `document.hidden` first so a hidden
-  window is diagnosed as such instead of as a rendering bug.
-
-**Two CLI gotchas (each cost time):**
-
-- `create file=<name>` **ignores the name** and writes `Untitled.md`. To make a
-  named scratch note, write it straight to disk (`docs/demo-vault/<name>.md`),
-  wait ~1s for Obsidian to index, then `open file=<name>`. Clean it up after.
-- **Force a leaf into editing/live-preview** (the demo default view is `preview`/
-  reading) to inspect CodeMirror DOM:
-  ```js
-  eval code="(async()=>{const v=app.workspace.getLeaf(false).view;await v.setState({...v.getState(),mode:'source'},{});await new Promise(r=>setTimeout(r,500));return [...document.querySelectorAll('.jf-signifier-gutter')].length})()"
-  ```
-  A synthetic `el.dispatchEvent(new MouseEvent('mousedown'|'click',{bubbles:true,clientX,clientY}))` fires the real handlers (CM `domEventHandlers`, Svelte) — e.g. mousedown on a `.jf-signifier-gutter.jf-signifier-live` opens the picker modal — so behaviour can be verified end-to-end without a human.
-
-**Verifying popout-window behaviour** (the `activeDocument`/`activeWindow`
-contract) is fully scriptable: `app.workspace.openPopoutLeaf()` →
-`leaf.openFile(file)` → `doc = leaf.view.containerEl.ownerDocument` →
-`doc.defaultView.focus()` (a programmatic focus **does** update Obsidian's
-`activeDocument` — assert `activeDocument === doc` before trusting the run) →
-dispatch clicks on the in-note affordances and assert the portaled panel's
-`ownerDocument` is the popout's, not the main `document`, and its rect fits
-`doc.defaultView.innerWidth/Height`. Detach the popout leaf afterwards
-(`l.detach()` on every leaf whose `containerEl.ownerDocument !== document`).
-This proved the More popover / date picker / status picker all render and
-clamp inside the popout after the `activeDocument`/`activeWindow` sweep.
-
-### Without the CLI
-
-- Launch: `open -a Obsidian` (needs the sandbox off — LaunchServices `procNotFound`
-  otherwise). Open a note: `open "obsidian://open?path=<url-encoded-abs-path>"`.
-- The demo vault has a committed `.hotreload` marker, so after `npm run build` +
-  copying `main.js` in, the plugin auto-reloads — no restart.
-- To log without a console, have the plugin
-  `app.vault.adapter.append('.obsidian/<file>.log', …)` — write **under
-  `.obsidian/`**, never a normal vault path (that triggers the file watcher and
-  can revert open-editor buffers). Never `JSON.stringify` a `TFile` (circular).
+- **`create file=<name>` ignores the name** and writes `Untitled.md`. For a named scratch note,
+  write it to disk, wait ~1s for indexing, then `open file=<name>`. Clean up after.
+- **Force a leaf into editing view** to inspect CodeMirror DOM (the demo default is reading):
+  `await v.setState({...v.getState(), mode:'source'}, {})`, then wait ~500ms.
+  Synthetic `el.dispatchEvent(new MouseEvent('mousedown'|'click',{bubbles:true,clientX,clientY}))`
+  fires the real CM/Svelte handlers, so behaviour is verifiable end-to-end without a human.
+- **A hidden window renders nothing.** Probe `document.hidden` first so occlusion isn't
+  misdiagnosed as a rendering bug. A minimized/occluded window can be recovered with
+  `window.electronWindow.restore(); …show(); …focus()` (`open -a`, AppleScript, and CDP
+  `Page.bringToFront` all failed where this worked). **A locked screen cannot** — start
+  `caffeinate -d -i -m` while unlocked before any unattended run.
+- **Popout verification is fully scriptable:** `openPopoutLeaf()` → `openFile` →
+  `doc = leaf.view.containerEl.ownerDocument` → `doc.defaultView.focus()` (programmatic focus does
+  update `activeDocument` — assert it before trusting the run) → dispatch clicks and assert the
+  portaled panel's `ownerDocument` is the popout's and its rect fits that window. Detach popout
+  leaves afterwards.
+- **Clean up after live verification.** App-driven edits leave churn in tracked demo-vault notes
+  and `workspace.json`; `git status` and `git checkout --` anything you didn't mean to change.
+- Without the CLI: `open -a Obsidian` (sandbox off), `open "obsidian://open?path=<abs>"`. To log
+  without a console, `app.vault.adapter.append('.obsidian/<file>.log', …)` — write **under
+  `.obsidian/`**, never a vault path (the file watcher reverts open-editor buffers). Never
+  `JSON.stringify` a `TFile` (circular).
 
 ---
 
-## E2E suite (live Obsidian, via the CLI)
+## E2E suite
 
-`tests/e2e/` is an **agent-independent** end-to-end suite that drives the real
-plugin in a running Obsidian instance through the CLI and asserts on rendered
-DOM, vault-file changes, and settings — the live counterpart to the jsdom unit
-suite. Run `npm run test:e2e:build`; full docs in
-[`tests/e2e/README.md`](tests/e2e/README.md) and the scenario matrix in
-[`tests/e2e/TEST-PLAN.md`](tests/e2e/TEST-PLAN.md).
+`tests/e2e/` drives the real plugin through the CLI and asserts on rendered DOM, vault files, and
+settings — agent-independent. Run `npm run test:e2e:build`. Docs in `tests/e2e/README.md`;
+scenario matrix in `tests/e2e/TEST-PLAN.md`. Selectors are the shipped `data-jf-*` attributes
+(settings fields via `data-jf-setting="<key>"`).
 
-- **Committed test vault** `tests/e2e/jf-e2e-vault/` — open it once manually to
-  register it (trust prompt); thereafter the runner reverts it with git between
-  tests. `main.js`/`workspace*.json` are gitignored; `data.json` is force-tracked
-  (baseline settings). Stable `data-jf-*` attributes on the UI are the selectors.
-- **Isolation = git.** Before every test the runner closes open modals/panels,
-  `git checkout`/`clean`s the vault, and re-applies the suite's settings.
-  `resetVault` refuses to run on an untracked vault (else `git clean` would delete
-  the fixtures), so the vault must be committed/staged.
-- **Three traps that cost real time** (all now handled in the harness, keep them
-  in mind when extending):
-  1. **The CLI binds to the *focused* window** and `eval` hangs on the wrong/busy
-     one → every call has a timeout + one refocus-retry; keep the vault window
-     reachable.
-  2. **Leftover modals break unrelated tests** — a modal left open sits over the
-     reading view and fails every subsequent render assertion (looked like a
-     mysterious "first N suites fail then recover" cascade). The harness closes
-     all modals/panels before each test; a spec that opens one should still
-     dismiss it.
-  3. **Read-after-write races** — disk writes / debounced saves lag the UI action;
-     assert via `ctx.waitFor(() => …)`, never an immediate read. Also: the plugin
-     keeps settings in a private field, so read them back from `data.json`
-     (`ctx.readSettings()`), not off the plugin instance.
-  4. **A non-visible Obsidian window renders nothing** — the reading view
-     lazy-renders only while `document.hidden === false`, so empty previews mean
-     the window is occluded / on another Space / minimized (NOT necessarily
-     minimized — a fully-covered window also reports hidden). This was the real
-     cause of the "early suites fail then recover" cascade; the runner's
-     preflight now fails fast on it. Settings editing goes through
-     `data-jf-setting="<key>"` hooks on each field's `.setting-item`.
-- **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is
-  `"{}"`; the helper wraps as `Promise.resolve(x).then(JSON.stringify)` so the CLI
-  awaits first.
-- **Empty `eval` stdout is a transient, not a result** — a blank reply (the CLI
-  prints `=> <value>` for *every* expression, even `undefined`) means the bound
-  window was mid-repaint / busy when the call landed; downstream it surfaces as
-  `Unexpected end of JSON input` from `evalJSON`. This bit the report run: the
-  extra `dev:screenshot` focus churn raced the *next* test's first `eval` and
-  failed ~3 scattered tests in <300ms (far faster than a real render). Fixed in
-  `cli.mjs`: `evalRaw` now refocuses + **retries on empty stdout with escalating
-  backoff** (`[300,500,800,1200]`ms — the previous single retry only covered
-  timeouts, and one quick retry wasn't enough when a setting toggle rebuilds every
-  view), and the reporter sleeps ~250ms after each screenshot. With both, the full
-  suite runs green in report mode.
-- **The fixtures are date-pinned to 2026-06-06 — date-sensitive tests rot by the
-  day.** The vault's "today" is `2026-06-06` (the daily note, the nav assertions).
-  The sidebar **task panel** is the fragile spot: its baseline scope is
-  `tasksSidebarAnchor: today` + `range: day`, so on any *other* real date a
-  *daily*-note fixture's tasks drop out of scope (a monthly/yearly note whose
-  period still contains the wall-clock day takes over — e.g. on 2026-06-07 the
-  panel showed only `Journal/2026-06.md`'s task). Symptom: the category-section,
-  truncation-footer, and sidebar-row task tests fail while the scope-independent
-  sidebar tests pass. Fix already applied to those three: `applySettings({
-  tasksSidebarAnchor: 'note' })` so they scope to the *opened* note, not the
-  clock, plus `ctx.waitFor` around the cache-populated assertion. When adding a
-  task-panel test, anchor on the note (or set an explicit range) unless you are
-  specifically testing the `today` anchor on the fixture date.
+- **Isolation = git.** The committed vault `tests/e2e/jf-e2e-vault/` is reverted between tests
+  (`git checkout`/`clean`) and the suite's settings re-applied; `resetVault` refuses to run on an
+  untracked vault, so fixtures must be committed. Open it manually once to clear the trust prompt.
+  `data.json` is force-tracked; `main.js`/`workspace*.json` are gitignored.
+- **Traps the harness now handles — keep them in mind when extending:**
+  - The CLI binds to the **focused** window and `eval` hangs on a busy one → every call has a
+    timeout + refocus-retry.
+  - A **leftover modal** sits over the reading view and fails every later render assertion (this
+    presented as a mysterious "first N suites fail then recover" cascade). The harness closes
+    modals/panels before each test; a spec that opens one should still dismiss it.
+  - **Read-after-write races** — assert via `ctx.waitFor(...)`, never an immediate read. Settings
+    live in a private field, so read them back from `data.json` via `ctx.readSettings()`.
+  - **A non-visible window renders nothing** (see above) — the runner's preflight fails fast on it.
+  - **Empty `eval` stdout is a transient, not a result** (the CLI prints `=> <value>` even for
+    `undefined`); downstream it surfaces as `Unexpected end of JSON input`. `evalRaw` refocuses and
+    retries on empty stdout with escalating backoff `[300,500,800,1200]`ms.
+  - **`evalJSON` must resolve before stringify** — `JSON.stringify(promise)` is `"{}"`; the helper
+    wraps as `Promise.resolve(x).then(JSON.stringify)`.
+- **Fixtures are date-pinned to 2026-06-06, so date-sensitive tests rot by the day.** The fragile
+  spot is the sidebar **task panel**: its baseline scope is `anchor: today` + `range: day`, so on
+  any other real date a daily-note fixture's tasks fall out of scope and a monthly/yearly note
+  takes over. When adding a task-panel test, `applySettings({ tasksSidebarAnchor: 'note' })` (plus
+  `ctx.waitFor`) unless you're specifically testing the `today` anchor on the fixture date.
 
 ---
 
 ## Screenshots
 
-- **Always capture from a live Obsidian session against the demo vault** — never
-  a mock harness (a previous Playwright harness drifted from the real Svelte
-  output and was deleted).
-- **Don't `Cmd+=` zoom** Obsidian "for readability" — it narrows the pane, trips
-  `pickVisibleMonthCount`, and collapses the in-note calendar from 3 months to 1,
-  misrepresenting the feature. Treat zoom as fixed at 0. For larger captures hide
-  the sidebars or widen the window instead.
-- **One idempotent command, zero manual prep.** `npm run screenshots` regenerates
-  all 29 PNGs (filter: `npm run screenshots -- header`; list: `-- --list`; reuse
-  the built bundle: `-- --no-deploy`; re-cut crops only: `-- --recrop`). The
-  harness lives in `scripts/screenshots/`: `run.mjs` (preflight + per-scene loop +
-  restore), `scenes.mjs` (the declarative manifest — one self-setting entry per
-  PNG), and `lib/{capture,demo-vault}.mjs`. It **reuses the E2E CLI/DOM plumbing**
-  (`tests/e2e/lib/{cli,page}.mjs`, pointed at the demo vault via
-  `JF_E2E_VAULT=demo-vault`) and the E2E **preflight** (verify
-  `getName()==='demo-vault'` → build/deploy → reload → detach leaves → visibility
-  gate → force light mode → readiness probe). Run **sandbox-off**; demo vault open
-  + visible. See `scripts/screenshots/README.md`.
-- **Check the demo vault's `app.json` before capturing** — the harness restores
-  `data.json` (plugin settings) but does NOT normalise Obsidian's own
-  `app.json`, so stray vault state silently changes capture geometry. The
-  3.2.1 release shots were taken with `readableLineLength: false` left over
-  from a manual session: every pane rendered full-width (headers 1818px
-  instead of the 1456px readable pane) and had to be retaken (readable line
-  length toggled back on via
-  `obsidian vault=demo-vault eval code="app.vault.setConfig('readableLineLength', true)"`,
-  which also persists it to `app.json`). Same risk applies to the host
-  display/window: a laptop-sized window changes layout, and `hero-overview`'s
-  width tracks the window. Sanity-check a retake against the previous
-  known-good PNG dimensions (`sips -g pixelWidth -g pixelHeight`).
-- **Each scene is self-setting.** A scene may carry a `settings` fixture
-  (shallow-merged over the demo `data.json`, which is **backed up and restored**
-  around the run — it's gitignored + user-configured), `tempFiles` (a throwaway
-  title-less journal folder for `header-no-folder-title`), `mobile: true`
-  (`dev:mobile on` for `calendar-mobile`), and a `setup(ctx)` that drives the UI
-  through the shipped `data-jf-*` hooks. The base scheme is forced to light and
-  restored; temp files / mobile are torn down. After a run the demo vault is
-  pristine (`data.json`, tracked notes, `workspace.json` all unchanged).
-- **Capture is two phases: drive then crop.** The drive measures the rect, saves
-  the **full-window frame** + a **sidecar rect** under
-  `scripts/screenshots/.captures/` (gitignored), then `sips`-crops. `--recrop`
-  re-cuts from the saved frames with no Obsidian — so a wrong crop / changed `pad`
-  is fixed instantly, and a blank crop is diagnosed by opening the saved frame to
-  see the real app state. (This caught both positioning bugs below at a glance.)
-- Harness gotchas:
-  - **Two header copies** in the active leaf (reading view + a hidden live-preview
-    one at 0,0). A bare `.mod-active [data-jf-more-button]` hits the **hidden** one
-    → its popover renders blank at the top-left. Scope interactive reading-view
-    queries to `.markdown-reading-view`.
-  - **Some portaled panels position via `requestAnimationFrame`**, which is
-    throttled while Obsidian isn't the foreground app during CLI driving → a
-    freshly opened panel can sit at its default top-left (the
-    `menu-panel-position.ts` no-anchor "centered sheet"). Fire a window `resize`
-    after opening to run the reposition synchronously. (`SidebarMenuPanel` no
-    longer needs this — it positions via an `$effect` on open, see the step-8
-    note below — but `RibbonMenuPanel` / `TaskScopePanel` still rAF.)
-  - Native Obsidian `Menu` (`.menu`) **can't be captured** (dismisses on the
-    `dev:screenshot` focus change — the plugin's custom portaled panels survive);
-    calendar visibility is a session-sticky store (toggle via the More popover);
-    normalise the right-split sidebar to ~290px and recreate the leaf to reset
-    sticky Svelte panel state; screenshots are Retina (multiply CSS-px rects by
-    `devicePixelRatio` 2).
+`npm run screenshots` regenerates all 29 README PNGs idempotently — no manual prep. Filter with
+`-- header`, list with `-- --list`, reuse the build with `-- --no-deploy`, re-cut crops with
+`-- --recrop`. Harness in `scripts/screenshots/` (`run.mjs`, the declarative `scenes.mjs`,
+`lib/`), reusing the E2E CLI/DOM plumbing and preflight against `demo-vault`. Run sandbox-off with
+the demo vault open and visible. See `scripts/screenshots/README.md`.
+
+- **Always capture from live Obsidian against the demo vault** — a previous Playwright mock
+  harness drifted from real Svelte output and was deleted.
+- **Never `Cmd+=` zoom** "for readability": it narrows the pane, trips `pickVisibleMonthCount`, and
+  collapses the in-note calendar from 3 months to 1. Hide sidebars or widen the window instead.
+- **Check the demo vault's `app.json` before capturing.** The harness restores `data.json` but not
+  Obsidian's own config, so stray state silently changes geometry — the 3.2.1 shots were taken
+  with `readableLineLength: false` left over from a manual session (every pane full-width, 1818px
+  instead of 1456px) and had to be retaken. Sanity-check a retake against the previous PNG's
+  dimensions (`sips -g pixelWidth -g pixelHeight`).
+- **Each scene is self-setting**: optional `settings` (shallow-merged over the backed-up demo
+  `data.json`), `tempFiles`, `mobile: true`, and a `setup(ctx)` driving the UI through `data-jf-*`
+  hooks. Light mode is forced and restored; the vault is pristine after a run.
+- **Capture is drive-then-crop**: the drive saves a full-window frame + sidecar rect under
+  `.captures/` (gitignored), then `sips`-crops. `--recrop` re-cuts with no Obsidian running, so a
+  bad crop is fixed instantly and a blank crop is diagnosed by opening the saved frame.
+- Gotchas: the active leaf holds **two header copies** (reading view + a hidden live-preview one at
+  0,0) — scope interactive queries to `.markdown-reading-view` or you drive the hidden one and its
+  popover renders blank at top-left. **rAF-positioned panels** are throttled while Obsidian is
+  backgrounded, so a freshly opened one sits at its default position — fire a window `resize` after
+  opening (`RibbonMenuPanel` / `TaskScopePanel`; `SidebarMenuPanel` no longer needs it). Native
+  Obsidian `Menu`s **can't be captured** (they dismiss on the screenshot focus change; portaled
+  custom panels survive). Calendar visibility is a session-sticky store. Normalise the right split
+  to ~290px and recreate the leaf to reset sticky Svelte state. Screenshots are Retina — multiply
+  CSS-px rects by `devicePixelRatio`.
 
 ---
 
-## Obsidian styling references
+## Obsidian styling traps
 
-- **Default note width:** the default readable-line-length pane is **760px** with
-  **28px top/bottom, 32px left/right** padding → usable content **~696px**. Use
-  696 as the budget for "does it fit at default width". (The in-note calendar's
-  `DESKTOP_MIN_MONTH_PX = 213` in `src/features/journal-header/visible-month-count.ts`
-  was tuned so the picker returns 3 months at this width.)
-- **Colour tokens / `ColorRef`:** surface theme tokens first in any colour picker
-  (semantic — `--text-normal/-muted/-faint`, `--text-accent`, `--text-error/
-  -success/-warning`, `--interactive-accent`, `--background-modifier-*`,
-  `--checkbox-border-color`; swatches — `--color-{red,orange,yellow,green,cyan,
-  blue,purple,pink}`) and only fall back to a raw hex literal. Sizing tokens:
-  `--checkbox-size`, `--list-marker-gap`. Data shape:
-  `ColorRef = {kind:'token';var} | {kind:'literal';value}`; render as
-  `ref.kind==='token' ? var(${ref.var}) : ref.value` (see
-  `src/features/journal-tasks/task-models/task-model.type.ts`).
-- **`.mod-settings` paints `<button>` as chunky pill chips.** Inside the settings
-  tab or any settings-skinned modal, custom controls that shouldn't look like
-  buttons (breadcrumb links, inline triggers, tab strips) must reset
-  `background`/`border`/`box-shadow`/`padding`/`margin`/`height`/`min-height`
-  before layering your own style. The competing rules are app.css `button` /
-  `button:not(.clickable-icon)` (0,0,1 / 0,1,1) with **no `!important`**, so a
-  two-class selector like `.jf-breadcrumb button.jf-breadcrumb-link` (0,2,1) wins
-  on **specificity alone** — don't reach for `!important` (`styles.css` carries
-  none; see the lint bullet). For controls that *should* look like Obsidian
-  buttons, use `ButtonComponent` (it cooperates with the skin).
-- **Settings-dialog skin for a custom `Modal`:** `this.modalEl.addClass(
-  'mod-settings', '<wrap>')` + `this.contentEl.addClass('vertical-tab-content',
-  '<inner>')` gives the wide settings layout; hide the empty
-  `.modal-tab-header` / `.vertical-tab-content-container` it would render. Applied
-  in `folder-config-modal.ts`.
-- **Reading-view task DOM:** a *loose* task `<li class="task-list-item">` has an
-  empty `<span class="list-bullet">` as its **first** child, then a `<p>` wrapping
-  the `<input class="task-list-item-checkbox">` + (optional `.jf-task-status`) +
-  text. To insert an inline marker at the entry start: query the **checkbox first**
-  (descendant query — it is *not* a direct `<li>` child), step past a following
-  `.jf-task-status`, insert after that; fall back to after `.list-bullet`, else
-  prepend to the content host (`<p>` for loose items, the `<li>` for tight). A
-  marker placed as an `<li>` child *before* the `<p>` lands on its own line. See
-  `process-signifiers.ts` `placeMarker`.
-- **A collapsible task's fold control overlaps the checkbox column.** In reading
-  view a task with sub-items gets a `.list-collapse-indicator` — an
-  `position: absolute` box wide enough to cover the checkbox. A swapped-in status
-  icon left at `position: static` paints *under* it, so clicks on the icon fold
-  the sub-list instead of cycling the status (and the glyphs visibly overlap).
-  Give the icon `position: relative` — exactly what Obsidian's own native
-  checkbox does — so it paints on top and owns its clicks while the indicator's
-  exposed left edge stays foldable. Covered by the `task-nested-collapse` E2E
-  spec (coordinate hit-test + real click + fold-still-works).
-- **`margin` is outside the hit box; grow a hit target with `::after`, not
-  padding.** In live preview the native checkbox is `display: none` and clicks
-  route to the plugin's icon span; the gap to the task text was a
-  `margin-right`, so a click landing in it fell through to the `.cm-line` and
-  CodeMirror placed the caret (dropping the line into source view). Widen with a
-  transparent absolutely-positioned `::after` overlay: a pseudo-element keeps
-  `evt.target` on the icon span (so `closest('[data-jf-task-icon]')` still
-  resolves) without inflating the painted background the way padding would, and
-  without touching layout. Scope it to `data-jf-task-icon` so reading-view and
-  sidebar icons are untouched.
-- **The community-review scanner lints `styles.css` too** (warnings page at
-  `community.obsidian.md/plugins/journal-folder`), beyond what `npm run lint`
-  reproduces, and pattern-matches properties without context:
-  - a bare `column-gap` is misread as the CSS *multi-column* feature even
-    inside `display: grid` — always write the `gap: <row> <col>` shorthand;
-  - duplicate same-property declarations (the `height: 1.5em; height: 1lh`
-    progressive-fallback idiom) are flagged — express the fallback as a base
-    declaration + an `@supports (height: 1lh)` override instead;
-  - every `:has()` is flagged for broad selector invalidation. Inside our own
-    Svelte components, stamp a modifier class instead (e.g.
-    `.journal-folder-header-options.jf-has-calendar`). The two remaining
-    `:has()` uses (hide `journal-folder.md` in the file explorer) are a
-    **deliberate keep**: the declarative body-class-gated rule beats a
-    `MutationObserver` on the explorer DOM, and it's inert unless the user
-    enables the setting;
-  - `display: contents` draws a partial-support warning (old-engine a11y-tree
-    removal) — harmless at Obsidian's Chromium baseline, but avoid new uses.
-  The scanner's *Vault Enumeration* disclosure (from `getMarkdownFiles` in
-  `journal-folder-detection.ts`) is inherent to config-note discovery — not
-  removable.
-- **Indentation guides force `li { position: relative }`.** With
-  `show-indentation-guide` on, Obsidian makes every list `<li>` a positioning
-  context, so an absolutely-positioned descendant anchors to its nearest `<li>`,
-  not to `.markdown-preview-sizer`. That's why a single far-left margin column
-  can't be robustly anchored in reading view (it'd need per-line measurement) and
-  the robust reading-view gutter is *per-entry*. Editing view has no `<li>` (lines
-  are full-width `.cm-line` divs) so the same technique yields a single column —
+- **Default note width:** readable-line-length pane is **760px**, padding 28px top/bottom and 32px
+  left/right → **~696px** usable. Use 696 as the "does it fit" budget. (`DESKTOP_MIN_MONTH_PX = 213`
+  was tuned so the calendar picker returns 3 months at this width.)
+- **Colour tokens / `ColorRef`:** offer theme tokens before a raw hex — semantic
+  (`--text-normal/-muted/-faint`, `--text-accent`, `--text-error/-success/-warning`,
+  `--interactive-accent`, `--background-modifier-*`, `--checkbox-border-color`) and swatches
+  (`--color-{red,orange,yellow,green,cyan,blue,purple,pink}`). Sizing: `--checkbox-size`,
+  `--list-marker-gap`. Shape: `ColorRef = {kind:'token';var} | {kind:'literal';value}`.
+- **`.mod-settings` paints `<button>` as chunky pill chips.** Inside the settings tab or a
+  settings-skinned modal, custom controls that shouldn't look like buttons must reset
+  `background`/`border`/`box-shadow`/`padding`/`margin`/`height`/`min-height` first. The competing
+  `app.css` rules are 0,0,1 / 0,1,1 with no `!important`, so a two-class selector wins on
+  specificity alone. For controls that *should* look native, use `ButtonComponent`.
+- **Settings-dialog skin for a custom `Modal`:** `modalEl.addClass('mod-settings', …)` +
+  `contentEl.addClass('vertical-tab-content', …)`, then hide the empty `.modal-tab-header` /
+  `.vertical-tab-content-container` it renders. Applied in `folder-config-modal.ts`.
+- **Reading-view task DOM:** a *loose* `li.task-list-item` has an empty `span.list-bullet` as its
+  **first** child, then a `<p>` wrapping the checkbox + optional `.jf-task-status` + text. To
+  insert an inline marker: query the **checkbox** (a descendant, *not* a direct `<li>` child), step
+  past a following `.jf-task-status`, insert after that; fall back to after `.list-bullet`, else
+  prepend to the content host. A marker placed as an `<li>` child *before* the `<p>` lands on its
+  own line. See `process-signifiers.ts` `placeMarker`.
+- **A collapsible task's fold control overlaps the checkbox column.** A reading-view task with
+  sub-items gets a `position: absolute` `.list-collapse-indicator` wide enough to cover the
+  checkbox; an icon left at `position: static` paints under it, so clicks fold the sub-list instead
+  of cycling status. Give the icon `position: relative` (what Obsidian's own checkbox does) — it
+  then owns its clicks while the indicator's exposed left edge stays foldable.
+- **`margin` is outside the hit box — grow a hit target with `::after`, not padding.** In live
+  preview the native checkbox is `display: none` and clicks route to the icon span; a
+  `margin-right` gap fell through to `.cm-line` and CodeMirror placed the caret. A transparent
+  absolute `::after` keeps `evt.target` on the icon (so `closest('[data-jf-task-icon]')` resolves)
+  without inflating the painted background or touching layout. Scope it to `data-jf-task-icon`.
+- **Indentation guides force `li { position: relative }`.** With `show-indentation-guide` on, every
+  `<li>` becomes a positioning context, so an absolutely-positioned descendant anchors to its
+  nearest `<li>`, not `.markdown-preview-sizer`. That's why the robust reading-view gutter is
+  *per-entry*, while editing view (full-width `.cm-line` divs, no `<li>`) yields a single column —
   the two views legitimately differ.
+- **The community-review scanner lints `styles.css` too** (beyond `npm run lint`) and
+  pattern-matches without context: a bare `column-gap` is misread as CSS multi-column even inside
+  `display: grid` (write the `gap: <row> <col>` shorthand); duplicate same-property declarations
+  (the `height: 1.5em; height: 1lh` fallback idiom) are flagged (use `@supports` instead); every
+  `:has()` is flagged (stamp a modifier class in our own components — the two config-note-hiding
+  uses are a deliberate keep, since a declarative body-class rule beats a `MutationObserver`);
+  `display: contents` draws a partial-support warning. Its *Vault Enumeration* disclosure (from
+  `getMarkdownFiles`) is inherent to config-note discovery and not removable.
 
 ---
 
 ## Release flow
 
-Release notes come from `CHANGELOG.md`; the workflow
-(`.github/workflows/release.yml`) extracts the section between `## [<tag>]` and
-the next `## [` via `awk` and passes it to `gh release create --notes-file`.
+`npm run release -- <patch|minor|major>` (`scripts/release.mjs`) runs everything in order, halting
+on first failure: preconditions (clean tree + `## [<next>]` CHANGELOG section) → lint → test →
+build → **E2E** → screenshots → commit generated docs → `npm version` (commit + unprefixed tag) →
+deploy → commit the demo-vault bump → confirm → push branch + tag. The tag push triggers
+`.github/workflows/release.yml`, which builds and creates a **draft** release — review and publish
+it (`gh release edit <tag> --draft=false`). Flags: `--dry-run` (works on a dirty tree, reports
+blockers), `--yes`, `--skip-screenshots` (E2E is never skippable).
 
-### Preferred: `npm run release -- <patch|minor|major>`
-
-`scripts/release.mjs` runs the whole local pipeline in order, halting on the
-first failure (so nothing that gates a release can be silently skipped):
-
-> preconditions (clean tree + `## [<next>]` CHANGELOG section) → `npm run lint` →
-> `npm test` → `npm run build` → **E2E** (`node tests/e2e/run.mjs`) →
-> `npm run screenshots` → commit the generated docs (README screenshots only) →
-> `npm version <type>` (commit + unprefixed tag) → `npm run
-> deploy` → commit the demo-vault artifact bump → **confirm** → push branch + tag.
-
-The tag push triggers the workflow, which builds and creates a **draft** GitHub
-release; that draft is the safety net for the otherwise-automated flow — review
-and publish it manually (`gh release edit <tag> --draft=false`).
-
-- **It needs a local, running, VISIBLE Obsidian** — both the E2E suite and the
-  screenshot harness drive the real app via the CLI, so the pipeline can't run on
-  CI. The E2E step targets `jf-e2e-vault`; the screenshots step targets
-  `demo-vault`. Keep the relevant window focused + visible during each step.
-- **Wrap the whole run in `caffeinate` so the screen can't lock mid-flight.** The
-  pipeline drives Obsidian with no user input for several minutes, so the macOS
-  display-sleep / screen-saver idle timer fires and the window goes
-  `document.hidden` — Obsidian then **stops rendering the reading view**, and the
-  E2E suite fails with empty previews (it surfaced as the `template-preview`
-  scenario failing while earlier suites passed — whichever suite happens to run
-  when the lock hits). The preflight even refuses to start with *"The Obsidian
-  window is not visible (document.hidden)"*. Tightening **System Settings → Lock
-  Screen** does **not** help (and a corporate MDM policy may enforce a hard
-  timeout regardless). The reliable fix is to keep the display awake for the
-  command's lifetime: `caffeinate -d -i -m npm run release -- <patch|minor|major>
-  --yes` (`-d` = no display sleep + suppresses the idle screen saver). Run it
-  **sandbox-OFF** — the Obsidian CLI talks to the app over a local socket the
-  sandbox blocks (you'll see *"unable to find Obsidian"* otherwise).
-- **The E2E + screenshot steps redeploy into their vaults — that's expected
-  churn, handled automatically.** Both `deployBuild`s copy the built
-  `manifest.json` / `styles.css` verbatim into `jf-e2e-vault` (step 3) and
-  `demo-vault` (step 4), dirtying those tracked files. Since `npm version` (step
-  6) refuses a dirty tree, the script discards them right before it
-  (`DEPLOYED_VAULT_ARTIFACTS` → `git checkout --`); step 7 re-deploys + commits
-  the demo-vault pair fresh at the new version. Historically a **stale committed
-  demo-vault `manifest.json`** (an out-of-band edit to the root manifest's
-  `description` that wasn't re-synced) made that churn a real diff and halted the
-  release at *"Tree dirty after committing docs"*; the discard step now absorbs
-  it. If the guard ever fires now, it means a genuine **non-artifact** source
-  file is dirty — investigate that, don't just clean it.
-- Flags: `--dry-run` validates preconditions and prints the plan without changing
-  anything (works even on a dirty tree — it reports blockers instead of running);
-  `--yes` skips the confirm before the outward push; `--skip-screenshots` skips
-  only the screenshot regen (the E2E suite is never skipped).
-- Still **add the `## [x.y.z]` CHANGELOG section first** — the script's
-  precondition check refuses to proceed without it (heading format must match
-  exactly; the awk extractor depends on it).
-
-### Manual equivalent (if you need to run a step by hand)
-
-1. Add a `## [x.y.z]` section to `CHANGELOG.md`. Commit feature work first
-   (`npm version` refuses a dirty tree).
-2. `npm version <patch|minor|major>` — runs `version-bump.mjs` to sync
-   `manifest.json` + `versions.json`, then commits (message = the bare version,
-   e.g. `2.4.3`) and creates an unprefixed tag (`.npmrc` sets
-   `tag-version-prefix=""`).
-3. `npm run deploy` to rebuild + push into the demo vault and deploy targets, then
-   commit the demo-vault artifact bump (`docs/demo-vault/.../manifest.json` +
-   `styles.css`) — message `Bump demo-vault plugin to x.y.z` (demo `main.js` is
-   git-ignored).
-4. `git push origin master` and `git push origin <tag>`. The workflow builds,
-   extracts the changelog section, and creates a **draft** release with `main.js`
-   / `manifest.json` / `styles.css` attached.
-5. Review and **publish** the draft (`gh release edit <tag> --draft=false`).
-
-If the workflow logs "No CHANGELOG.md section found" and uses a `Release <tag>`
-placeholder body, you forgot the CHANGELOG section.
-
-### The verification report (`docs/test-reports/`) — REMOVED
-
-There used to be a committed per-release gallery here (a step log of every E2E
-scenario + a screenshot for each visible one, referenced from the README). It was
-**removed entirely** — regenerating ~74 PNGs (~11 MB) on every release piled fresh
-binary blobs into git history forever and ballooned the repo. The whole
-report-generation feature is gone: `--report` mode, `tests/e2e/lib/report.mjs`,
-`tests/e2e/lib/reporter.mjs`, `tests/e2e/report.test.ts`, and the
-`test:e2e:report` script were all deleted, and the README section dropped.
-(The ~18 MB of `docs/test-reports/` blobs already in git history were left in
-place — a one-time `git filter-repo` purge was considered but not worth rewriting
-this published repo's history + moving its 41 release tags for the small reclaim;
-removing the feature already stops further growth.)
-
-What remains: the E2E suite **only verifies now — it captures nothing**. Specs
-still carry their `ctx.step('…')` / `ctx.shot('Caption', { rect })` calls, kept as
-**no-ops** in `tests/e2e/lib/harness.mjs` (they document each scenario's intent
-and cost nothing — no need to strip them from the 17 specs). The README's own
-screenshots (`docs/screenshots/`, via `npm run screenshots`) are a **separate**
-feature and stay committed. If you re-introduce a report, expect the history-bloat
-problem to return — host the images outside `master` (orphan branch / release
-assets / LFS) rather than committing regenerated PNGs each release.
-
-### Release-asset attestations
-
-`release.yml` runs `actions/attest-build-provenance@v2` over `main.js` /
-`manifest.json` / `styles.css` before `gh release create` — the community-review
-scanner checks release assets for GitHub artifact attestations and reports
-"Missing GitHub artifact attestations" otherwise. The job carries an explicit
-`permissions:` block (`contents: write`, `id-token: write`,
-`attestations: write`); if you add steps needing other scopes, extend that block
-— declaring any `permissions:` drops the default grants.
+- **Add the `## [x.y.z]` CHANGELOG section first.** The workflow extracts the text between that
+  heading and the next `## [` with `awk` for the release body; the heading format must match
+  exactly. A `Release <tag>` placeholder body means you forgot it.
+- **Needs a local, running, VISIBLE Obsidian** — E2E (targets `jf-e2e-vault`) and screenshots
+  (target `demo-vault`) drive the real app, so this can't run on CI.
+- **Wrap the run in `caffeinate -d -i -m` and run sandbox-OFF.** The pipeline drives Obsidian
+  untouched for minutes, so the display-sleep timer fires, the window goes `document.hidden`,
+  Obsidian stops rendering the reading view, and E2E fails with empty previews (it presented as
+  whichever suite happened to be running). Tightening System Settings → Lock Screen does **not**
+  help, and MDM may enforce a timeout regardless.
+- **Deploy churn before `npm version` is expected and auto-discarded.** The E2E and screenshot
+  steps copy `manifest.json`/`styles.css` into their vaults, dirtying tracked files; the script
+  `git checkout --`s them (`DEPLOYED_VAULT_ARTIFACTS`) right before `npm version`, then re-deploys
+  and commits the demo-vault pair fresh. If the *"Tree dirty after committing docs"* guard still
+  fires, a genuine **non-artifact** source file is dirty — investigate rather than clean.
+- **Attestations:** `release.yml` runs `actions/attest-build-provenance@v2` over the three assets
+  (the scanner reports "Missing GitHub artifact attestations" otherwise). Its explicit
+  `permissions:` block (`contents`/`id-token`/`attestations: write`) must be extended if you add
+  steps needing other scopes — declaring any `permissions:` drops the default grants.
+- **Don't re-introduce a committed test-report gallery.** `docs/test-reports/` regenerated ~74 PNGs
+  (~11 MB) per release into git history forever and was removed entirely, along with `--report`
+  mode and its modules. Specs keep their `ctx.step` / `ctx.shot` calls as documenting **no-ops**.
+  If you ever want one back, host the images off `master` (orphan branch / release assets / LFS).
+  (The ~18 MB already in history was left alone — not worth rewriting a published repo's history
+  and moving 41 tags.)
 
 ---
 
-## Known traps in the settings tab
+## Invariants worth preserving
 
-### Stale-snapshot `getSettings` closures (fixed in 3.0.1)
+Rules whose *why* the code doesn't explain. Per-feature detail lives in the `docs/*.md` files.
 
-`SettingsFormBuilder.render()` takes a one-time snapshot
-`const settings = { ...this.getCurrentSettings() }` and passes closures like
-`getSettings: () => settings` into section renderers. This is fine for the
-*initial render*, but any closure that calls `getSettings()` **after** an
-async `saveSettings()` in the same event handler will receive the pre-render
-snapshot — which no longer reflects what was just written to disk.
+**Settings**
 
-The original bug: the "Add signifier" / "Add category" buttons
-1. saved the new item (`saveSettings({ ...snapshot, list: [...list, item] })`), then
-2. opened an edit modal whose onSave called `getSettings()` → got the stale snapshot (empty list), then
-3. saved `stale.map(...)` → empty array → erased the item.
+- **Stale-snapshot `getSettings` closures.** `SettingsFormBuilder.render()` snapshots settings
+  once and passes `getSettings: () => settings`. Any closure calling it **after** an async
+  `saveSettings()` in the same handler gets the pre-save snapshot — which erased a
+  just-added signifier/category (save list → open modal → modal saved `stale.map(...)` → empty).
+  Any section following *save → open modal → modal mutates the saved list* must pass
+  `() => this.getCurrentSettings()`. The remaining `() => settings` closures (task-flow sections)
+  are safe only because their callees never re-read after an async save.
+- The same rule applies to features: anything holding a settings snapshot across an `await` and
+  then **saving** must re-read `this.globalSettings` at save time (the snapshot is fine as *input*).
+  `maybeMigrateInlineTemplates` silently overwrote mid-flight settings changes this way.
+- **Invalidation is diff-gated** (`data-access/settings-invalidation.ts`, pure + unit-tested).
+  Every write — settings tab, folder modal, **and the sidebar's scope controls** — shares one
+  `saveSettings → propagate → useSettings` pipeline, so unconditional invalidation meant one
+  "show completed" click cleared the task cache and re-rendered every reading view. Each feature
+  diffs the incoming snapshot against `this.globalSettings` captured *before* `super.useSettings`.
+  - `TASK_PARSE_FIELDS` (→ `TaskCache.clear()`) must include the **title patterns**, `startOfWeek`,
+    and `quartersEnabled` — cached tasks bake rendered note titles and tier, which the cache's
+    mtime + model-id validation can't see.
+  - The reading-view `rerender(true)` sweep lives in the signifiers feature but serves *every*
+    reading-view surface. It's gated on an **exclusion** list (`RENDER_INERT_FIELDS`), so a new
+    unclassified field fails safe (extra re-render, never a stale view). Add pure-UI fields there;
+    render-affecting fields need nothing.
+  - **Diff by value, not reference** — load / external sync rebuilds the settings object wholesale,
+    so a reference diff would re-invalidate on every `onExternalSettingsChange`.
+  - **Probe trap:** `rerender(true)` reuses the per-section container divs and replaces their
+    contents, so a `dataset` probe on a section div survives and proves nothing. Probe deep content
+    elements (`p` / `li`).
+- **Embedded block config is type-coerced at the parse layer** by `coerceEmbeddedSettingValue`
+  (`folder-settings-resolver.ts`), keyed on `typeof DEFAULT_SETTINGS[key]`: number → `Number`, with
+  blank/NaN **skipping the entry** (`Number('')` is 0 — a blank must not become zero); boolean →
+  the front-matter convention (only the literal `"false"` is falsy). New numeric/boolean fields get
+  this free — don't re-add use-site string comparisons. YAML front matter already delivers typed
+  primitives and is untouched.
 
-**Fix applied:** `renderSignifiersSection` and `renderCategoriesSection` now
-receive `getSettings: () => this.getCurrentSettings()` so modal callbacks
-always read live persisted state.
+**Journal notes & the sidebar**
 
-**Rule for future sections:** any settings section that follows the pattern
-*"save to disk → open a modal → modal save mutates the saved list"* must pass
-`() => this.getCurrentSettings()` (not `() => settings`) for its `getSettings`
-slot. The three remaining `() => settings` closures (`renderTaskFlowOverview`,
-`renderTaskFlowDetail`, `renderFolderTaskFlowSection`) are safe because their
-callees never call `getSettings()` after an intervening async save.
+- **The `JournalNote` sibling snapshot is lazy and factory-scoped.** It's cached per parent folder
+  *inside one `journalNoteFactoryWithSettings` closure* (shared with notes derived via
+  `createNote`/`createNoteOfSameTimeUnit`). Building a fresh factory per file forfeits the cache and
+  restores an O(n²) walk (~3.3M string ops on a 5-year daily folder) — build once, then loop.
+  `startOfInterval(today, pattern)` is likewise memoised per strategy, keyed on today's value so a
+  walk straddling midnight stays correct. The snapshot is computed on the first existence check
+  then **frozen**, so walks that never check existence (task candidates, migration pickers) never
+  read `folder.children` — and consumers needing freshness after a vault mutation must rebuild the
+  note (the sidebar's `bumpVault` tick does).
+- **Sidebar vault listeners are scope-filtered *then* 200ms trailing-debounced.** Predicates live in
+  `journal-tasks/task-event-scope.ts` (`taskEventAffectsScope` mirrors `resolveTaskFolders`' rules;
+  `journal-folder.md` events are **always** relevant because they change folder topology;
+  `activeLeafAffectsTaskScope` is true only for a `note` anchor / `note` folder mode) and
+  `journal-folder-sidebar/sidebar-vault-events.ts` (`classifyVaultMutation` → known-folder rescan /
+  anchor bump / task refresh, accumulated into one debounced flush). Renames must check **both**
+  paths. A folder `create` is inert (contents arrive as separate events); folder `delete`/`rename`
+  force a conservative full refresh. `resolveTaskFolders.allFolders` is a **thunk** so the
+  full-vault walk only runs when that branch is taken. Verified live: editing a non-journal note
+  now costs zero `getMarkdownFiles` walks (was one full task pipeline per autosave).
+- **Don't import the `journal-tasks` feature *index* from plain-TS modules that unit tests load** —
+  it re-exports Svelte components and Vitest's transform chokes when the import arrives via a
+  `.ts`-only test. Import the concrete module. (Views are fine; they aren't unit-loaded.)
 
----
+**Tasks**
 
-## Shipped-feature design notes
+- **Fence-awareness is shared, not re-implemented.** Both `extractTasks` and
+  `findDocumentTaskLines` must apply the identical rule via `fence-tracker.ts` — the renderer emits
+  no item for fenced lines, so a parser that counts a fenced `- [ ] …` desyncs the positional zip
+  for every later task, and a status click could rewrite a line *inside* the code block. Deliberate
+  choices: openers at any indent (over-suppressing inside an indented code block is the safer
+  failure), tilde + backtick, CommonMark closer rules, unclosed fence runs to EOF, blockquotes out
+  of scope. `findDocumentTaskLines` tracks fence state from line 0, not `lineStart`, so both agree
+  on absolute lines.
+- **`buildTaskModel` is memoised on the statuses array's *identity*** (`WeakMap`). Sound only
+  because the flow editor always builds **new** arrays (`[...statuses, x]`, `cloneTemplate`,
+  filtered copies) and never mutates in place — a future editor that `push`es into an existing
+  flow's `statuses` would serve a stale model until the next save. Relatedly, `FALLBACK_FLOW` is
+  cloned **once at module scope**: a per-call clone would defeat the memo, while handing out the
+  shared `BUILTIN_TEMPLATES` array risks mutation poisoning a read-only template.
+- **`TaskFlow.migratedStatus` is three-state** — a status id, `MIGRATED_STATUS_CLEARED` (`''`, the
+  user's deliberate "(None)", which settings-load auto-wire must not re-populate), and `undefined`
+  (never set; auto-wire may fill it). `TaskStatusId` is a plain string, so only the sentinel
+  constant expresses the distinction — use it, not a bare `''`.
+- **`capVisibleTasks` (`task-snapshot.ts`) solely owns filter-then-cap ordering**, so the cap trims
+  only *visible* tasks and `hiddenCompletedCount` covers everything in scope. All three list
+  surfaces consume it; filtering completed post-cap in the Svelte components (the old shape) let
+  hidden tasks eat cap slots. The header counts the **pre-cap** visible population
+  (`taskListHeaderLabel`) so it can't contradict the "Showing X of N" footer.
+- **`migrateTasks` refuses a destination that is also a source.** The pickers already exclude it,
+  but the exported writer must not trust its callers — without the guard it stamps the origin and
+  appends an active duplicate into the same note.
+- **Rendering is flow-level, one mode per flow.** Per-status rendering was tried and reverted:
+  mixing plugin and theme rendering in one nested list paints unreliably (the theme's checkbox
+  styling for surrounding rows competes with the injected shell+icon). Read sites branch on
+  `model.rendering`, never a per-status field. `migrateTaskSettings` is idempotent on every load and
+  handles v0→v3.
+- **The status picker is one imperative vanilla-TS opener for all four surfaces**
+  (`status-picker-panel.ts`) — two are Svelte, two are plain DOM/CodeMirror, and a Svelte panel
+  can't be mounted from the DOM ones without ceremony. Each surface passes **its own writer** via
+  `onSelect`: disk everywhere except live preview, where a `vault.process` write to the *open* note
+  is reverted by the editor re-syncing. It dismisses on **`mousedown`, not `click`** (it opens on
+  mousedown; a click listener would be tripped by the very trailing click that follows), in capture
+  phase so a CodeMirror editor can't swallow it. It anchors to the **visible icon**, never the
+  `display:none` input (zeroed rect), falling back to the input only under theme rendering. The
+  native `Menu` survives **only** in the `editor-menu` integration, where extending Obsidian's own
+  context menu is correct. The "Migrate task…" row comes from a module-level provider registered
+  once in `load()` — threading a context through two Svelte prop chains and both document surfaces
+  for one process-wide capability was rejected; it returns `null` (row hidden) for done tasks,
+  non-journal notes, and flows with no migrated status.
+- **Live-preview `selectionSet` rebuilds are gated per extension** — signifiers only when
+  tag-hiding is on; migration references only when the last build **found marker spans in the
+  viewport**, and that flag must be recorded *before* the reveal-on-selection filter (a revealed
+  span emits no decoration but still needs re-hiding on the next cursor move). Apply the same gate
+  to any new decoration extension: a bare cursor move must cost nothing in a decoration-free
+  document. `findDocumentTaskLines` takes **pre-split lines** (post-processors run per block and
+  `getSectionInfo().text` is the whole file), and the live-preview scan resolves the model once per
+  pass, not per checkbox. Cold-cache reads go through `mapWithConcurrency`
+  (order-preserving pool of 16 — not chunked batches, so no straggler stalls a boundary).
 
-These features are shipped; the canonical detail lives in `CLAUDE.md` and the
-per-feature `docs/*.md`. Recorded here are the *why*s and reverted-approach
-history that the code alone doesn't explain.
+**Signifiers & the measured gutter**
 
-### Fence-aware task parsing (the shared `fence-tracker.ts`)
+- **Both axes are positioned by JS measurement, never theme-specific CSS constants** — a fixed
+  offset collides with themes/snippets that restyle bullets, checkboxes, and indentation (it broke
+  under AnuPpuccin). The insight that makes measurement cheap: `offset = targetX − hostLeft`, both
+  page coords in the same scrolling container, so the offset is **invariant to scroll and to
+  readable-width re-centering** — recompute only on intrinsic-metric changes. The reserved lane is
+  **deficit-based** (reserve only how far the leftmost icon would clip past the nearest
+  overflow-clipping ancestor; 0 when the existing margin fits), with WeakMap-cached base padding
+  and live inline-padding read-back to prevent oscillation.
+- **Vertical must be measured too — `top:0` was the last fixed-CSS assumption and broke.** It
+  resolves to the host's **padding-box** top, and core Obsidian gives editor heading lines
+  `padding-top: var(--p-spacing)` (~16px, in `app.css`, so theme-independent), floating the icon
+  ~16px above the heading. Both positioners now read `getComputedStyle(host).paddingTop` and write
+  it as inline `top` (`0` for unpadded blocks → byte-identical to the old behaviour).
+- **Per-row (`margin`) live preview anchors on the rendered `.cm-formatting-list` bullet, not
+  `coordsAtPos`** — the marker-character coordinate lands ~one indent step right of the visible
+  bullet (12px plain, wider under **Outliner**). Non-list lines fall back to the content coordinate.
+  Column mode is untouched (it takes a min over `coordsAtPos(line.from)`, so the consistent skew
+  cancels). Outliner is in the real vaults but **not** the demo — verify per-entry placement there.
 
-Task parsing must skip fenced code blocks, and **both** scanners must apply the
-identical rule: `extractTasks` (cache/sidebar/in-note lists) and
-`findDocumentTaskLines` (the positional zip against rendered
-`li.task-list-item` elements). The renderer emits no task item for fenced
-lines, so a parser that counts a fenced `- [ ] …` desyncs the zip for every
-task after the fence — and a status click could rewrite a line *inside* the
-code block via `vault.process`. The single source of truth is
-`src/features/journal-tasks/fence-tracker.ts` (`createFenceTracker()`); any
-future surface that walks file lines for tasks must use it, never a local
-fence regex. Deliberate rule choices (documented in the file): openers at any
-indent (catches list-nested fences; diverges from CommonMark's 0–3 spaces —
-over-suppressing inside an indented code block is the safer failure), tilde +
-backtick fences, CommonMark closer rules (same char, ≥ length, whitespace-only
-tail), unclosed fence runs to EOF, blockquote fences out of scope (the `>`
-prefix already defeats the task regex). `findDocumentTaskLines` tracks fence
-state from line 0, not `lineStart`, so both functions agree on every absolute
-line.
+**UI plumbing**
 
-### The `JournalNote` sibling snapshot is lazy and factory-scoped
-
-`journal-note.ts`'s `FolderNamesSnapshot` holds a folder's note names for the
-existence APIs (`isExistingNote` — Set-backed; `closestSibling` — ordered
-array). Two properties matter for callers:
-
-- **One factory instance per walk/render.** The snapshot is cached per parent
-  folder *inside one `journalNoteFactoryWithSettings` closure* (and shared
-  with every note derived via `createNote`/`createNoteOfSameTimeUnit`).
-  Constructing a fresh factory per file forfeits the cache and reverts the
-  O(n²) scope-walk cost this design removed (~3.3M string ops on a 5-year
-  daily folder). All current call sites build the factory once, then loop.
-  `startOfInterval(today, pattern)` is likewise memoised per strategy in the
-  factory, keyed on today's value so a walk straddling midnight stays correct.
-- **The snapshot is computed on first existence check, then frozen.** Walks
-  that never call the existence APIs (task candidates, migration pickers)
-  never read `folder.children` at all. Consumers that need freshness after
-  vault mutations must rebuild the note — the sidebar already does (its
-  `bumpVault` tick rebuilds the anchor note on create/delete/rename).
-
-Tests with counting `children` getters live in
-`tests/data-access/journal-note.test.ts` (*sibling snapshot* describe block).
-
-### Sidebar vault listeners are scope-filtered + debounced
-
-Both sidebar views (`journal-folder-sidebar-view.ts`,
-`journal-tasks-sidebar-view.ts`) gate every vault/workspace event *before*
-doing any work, then coalesce the survivors through a 200ms trailing
-`debounce` (Obsidian's own — the test mock in `tests/mocks/obsidian.ts`
-makes it a pass-through, so unit-tested paths stay synchronous). Rules any
-future vault-event consumer should reuse rather than reinvent:
-
-- **The pure predicates live in
-  `src/features/journal-tasks/task-event-scope.ts`** —
-  `taskEventAffectsScope(path, scope)` mirrors `resolveTaskFolders`' mode
-  rules per file (only `.md` journal basenames in the panel's resolved
-  folders matter; `journal-folder.md` events are *always* relevant because
-  they change the folder topology the all-folders fallback scans), and
-  `activeLeafAffectsTaskScope` (only a `note` anchor / `note` folder mode
-  reads the active leaf). The combined sidebar's create/delete/rename
-  classifier is `classifyVaultMutation`
-  (`journal-folder-sidebar/sidebar-vault-events.ts`): per event it decides
-  known-folder rescan (config-note paths only) / anchor bump (selected
-  folder only — read back from the component via
-  `SidebarUpdateApi.getSelectedFolder`) / task refresh, accumulates the
-  flags, and one debounced flush executes whatever piled up. Renames must
-  check **both** old and new paths.
-- **Folder-event semantics:** a folder `create` is inert (its contents
-  arrive as separate file events — don't refresh on sync folder churn);
-  folder `delete`/`rename` are handled conservatively (full refresh) since
-  one event can move a whole journal folder.
-- **`resolveTaskFolders.allFolders` is a thunk** so the
-  `findJournalFolderPaths` full-vault walk (`vault.getMarkdownFiles()`)
-  only runs when a branch actually falls back to all folders. Don't
-  re-materialise it eagerly at call sites.
-- **Don't import the `journal-tasks` feature *index* from plain-TS modules
-  that unit tests load** — the index re-exports Svelte components
-  (`TaskList.svelte`), and Vitest's transform chain chokes on `.svelte`
-  when the import arrives via a `.ts`-only test. Import the concrete
-  module (`../journal-tasks/task-event-scope`) instead. (Views are fine —
-  they aren't unit-loaded.)
-- Verified live via the CLI: with the gates in, editing a non-journal note
-  produced **zero** `getMarkdownFiles` walks (was: one full task-pipeline
-  run per autosave), while a task appended to an in-scope journal note
-  still appeared in the panel after the debounce and disappeared on
-  revert.
-
-### Settings invalidation is diff-gated (`settings-invalidation.ts`)
-
-Every settings write — the settings tab, the per-folder modal, **and the
-sidebar's scope controls** (anchor / range / folder / show-completed) — goes
-through the same `saveSettings → propagate → useSettings` pipeline. The
-features therefore must NOT invalidate unconditionally in `useSettings`:
-before the gating, one "show completed" click cleared the whole task cache
-and re-rendered every open reading view. The field classification lives in
-`src/data-access/settings-invalidation.ts` (pure, unit-tested in
-`tests/data-access/settings-invalidation.test.ts`); each feature diffs the
-incoming snapshot against its previous one (`const prev = this.globalSettings`
-*before* `super.useSettings(...)`). Rules to keep in mind:
-
-- **Cached `JournalTask`s bake more than the obvious** — `extractTasks`
-  embeds the *rendered* source-note titles (`noteTitle`, `noteTitleShort`)
-  and tier, so `TASK_PARSE_FIELDS` (→ `TaskCache.clear()`) includes the
-  title patterns, `startOfWeek`, and `quartersEnabled`, not just
-  flows/markers/signifiers/categories. The cache's own mtime + model-id
-  validation cannot see any of these (edits *within* a flow keep the model
-  id).
-- **The reading-view `rerender(true)` sweep lives in the signifiers feature
-  but serves every reading-view surface** (migration references, document
-  checkboxes, the `journal-header` / `journal-tasks` blocks — historically
-  it ran on every save, which is what kept them fresh). It is gated on
-  `readingViewRenderAffected`, an **exclusion** diff: anything outside
-  `RENDER_INERT_FIELDS` re-renders, so a future unclassified field fails
-  safe (extra re-render, never a stale view). When adding a pure-UI field,
-  add it to `RENDER_INERT_FIELDS`; when adding a render-affecting field, do
-  nothing — the default covers it.
-- **Diff by value, not reference** — load / external sync rebuilds the whole
-  settings object, so structured fields (flows, signifiers, categories) are
-  compared by JSON value. A reference-based diff would re-invalidate on
-  every `onExternalSettingsChange`.
-- **Verification probe trap:** `previewMode.rerender(true)` *reuses* the
-  per-section container divs and replaces their contents — a probe
-  `dataset` stamped on a section div survives a full re-render and proves
-  nothing. Plant probes on deep content elements (`p` / `li`), which are
-  genuinely replaced.
-
-The stale-snapshot rule (see *Known traps in the settings tab*) also
-applies to features: `maybeMigrateInlineTemplates` used to save its
-pre-`await` settings snapshot after the migration's vault writes, silently
-overwriting any settings change that landed mid-flight. Any feature that
-holds a settings snapshot across an `await` and then *saves* must re-read
-`this.globalSettings` at save time (the snapshot stays fine as the
-operation's *input*).
-
-### Task perf micro-patterns (remediation step 6)
-
-Four small optimisations whose *invariants* matter more than the code:
-
-- **`buildTaskModel` is memoised on the statuses array's identity** (a
-  `WeakMap<TaskStatus[], Map<variantKey, TaskModel>>` in
-  `build-task-model.ts`). Sound because every settings write replaces the
-  settings object wholesale — the flow editor always builds **new** status
-  arrays (`[...statuses, x]`, `cloneTemplate`, filtered copies), never
-  mutates one in place. **Keep it that way:** any future editor that
-  `push`es into / splices a flow's existing `statuses` array would serve a
-  stale memoised model until the next save. `''` and `undefined`
-  `migratedStatus` deliberately share a cache slot (both falsy → identical
-  model).
-- **`findDocumentTaskLines` takes pre-split lines, not the file text.**
-  Post-processors run per block per render and `getSectionInfo().text` is
-  the whole file — callers split once (`document-tasks-processor.ts`) and
-  share the array with the raw-line lookup. Its fence lockstep with
-  `extractTasks` (shared `fence-tracker.ts`) is unchanged.
-- **Cold-cache task reads go through `mapWithConcurrency`**
-  (`journal-tasks/concurrency.ts`, pool of `TASK_READ_CONCURRENCY = 16`,
-  order-preserving worker pool — not chunked batches, so no straggler
-  stalls a batch boundary). Both walk sites (`computeTaskSnapshot`, the
-  in-note block's render) zip results back by candidate index. Reuse the
-  helper for any future per-file `cachedRead` walk.
-- **Live-preview `selectionSet` rebuilds are gated, per extension.** The
-  signifier extension rebuilds on selection only when tag-hiding is on;
-  the migration-reference extension only when the **last build found
-  marker spans in the viewport** (`shouldRebuildMigrationDecorations`,
-  pure). The span flag must be recorded *before* the reveal-on-selection
-  filter — a revealed span emits no decoration but still needs re-hiding
-  on the next cursor move. Apply the same gate to any future decoration
-  extension: a bare cursor move should cost nothing in the common
-  (decoration-free) document. The scan in
-  `document-task-live-preview.ts` likewise resolves the model **once per
-  scan pass**, not per checkbox.
-
-### API-hardening contracts (remediation step 7)
-
-Four small invariants future code should preserve:
-
-- **Embedded block config is type-coerced at the parse layer.**
-  `coerceEmbeddedSettingValue` (in `folder-settings-resolver.ts`, exported +
-  unit-tested) coerces each embedded `key: value` string by
-  `typeof DEFAULT_SETTINGS[key]`: number → `Number(value)` with blank /
-  NaN **skipping the entry** (`Number('')` is 0 — a blank must not become
-  zero), boolean → the front-matter convention (only the literal string
-  `"false"` is falsy), strings and unknown keys pass through verbatim.
-  New numeric / boolean folder-honoured fields get this for free — don't
-  re-introduce use-site string comparisons. The YAML front-matter path is
-  untouched (YAML already delivers typed primitives).
-- **`migrateTasks` refuses a destination that is also a source**
-  (same-note guard, whole call aborts with a Notice). The pickers already
-  exclude the source note via `excludePath`, but the exported writer must
-  not rely on its callers — without the guard it would stamp the origin
-  and append an active duplicate into the same note.
-- **The fallback task flow is cloned ONCE at module scope**
-  (`FALLBACK_FLOW` in `resolve-model.ts`). The tension: handing out the
-  shared `BUILTIN_TEMPLATES` array risks mutation poisoning the read-only
-  template, but a *per-call* `cloneTemplate` would defeat
-  `buildTaskModel`'s WeakMap memo (keyed on array identity) and rebuild
-  the model on every resolve. Clone-once gets both: isolation from the
-  template and a stable identity for the memo.
-- **`TaskFlow.migratedStatus` is three-state** — a status id (configured),
-  `MIGRATED_STATUS_CLEARED` (`''`, the user's deliberate "(None)" — the
-  settings-load auto-wire must not re-populate it), and `undefined`
-  (never set — auto-wire may fill it from an inactive `[>]`). The
-  sentinel constant lives next to `TaskFlow` in `task-model.type.ts`;
-  write sites use it instead of a bare `''` (`TaskStatusId` is a plain
-  string, so the type can't express the distinction).
-
-### Task-count semantics + menu-panel first-open positioning (remediation step 8)
-
-- **`capVisibleTasks` (in `task-snapshot.ts`) is the single owner of the
-  completed-filter / size-cap ordering** — filter first, so the cap only trims
-  *visible* tasks and `hiddenCompletedCount` covers every completed task in
-  scope. All three list surfaces consume it (the two sidebar panels via
-  `computeTaskSnapshot`, whose scope now carries `showCompleted`; the in-note
-  block directly). The sidebars previously filtered completed *post-cap* in
-  the Svelte components — that quietly let hidden completed tasks consume cap
-  slots and made the hidden count slice-local. Moving the filter into the
-  snapshot is sound because **both sidebar views recompute the snapshot on
-  every settings change** (`onSettingsChanged → refresh`), so the show-completed
-  toggle still takes effect; a future surface must keep using the helper, not
-  re-derive the math.
-- **The task-list header counts the pre-cap visible population**
-  (`taskListHeaderLabel` in `task-list-header.ts`, pure + unit-tested): header
-  `(N · M ✓ hidden)` and the truncation footer's "Showing X of N" now read the
-  same `totalBeforeCap`, so they can't contradict (the header used to restate
-  the capped list length and understated the real count whenever the cap hit).
-- **Portaled-panel first-open positioning: prefer a `$effect` over a
-  post-open rAF.** `SidebarMenuPanel` used to schedule its first
-  `updatePanelPosition` via `requestAnimationFrame` from the open handler —
-  that frame ran before `bind:this` populated `panelEl`, so the width fell
-  back to an estimate (one-frame mis-position), and rAF is throttled while
-  Obsidian is backgrounded (the screenshot-harness "fire a resize" gotcha).
-  An `$effect` gated on `open && panelEl` runs exactly when the portaled node
-  exists and is measurable, synchronously with the render flush. The
-  `matchTriggerWidth` min-width lives **only** in the reactive `panelStyle`
-  string (an imperative `style.minWidth` write is wiped by the next reactive
-  style write); the positioning width is floored at the trigger width
-  (`Math.max`) because `offsetWidth` may be measured before the min-width
-  applies. `RibbonMenuPanel` / `TaskScopePanel` still use the rAF pattern
-  (no `matchTriggerWidth`, fallback widths ≈ real widths, so no visible
-  symptom) — port them to the `$effect` shape if they ever misbehave.
-
-### Task flows (configurable task statuses)
-
-Model is **named task flows**: `taskFlows: Record<string, TaskFlow>` where
-`TaskFlow = { statuses: TaskStatus[]; rendering: 'plugin' | 'theme' }`;
-`defaultTaskFlow` + per-folder `task-flow:` front-matter override.
-`resolveTaskModel` chains folder → default → Simple built-in. Built-in templates
-(`src/data-access/task-templates.ts`) are read-only — applied to *seed* a flow.
-
-- **Rendering is flow-level, one mode per flow** — `TaskFlow.rendering` /
-  `TaskModel.rendering`. A v3a attempt at *per-status* rendering was reverted:
-  mixing plugin and theme rendering inside one nested list paints unreliably
-  (the theme's checkbox styling for surrounding rows competes with the plugin's
-  injected shell+icon). One mode per flow keeps the status alphabet visually
-  consistent. Read sites branch off `model.rendering`, never a per-status field.
-- `migrateTaskSettings` is idempotent on every settings load (handles v0
-  `taskModel` string, v1 `taskStatuses`/`taskTemplates`, v2 global
-  `taskCheckboxRendering`, v3a per-status rendering → v3 flow-level).
-- Settings tab is a 3-level drill-down (overview → flow detail → inline status
-  detail) with breadcrumb; position persists on the form builder across
-  structural re-renders. See `docs/tasks-design.md` (kept in sync).
-
-### Status picker panel (in-house, replaces the native status Menu)
-
-The status icon's right-click/long-press menu — and a *new* left-click case
-where a status is configured as its own `next` (`model.opensPickerOnClick(id)`,
-a "pick on click" status) — opens `openStatusPicker` (`status-picker-panel.ts`),
-a `<body>`-portaled styled list, **not** Obsidian's native `Menu`. Deliberate
-choices the code alone doesn't motivate:
-
-- **One imperative vanilla-TS opener for all four surfaces.** The four checkbox
-  surfaces split between Svelte (`TaskItem.svelte` → sidebar + in-note block) and
-  plain DOM/CodeMirror (`document-tasks-processor.ts`, `document-task-live-preview.ts`).
-  A Svelte panel can't be mounted from the DOM surfaces without ceremony, so the
-  picker is a single imperative function (mirrors `document-task-menu.ts`'s role)
-  that every surface calls — no duplication, identical look.
-- **Each surface passes its own writer via `onSelect`.** Disk surfaces use
-  `openStatusPickerForTarget` (→ `setTaskStatus`); live preview passes a closure
-  to its editor-write `applyStatus`, because a `vault.process` disk write to the
-  *open* note is reverted by the editor re-syncing (the same reason cycling uses
-  the Editor API there).
-- **Dismiss on `mousedown`, not `click`.** The live-preview picker opens on
-  `mousedown`; a `click` outside-listener would be tripped by the very trailing
-  click that follows and self-close instantly. Listening for `mousedown`/`contextmenu`
-  in capture phase avoids that and still catches presses on a CodeMirror editor
-  that stops its own events.
-- **Anchor to the *visible* icon, never the `display:none` input.** Under plugin
-  rendering the native checkbox is hidden (zeroed rect), so the live-preview path
-  anchors to the icon span (`input.nextElementSibling`) and only falls back to the
-  input in theme rendering, where the input is what's shown.
-- The native `Menu` is kept **only** in the `editor-menu` integration
-  (`appendStatusMenuItems`) — extending Obsidian's own editor context menu is the
-  one place a native menu is correct.
-- **The "Migrate task…" row uses a module-level provider, not prop-threading.**
-  The feature registers `setStatusPickerMigrationProvider(target → buildSingleTaskMigration(migrationContext(), target))` once in `load()` (cleared in
-  `unload()`). The alternative — passing a `MigrationMenuContext` through TaskList →
-  TaskItem Svelte props *and* through both document contexts just to reach this one
-  panel — was rejected as far more plumbing for a process-wide capability. The
-  provider returns `null` (row hidden) for done tasks / non-journal notes / flows
-  without a migrated status, so each surface can pass the target unconditionally.
-  Surfaces supply the task's current `rawText` (Svelte: `task.rawText`; reading
-  view: the absolute line out of `getSectionInfo().text`, which is the whole file;
-  live preview: `doc.lineAt(posAtDOM(input)).text`) — migration's own line-match
-  guard re-checks on write, so a later edit can't corrupt the copy.
-
-### Signifier placement & the measured gutter
-
-Four placement options (`start` / `end` / `margin` per-row / `margin-column`
-single-column; defaults `margin-column` + reserve on). The two margin/gutter
-modes are **positioned by JS measurement, never theme-specific CSS constants** —
-a fixed CSS offset collides with themes/snippets that restyle bullets/checkboxes/
-indentation (broke in AnuPpuccin). The key insight that makes measurement both
-robust and cheap: `offset = targetX − hostLeft`, and both are page coords of
-elements in the *same* scrolling container, so the offset is **invariant to scroll
-and to readable-width re-centering** — recompute only on intrinsic-metric changes
-(theme/font/zoom, readable-width toggle, DOM/content change; column mode also on
-resize because a theme *could* use width-relative indents). The reserved lane is
-**deficit-based** (reserve only how far the leftmost icon would clip past the
-nearest overflow-clipping ancestor — 0 when the existing margin already fits), with
-WeakMap-cached base padding and live-inline-padding read-back to prevent
-oscillation. Implementation and all the recompute triggers are documented in depth
-in `CLAUDE.md` (signifiers section), `docs/signifiers.md`, and `gutter-positioner.ts`.
-
-**Vertical anchor must also be measured, not `top:0` (fixed in 3.1.6).** The
-marker was vertically positioned with pure CSS (`top:0; height:1lh;
-align-items:center`). `top:0` resolves to the host's **padding-box** top — fine
-for body text, but Obsidian core gives heading lines `padding-top:var(--p-spacing)`
-(~16px) **in the editor** (`.cm-s-obsidian .cm-line.HyperMD-header`, in `app.css`,
-so it's theme-independent and reproduces in vanilla Live Preview), and some themes
-pad headings in reading view. The icon then centred inside a `1lh` band pinned to
-the top of that padding strip, floating ~16px **above** the heading (measured
-−15.5px on a real note). Fix: both positioners read `getComputedStyle(host)
-.paddingTop` in the read phase and write it as inline `top`. `0` for unpadded
-blocks → byte-identical to the old behaviour everywhere it already aligned, so
-near-zero regression risk. **Lesson: the same "measure, don't hardcode CSS"
-rule that governs the horizontal axis governs the vertical one — `top:0` was the
-last fixed-CSS assumption and it broke for exactly the predicted reason.**
-
-**Per-row (`margin`) live-preview anchor must use the rendered bullet, not
-`coordsAtPos` (fixed in 3.1.6).** `view.coordsAtPos(line.from + leadingWhitespace)`
-(the marker character) lands ~one indent step **right** of the visible bullet in
-Live Preview — measured 12px on a plain list, and the **Outliner** plugin's
-hanging-indent restyling widens it — so the per-entry icon drifts off its entry.
-Fix: anchor on the line's rendered `.cm-formatting-list` element's left edge when
-present (non-list lines fall back to the content coordinate). After the fix every
-entry sits a constant 12px (`ROW_GAP_PX`) left of its bullet at all nesting
-depths. Column mode is untouched (it anchors `coordsAtPos(line.from)` and takes a
-min, so the consistent skew cancels). Outliner is in the real deploy targets but
-**not** the demo vault — verify per-entry placement there, not in demo.
-
-### "Start a new line below" command (`JournalEditorFeature`)
-
-A `start-new-line-below` editor command (no default hotkey; users bind
-Ctrl/Cmd+Enter themselves) that behaves as if you pressed Enter at the **end** of
-the cursor's current line — continuing bullets/checkboxes/blockquotes natively.
-`startNewLineBelow` (`start-new-line.ts`) moves the caret to end-of-line, then
-**dispatches a real `Enter` keydown into `editor.cm.contentDOM`** rather than
-reimplementing Obsidian's continuation rules (the maintainer's
-inherit-native-behaviour preference). Plain-newline fallback when `editor.cm` is
-unreachable.
-
-**Verification trap — synthetic events and `isTrusted`:** you *cannot* verify the
-end-to-end hotkey path with a synthetic `KeyboardEvent`. CodeMirror's own
-contentDOM keymap honours an untrusted (`isTrusted:false`) dispatched keydown — so
-dispatching `Enter` on `editor.cm.contentDOM` **does** trigger native list
-continuation and is a valid way to test the *inner* mechanism. But Obsidian's
-**global** keymap (the hotkey→command layer) ignores untrusted events, so a
-synthetic `Mod+Enter` is a no-op and proves nothing about the binding. The
-faithful programmatic proxy for a real keypress is to invoke the registered
-command's callback directly:
-`app.commands.commands['journal-folder:start-new-line-below'].editorCallback(editor, view)`
-— that's exactly what Obsidian's keymap calls, and it produces the continuation.
-(`executeCommandById` returned `true` but no-op'd in the eval context — don't
-trust it as the verification signal here; use the `editorCallback` call.)
-
-### Master ribbon menu (`JournalRibbonMenuFeature`)
-
-A single plugin "home" ribbon icon (`notebook-text`, label *Journal Folder menu*)
-that opens a styled action menu. It **replaced** the two per-sidebar ribbon icons
-(`calendar-days` / `list-checks`) — those open actions are now menu items, along
-with *Initialise a new journal folder* and a light/dark switch. The feature is a
-thin aggregator: constructed **last** in the plugin (after both sidebar features)
-and handed callbacks (`folderSidebarFeature.activate()`,
-`tasksSidebarFeature.activate()`, `folderSidebarFeature.openInitFolderPicker()`),
-so it never reaches across features directly. Those three methods were made
-`public` for this; `openInitFolderPicker()` reveals the sidebar then drives the
-existing view flow so the new folder auto-selects.
-
-- **Mobile**: Obsidian has **no ribbon strip on mobile**, so a ribbon-only entry
-  is desktop-only. The feature also registers an `open-journal-menu` **command**
-  (palette + pinnable to the mobile toolbar) — this is the mobile entry point.
-  Always add a command for any ribbon-primary affordance.
-- **Panel** reuses the sidebar's `.jf-sidebar-menu-*` styling (own
-  `RibbonMenuPanel.svelte`, driven imperatively via a `registerApi` callback —
-  the feature mounts it into a detached host; it portals to `<body>`). Positioning
-  is the shared pure `menu-panel-position.ts` (`computeMenuPanelPosition`, unit
-  tested), which `SidebarMenuPanel` was refactored onto too: `placement:'below'`
-  for the sidebar menus, `'right'` flyout for the ribbon, and a **centred-sheet
-  fallback when there is no anchor** (the command/mobile path). Mobile tap targets
-  come for free from the existing `.is-mobile .jf-sidebar-menu-item` rule; the
-  centred sheet gets a wider `.is-mobile .jf-ribbon-menu-panel` width.
-
-**Light/dark switch = Obsidian's standard Base color scheme**, not a parallel
-theme system. Verified-live internal App API (absent from the public d.ts):
-`app.getTheme()` returns the **effective** scheme and *resolves* `'system'` to the
-explicit `'obsidian'` (dark) / `'moonstone'` (light); `app.changeTheme(value)`
-persists via `setConfig('theme', …)` **and** repaints the body immediately (handles
-the CSS transition). Toggle = `changeTheme(getTheme()==='obsidian' ? 'moonstone' :
-'obsidian')`. A *Adapt to system* user is flipped to an explicit scheme and left
-there (deliberate — we don't try to return to `'system'`). Logic isolated in
-`theme-toggle.ts` (unit tested) so the undocumented API has a one-file blast radius.
-
-### Today button (`JournalTodayFeature`)
-
-A one-click jump to today's `YYYY-MM-DD` note for a journal folder (creating it on
-first visit, exactly like clicking the calendar's Today cell — today is the
-present, so no "create a past note?" confirm). Lives in `src/features/journal-today/`.
-
-- **Placement** is the global-only `todayButtonPlacement` (`'menu'` default /
-  `'ribbon'` / `'off'`). `'menu'` is rendered by the **ribbon-menu feature** (it
-  conditionally pushes a *Open today's journal note* item, leading, when the
-  setting is `'menu'`); `'ribbon'` is a dedicated top-level icon (`calendar-check`)
-  that *this* feature adds/removes itself, reconciled in `useSettings` (tracks
-  `#ribbonEl`, `el.remove()` to drop it). Default is `'menu'` deliberately — adding
-  a ribbon icon to everyone's strip on upgrade is intrusive (same philosophy as
-  `taskInteractionScope` defaulting to `'lists'`). The `open-today` **command** is
-  always registered (palette/mobile), like every ribbon-primary affordance.
-- **Folder selection** is the pure `resolveTodayFolders(known, isIncluded)` (unit
-  tested — the fiddly rules live here, not in the feature): 0 known → nothing;
-  **exactly one known folder is always opened directly, ignoring opt-in** (a single
-  journal needs no picker); several known with *none* opted in → offer all (usable
-  out of the box); several with *some* opted in → only those. One resolved folder
-  opens directly; >1 shows `TodayFolderPickerModal` (`FuzzySuggestModal<string>`).
-- **Opt-in** is the folder-honoured `includeInTodayPicker` (default false, FM key
-  `include-in-today-picker`, in `PER_FOLDER_FIELDS`). Resolved per folder by passing
-  the folder's `journal-folder.md` TFile through `PluginFeature.getSettings(file)`
-  (the config note's parent *is* the folder, so the front-matter override layers
-  over the global default); FM booleans may be strings → `isTruthySetting`.
-- **Opening** uses `workspace.openLinkText(<folderPath>/<today>, configPathFor(folder),
-  false)`, mirroring the calendar/header navigation (full-path link, resolved against
-  the folder's config note).
-
-### Note-based templates (replaces inline template text)
-
-Template content used to live as text in `data.json` (`autoTemplateContent` +
-per-tier fields). It now lives in **template notes with standardized filenames**
-(`daily-template.md` / `weekly-template.md` / `monthly-template.md` /
-`quarterly-template.md` / `yearly-template.md`, plus `default-template.md`
-fallback). Design decisions the code alone doesn't motivate:
-
-- **Two locations, both global settings.** `templateFolder` (default
-  `Templates/journal-folder` — plugin-namespaced to avoid clashing with a user's
-  own `Templates/` or another template plugin) and `templateOverrideFolderName`
-  (default `Templates`, resolved *relative to each journal folder*). The
-  per-folder override needs **no setting** — it's expressed purely by the files
-  present in `<journalFolder>/Templates/`.
-- **Filenames are fixed, not user-configurable** (the maintainer's call) — keeps
-  detection and the live-preview mapping simple.
-- **Template files are copied verbatim, front matter included** (DP1) — unlike the
-  old `journal-folder.md`-body source which strips front matter (it shares the file
-  with the folder config). The legacy body is **still honoured** as a resolution
-  source (DP2 — we don't migrate or mutate config notes), slotting *between* the
-  override files and the global files in precedence.
-- **Live preview = synthetic current-period note.** A template note isn't a journal
-  basename, so the `journal-header` block would no-op. `templateFileTier` classifies
-  the file and `buildTemplatePreviewNote` builds a `JournalNote` for *today's* period
-  of that tier (duck-typed `TFile`, mirroring the sidebar anchor). So editing
-  `monthly-template.md` renders as this month's entry — the "good visual clue" the
-  maintainer asked for. Signifiers come free (they apply to all markdown). Nav links
-  are best-effort and **inert** for global-folder previews (DP5 — no
-  `defaultJournalFolder` fallback). `default-template.md` previews as a daily note.
-- **Migration moves *away* from the old model** (DP3) rather than offering a compat
-  toggle. `maybeMigrateInlineTemplates` runs once (flag `templatesMigratedToFiles`),
-  writes the inline fields into files (never clobbering), and **leaves the old field
-  values in `data.json` as a backup** (no longer read). It needs `saveSettings`, so
-  the feature is constructed with it in the plugin shell (like the sidebar features).
-- Pure logic in `src/data-access/template-folder.ts` + `migrate-inline-templates.ts`
-  (both unit-tested); the feature only does the vault IO. Full detail in
-  [docs/auto-template.md](auto-template.md).
+- **Portaled-panel first-open positioning: prefer a `$effect` over a post-open rAF.** An rAF
+  scheduled from the open handler runs before `bind:this` populates the element, so the width falls
+  back to an estimate (one-frame mis-position), and rAF is throttled while Obsidian is backgrounded.
+  An `$effect` gated on `open && el` runs exactly when the portaled node is measurable. Keep
+  `matchTriggerWidth` **only** in the reactive style string — an imperative `style.minWidth` write
+  is wiped by the next reactive write — and floor the positioning width at the trigger width, since
+  `offsetWidth` may be read before the min-width applies. `RibbonMenuPanel`/`TaskScopePanel` still
+  use rAF (no `matchTriggerWidth`, so no visible symptom); port them if they misbehave.
+- **Always register a command for any ribbon-primary affordance.** Obsidian has **no ribbon strip
+  on mobile**, so a ribbon-only entry is desktop-only; the command is the mobile entry point
+  (palette + pinnable to the toolbar). Applies to the ribbon menu (`open-journal-menu`) and Today
+  (`open-today`).
+- **Light/dark uses Obsidian's own Base color scheme**, via an internal API absent from the public
+  d.ts (verified live): `app.getTheme()` returns the **effective** scheme, resolving `'system'` to
+  `'obsidian'` (dark) / `'moonstone'` (light); `app.changeTheme(v)` persists *and* repaints
+  immediately. A *Adapt to system* user is flipped to an explicit scheme and left there
+  (deliberate). Isolated in `theme-toggle.ts` so the undocumented API has a one-file blast radius.
+- **`start-new-line-below` dispatches a real `Enter` keydown into `editor.cm.contentDOM`**
+  (`startNewLineBelow` in `start-new-line.ts`, after moving the caret to end-of-line; plain-newline
+  fallback when `editor.cm` is unreachable) rather than reimplementing Obsidian's list/checkbox/
+  blockquote continuation rules (inherit-native-behaviour). **Verification trap:**
+  CodeMirror's contentDOM keymap honours an untrusted synthetic keydown, so that inner mechanism
+  *is* testable — but Obsidian's **global** keymap ignores untrusted events, so a synthetic
+  `Mod+Enter` proves nothing about the binding. The faithful proxy is invoking the registered
+  command's `editorCallback(editor, view)` directly — exactly what Obsidian's keymap calls.
+  (`executeCommandById` returned `true` but no-op'd under `eval`; don't trust it here.)
+- **Today's folder resolution is the pure `resolveTodayFolders(known, isIncluded)`** — 0 known →
+  nothing; **exactly one known folder always opens directly, ignoring opt-in** (a single journal
+  needs no picker); several with none opted in → offer all (usable out of the box); several with
+  some opted in → only those. Placement defaults to `'menu'` rather than `'ribbon'` deliberately:
+  adding a ribbon icon to everyone's strip on upgrade is intrusive (same philosophy as
+  `taskInteractionScope` defaulting to `'lists'`).
