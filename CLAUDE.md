@@ -12,23 +12,12 @@ Obsidian community plugin (`id: journal-folder`). Any folder can act as a journa
 `YYYY-MM-DD`, `gggg-[W]ww`, `YYYY-MM`, `YYYY` are daily/weekly/monthly/yearly entries.
 Quarterly (`YYYY-Q[1-4]`) is an opt-in fifth tier gated by `quartersEnabled`, slotting between
 yearly and monthly. The vault root is **not** supported as a journal folder (Obsidian
-link-resolution). TypeScript + Svelte 5 (runes), bundled by esbuild into a single `main.js`
-(`esbuild-svelte` with `css: 'injected'`; `styles.css` ships separately).
+link-resolution).
 
-## Commands
-
-```bash
-npm run dev        # esbuild watch → main.js
-npm run build      # tsc --noEmit, then production build
-npm test           # vitest run  (npm run test:watch for watch mode)
-npm run lint       # eslint-plugin-obsidianmd — the community-review ruleset
-npm run deploy     # build + copy into demo vault and deploy-targets.json vaults
-npm run release -- <patch|minor|major>   # full local release pipeline
-```
-
-Tests live in `tests/`, mirroring `src/`. See [docs/agent-notes.md](docs/agent-notes.md) for the
-lint ruleset details, the release pipeline, and the Obsidian CLI (`obsidian dev:dom` / `eval` /
-`dev:screenshot`) used to verify live behaviour.
+Scripts are in `package.json`; tests live in `tests/`, mirroring `src/`. The non-obvious ones —
+`npm run lint` (the community-review ruleset), `npm run deploy`, `npm run release`, and the
+Obsidian CLI used to verify live behaviour — are documented in
+[docs/agent-notes.md](docs/agent-notes.md).
 
 ## Architecture
 
@@ -72,37 +61,22 @@ block. Add a field to `JournalFolderSettings` + `DEFAULT_SETTINGS` in
 ### Journal note model
 
 `src/data-access/journal-note.ts` picks a `JournalNoteStrategy` (daily/weekly/monthly/quarterly/
-yearly) by regex-matching a `TFile` basename, then exposes navigation (`forwardInTime`,
-`backInTime`, `closestSibling`, `getHigherOrderNotes`, `getLowerOrderNotes`, `getNotesInPeriod`),
-predicates (`isPresentTime`, `isPast`, `isExistingNote`, `isToday`), and `hasUnit(unit)`.
-`isJournalFileBasename(basename, quartersEnabled)` is the standalone regex check.
-See [docs/journal-note.md](docs/journal-note.md).
+yearly) by regex-matching a `TFile` basename, then exposes the navigation, period, and
+existence APIs the UI is built on — semantics in [docs/journal-note.md](docs/journal-note.md).
+Use `isJournalFileBasename(basename, quartersEnabled)` when you only need the regex check
+without instantiating a note.
 
-`src/data-access/journal-folder-detection.ts` is the single source of truth for folder detection:
-`FOLDER_CONFIG_FILENAME`, `findJournalFolderPaths`, `isJournalFolder`, `configPathFor`.
-
-### Folder layout
-
-```
-src/
-  plugin/         # entry point + feature lifecycle multiplexer
-  data-access/    # settings types, FolderSettingsResolver, JournalNote, folder
-                  # detection, moment wrapper, string utils, PluginFeature base
-  features/       # one folder per feature: its *-feature.ts, Svelte components,
-                  # and pure helpers
-  ui/             # shared Svelte components (NoteLink, ErrorMessage)
-docs/             # architecture deep-dives, screenshots, demo vault, agent notes
-```
-
-Every `data-access` module is re-exported from its `index.ts`; features import from
-`'src/data-access'` (path alias via tsconfig `baseUrl: '.'`) or a relative path.
+`src/data-access/journal-folder-detection.ts` is the single source of truth for folder detection
+(`FOLDER_CONFIG_FILENAME`, `findJournalFolderPaths`, `isJournalFolder`, `configPathFor`) — don't
+re-derive config-note paths anywhere else.
 
 ## Conventions
 
 - **Always write tests with functionality** — same change, no code-only changes. Mocks in
   `tests/mocks/obsidian.ts`.
-- Prettier: single quotes, 2-space indent, **no semicolons**, trailing commas `es5`, 80 cols.
 - Every `.ts` / `.svelte` file opens with the **GPL-3.0 boilerplate** — match the existing style.
+- Features import shared code from `'src/data-access'` (path alias via tsconfig `baseUrl: '.'`),
+  which re-exports every module from its `index.ts`; a relative path is equally fine.
 - Date formatting goes through the typed moment wrapper: `import { moment } from 'src/data-access'`
   — never from `'obsidian'` or `'moment'` (the raw obsidian export isn't typed callable).
 - DOM globals use `activeDocument` / `activeWindow`, not bare `document` / `window`, for popout
