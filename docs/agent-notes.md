@@ -230,6 +230,18 @@ scenario matrix in `tests/e2e/TEST-PLAN.md`. Selectors are the shipped `data-jf-
   `ctx.waitFor`) unless you're specifically testing the `today` anchor on the fixture date. The
   other rot-prone shape is any assertion on a control that means "**now**": the calendar's `Current`
   quick-jump goes to the *real* today's month, so assert `ctx.todayDaily()`, never the fixture date.
+- **Window size is an input, not an ambient.** Obsidian restores the size a vault was last closed
+  at, so a vault last used at 1024x800 silently degrades both harnesses: the in-note calendar
+  collapses to fewer months, the sidebar crowds the note, and screenshot rects crop a layout no
+  reader will ever see. Both preflights now call `ensureWindowSize()` (`tests/e2e/lib/cli.mjs`),
+  which grows the window to `MIN_WINDOW` — **1600x1050**, clamped to the screen and centred,
+  overridable via `JF_WINDOW_SIZE=<w>x<h>`. It's a *minimum*: a larger window is left as arranged,
+  and fullscreen/maximized are left alone. It warns rather than fails — a cramped run still
+  produces valid output. This is the supported way to widen shots; **never `Cmd+=` zoom** (that
+  collapses the in-note calendar to one month).
+- **Injected `eval` code needs explicit semicolons.** `oneLine` collapses the payload to a single
+  line, so the repo's semicolon-free style runs statements together — `Unexpected token 'const'`.
+  Same root cause as the existing ban on `//` comments in injected code.
 
 ---
 

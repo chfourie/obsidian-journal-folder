@@ -24,7 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //   node tests/e2e/run.mjs [--filter <text>] [--list] [--bail] [--no-deploy]
 
 import { execFileSync } from 'node:child_process'
-import { evalRaw, evalJSON, VAULT } from './lib/cli.mjs'
+import { evalRaw, evalJSON, ensureWindowSize, MIN_WINDOW, VAULT } from './lib/cli.mjs'
 import { deployBuild, reloadPlugin, resetVault, sleep } from './lib/vault.mjs'
 import { openNote, resetUi } from './lib/page.mjs'
 import { runSuites } from './lib/harness.mjs'
@@ -131,6 +131,21 @@ async function preflight(deploy) {
   await evalRaw(
     `(()=>{app.setting.close(); app.vault.setConfig('settingsPopoutWindow', false); return 'ok'})()`
   )
+
+  // 5d. Hold the window to a realistic desktop size. Obsidian restores the size
+  //     this vault was last closed at, and the suite makes geometry assertions
+  //     (gutter offsets, panel placement, calendar month count) that only hold
+  //     at a width a real reader would use. See MIN_WINDOW in lib/cli.mjs.
+  const sized = await ensureWindowSize()
+  if (!sized.ok) {
+    console.warn(
+      `⚠ Could not resize the Obsidian window to ${MIN_WINDOW.width}x${MIN_WINDOW.height} ` +
+        `(${sized.reason}) — layout-sensitive assertions may fail.`
+    )
+  } else if (sized.resized) {
+    const { width, height } = sized.after || sized.want
+    console.log(`window resized to ${width}x${height} (was ${sized.before.width}x${sized.before.height})`)
+  }
 
   // 6. Clear any modal/panel a previous run left open, then wait until the
   //    render pipeline is fully warm. After a plugin reload the header can

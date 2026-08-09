@@ -45,7 +45,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { evalRaw, evalJSON, VAULT } from '../../tests/e2e/lib/cli.mjs'
+import { evalRaw, evalJSON, ensureWindowSize, MIN_WINDOW, VAULT } from '../../tests/e2e/lib/cli.mjs'
 import {
   inPage,
   openNote,
@@ -177,6 +177,24 @@ async function preflight(deploy) {
           'Obsidian window to the foreground and keep it visible while capturing.'
       )
     }
+  }
+
+  // 5b. Size gate — every shot is cropped out of a full-window frame, so the
+  //     window size IS the layout these images document. The demo vault comes
+  //     back at whatever size it was last closed at; at 1024x800 the in-note
+  //     calendar collapses to fewer months and the sidebar crowds the note.
+  //     Hold it to MIN_WINDOW (see lib/cli.mjs) before capturing anything.
+  const sized = await ensureWindowSize()
+  if (!sized.ok) {
+    console.warn(
+      `${C.red}⚠ Could not resize the Obsidian window to ${MIN_WINDOW.width}x${MIN_WINDOW.height} ` +
+        `(${sized.reason}) — shots will document a cramped layout.${C.reset}`
+    )
+  } else if (sized.resized) {
+    const { width, height } = sized.after || sized.want
+    console.log(
+      `${C.dim}window resized to ${width}x${height} (was ${sized.before.width}x${sized.before.height})${C.reset}`
+    )
   }
 
   // 6. Readiness probe — after a reload the header can render before the

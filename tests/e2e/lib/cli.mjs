@@ -139,3 +139,74 @@ export function oneLine(code) {
 export async function command(args, opts) {
   return obsWithRetry([`vault=${VAULT}`, ...args], opts)
 }
+
+// The floor both harnesses hold the Obsidian window to. Obsidian remembers a
+// window size per vault, so a vault last used at 1024x800 comes back that
+// small — which silently degrades every capture: the in-note calendar collapses
+// to fewer months, the sidebar eats most of the note width, and cropped rects
+// land on a layout no reader will ever see. Screenshots and geometry
+// assertions are only meaningful at a realistic desktop size, so assert one
+// rather than trusting whatever the window happens to be.
+//
+// Override with e.g. `JF_WINDOW_SIZE=1440x900`. Values are a MINIMUM: a window
+// already larger is left exactly as the user arranged it.
+const [ENV_W, ENV_H] = String(process.env.JF_WINDOW_SIZE || '').split('x').map(Number)
+export const MIN_WINDOW = {
+  width: Number.isFinite(ENV_W) && ENV_W > 0 ? ENV_W : 1600,
+  height: Number.isFinite(ENV_H) && ENV_H > 0 ? ENV_H : 1050,
+}
+
+// Grow the focused vault window to at least MIN_WINDOW (clamped to the screen's
+// available area and centred on it), and report what happened. Never throws and
+// never fails a run: a window that can't be resized — fullscreen, or an Electron
+// build without `remote` — still produces valid, if smaller, output, so the
+// caller warns and carries on.
+export async function ensureWindowSize(min = MIN_WINDOW) {
+  // Semicolons are load-bearing here: `oneLine` collapses this to a single
+  // line, and the repo's semicolon-free style would then run statements
+  // together ("Unexpected token 'const'"). Same reason `//` comments are banned
+  // in injected code.
+  const code = `(()=>{
+    try {
+      const avail = { width: activeWindow.screen.availWidth, height: activeWindow.screen.availHeight };
+      const before = { width: activeWindow.innerWidth, height: activeWindow.innerHeight };
+      const want = { width: Math.min(${min.width}, avail.width), height: Math.min(${min.height}, avail.height) };
+      if (before.width >= want.width && before.height >= want.height) return { ok: true, resized: false, before, want };
+      const win = require('electron').remote.getCurrentWindow();
+      if (win.isFullScreen()) return { ok: false, resized: false, before, want, reason: 'fullscreen' };
+      if (win.isMaximized()) return { ok: true, resized: false, before, want };
+      const bounds = win.getBounds();
+      const width = want.width + (bounds.width - before.width);
+      const height = want.height + (bounds.height - before.height);
+      win.setBounds({
+        x: Math.max(0, Math.round((avail.width - width) / 2)),
+        y: Math.max(0, Math.round((avail.height - height) / 2)),
+        width: width, height: height,
+      });
+      return { ok: true, resized: true, before, want };
+    } catch (e) {
+      return { ok: false, resized: false, reason: String(e && e.message ? e.message : e) };
+    }
+  })()`
+
+  let result
+  try {
+    result = await evalJSON(code)
+  } catch (e) {
+    return { ok: false, resized: false, reason: e.message }
+  }
+  if (!result.resized) return result
+
+  // setBounds is asynchronous at the OS level — the renderer's innerWidth still
+  // reads the old value on the same tick, so re-read after the resize settles
+  // and report the size layout actually ran at.
+  await sleep(500)
+  try {
+    const after = await evalJSON(
+      `({ width: activeWindow.innerWidth, height: activeWindow.innerHeight })`
+    )
+    return { ...result, after }
+  } catch {
+    return result
+  }
+}
