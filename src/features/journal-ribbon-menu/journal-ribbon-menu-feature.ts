@@ -76,7 +76,6 @@ export class JournalRibbonMenuFeature extends PluginFeature {
 
     this.#ribbonEl = this.plugin.addRibbonIcon(
       'notebook-text',
-      // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
       'Journal Folder menu',
       () => this.#api?.toggle(this.#ribbonEl)
     )

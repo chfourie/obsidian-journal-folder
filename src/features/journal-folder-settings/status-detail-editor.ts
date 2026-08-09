@@ -444,7 +444,6 @@ function renderIconSection(
   colorWrap.el = panel.createDiv({ cls: 'jf-status-edit-subsection' })
   new Setting(colorWrap.el)
     .setName('Icon colour')
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
     .setDesc('Foreground for monochrome glyphs (Lucide, monochrome SVG).')
   const colorHost = colorWrap.el.createDiv()
   renderColorPicker({

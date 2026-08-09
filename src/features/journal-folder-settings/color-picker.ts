@@ -232,7 +232,6 @@ function renderCustomEditor(
     cls: 'jf-color-custom-text',
     // '#rrggbb' is a hex format placeholder, not prose — capitalising the
     // first hex digit would be wrong.
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- hex format placeholder
     attr: { type: 'text', placeholder: '#rrggbb or any CSS colour' },
   })
   textInput.value = current?.kind === 'literal' ? current.value : ''

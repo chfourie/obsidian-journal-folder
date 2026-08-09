@@ -1160,7 +1160,6 @@ class SettingsFormBuilder {
       setting.addExtraButton((btn) => {
         btn
           .setIcon('image')
-          // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
           .setTooltip('Pick a Lucide icon')
           .onClick(() => {
             const current = settings[field].startsWith(LUCIDE_MARKER_PREFIX)
@@ -1606,7 +1605,6 @@ class SettingsFormBuilder {
       )
       .addDropdown((dropdown) => {
         component = dropdown
-        // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
         dropdown.addOption('menu', 'In the Journal Folder menu')
         dropdown.addOption('ribbon', 'Top-level ribbon icon')
         dropdown.addOption('off', 'Off')

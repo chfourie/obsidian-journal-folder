@@ -161,7 +161,6 @@ export class JournalFolderSidebarView extends ItemView {
   }
 
   getDisplayText(): string {
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Folder' is the plugin's own (proper) name
     return 'Journal Folder'
   }
 

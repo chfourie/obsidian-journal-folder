@@ -90,7 +90,6 @@ export class JournalTasksSidebarView extends ItemView {
   }
 
   getDisplayText(): string {
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Journal Tasks' is the plugin's own (proper) feature name
     return 'Journal Tasks'
   }
 

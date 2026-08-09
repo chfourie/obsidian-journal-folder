@@ -65,9 +65,41 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
   sunday 0,5,1 → sunday-current 0,6,1. Accepted caveat: `!important` would beat *any* specificity,
   so a theme with a very specific non-important unresolved-link rule could still win — none of the
   deploy-target themes do.
-- Two warnings target **deliberate** choices and stay justified rather than "fixed": the
-  declarative `:has` config-note hiding, and the duck-typed `as unknown as TFile`. Prefer an
-  inline `// eslint-disable-next-line <rule> -- <why>` over loosening a rule globally.
+- **0.4 forbids inline `eslint-disable` of the rules that matter.** `eslint-comments/
+  no-restricted-disable` (new in 0.4.0) rejects *any* disable of `obsidianmd/*`,
+  `@typescript-eslint/no-deprecated`, `@typescript-eslint/no-explicit-any`, `no-console`,
+  `no-eval`, `@microsoft/sdl/no-inner-html`, … — a long-standing, individually justified
+  `-- why` disable is now an **error**, not a pass. So the old "prefer an inline disable over
+  loosening a rule" advice no longer applies; the escalation order is **fix the code → use the
+  rule's own options → per-file allowance with a written reason**, never a blanket off (that
+  would hide careless future suppressions, the whole point of the rule).
+  - Its options are **gitignore patterns** (matched via the `ignore` package), so a trailing
+    `!some/rule` **negation works** and later patterns win. `eslint.config.mjs` re-derives the
+    upstream pattern list out of `obsidianmd.configs.recommended` (with a `throw` guard if it
+    ever disappears) and re-declares the rule per `files:` with one `!<rule>` appended. Verified
+    narrow: a *different* restricted rule disabled in the same file still errors.
+  - Current allowances: `@typescript-eslint/no-deprecated` in the two settings-tab files, and
+    `obsidianmd/no-tfile-tfolder-cast` in `template-folder.ts` / `sidebar-anchor.ts`.
+- **`setDestructive()` is `@since` Obsidian 1.13.0**, well above the 1.7.2 `minAppVersion` floor,
+  so all five `.setWarning()` calls stay deprecated-but-correct. Revisit the set together if the
+  floor ever moves — that's a product decision, not a lint fix.
+- **`ui/sentence-case` has real options** — `brands`, `acronyms`, `ignoreWords`, `ignoreRegex`,
+  `mode`, `enforceCamelCaseLower` — plus built-in skips (backticked text, `{placeholders}`,
+  paths, `Ctrl+S`, version numbers, ALL_CAPS). It lowercases everything after the first word, so
+  rewriting a string to dodge it usually fails: `#RRGGBB …` still gets "Expected: `#Rrggbb …`".
+  Our three `ignoreRegex` exemptions are the plugin's own name (`Journal Folder` / `Journal
+  Tasks`), `Lucide` (the icon library), and a leading hex-colour specimen. Adding `Journal
+  Folder` to `brands` instead would have flagged every legitimate lowercase "journal folder" in
+  prose. Re-declaring the rule replaces its options wholesale — carry `enforceCamelCaseLower:
+  true` over from upstream.
+- **Colocated `src/**/*.spec.ts` run under Vitest + jsdom**, where Obsidian's `createEl` /
+  `createSpan` prototype extensions don't exist, so `prefer-create-el` is off for spec files
+  only. (`tests/` is ignored wholesale; `src/contracts/*/*.spec.ts` is not.)
+- One warning targets a **deliberate** choice and stays justified rather than "fixed": the
+  declarative `:has` config-note hiding. Likewise the standing
+  `settings-tab/prefer-setting-definitions` warning on `journal-folder-settings-tab.ts` — the
+  declarative settings API is 1.13.0+, and that file is explicitly throwaway; the warning is
+  left standing *as* the reminder.
 
 ---
 

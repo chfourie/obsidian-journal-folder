@@ -284,7 +284,6 @@ export class LucidePickerModal extends Modal {
   }
 
   onOpen(): void {
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- 'Lucide' is a proper noun (the icon library)
     this.titleEl.setText('Pick a Lucide icon')
     const host = this.contentEl.createDiv()
     renderLucidePicker({

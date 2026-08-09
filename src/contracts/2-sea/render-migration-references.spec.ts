@@ -41,12 +41,16 @@ function settingsWith(
 
 /** A rendered task line: a wrapping span holding label text immediately followed by an internal link. */
 function elementWithLink(
-  labelHtml: string,
+  labelText: string,
   linkText = '2026-06-10'
 ): { el: HTMLElement; link: HTMLAnchorElement } {
   const el = document.createElement('div')
-  el.innerHTML = `<span>${labelHtml}<a class="internal-link" href="#">${linkText}</a></span>`
-  const link = el.querySelector('a.internal-link') as HTMLAnchorElement
+  const wrapper = el.appendChild(document.createElement('span'))
+  wrapper.appendChild(document.createTextNode(labelText))
+  const link = wrapper.appendChild(document.createElement('a'))
+  link.className = 'internal-link'
+  link.setAttribute('href', '#')
+  link.textContent = linkText
   return { el, link }
 }
 
