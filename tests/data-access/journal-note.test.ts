@@ -69,6 +69,17 @@ describe('journalNoteFactoryWithSettings', () => {
         /not represent a valid journal file/
       )
     })
+
+    it('accepts a plain JournalNoteSource for a note that has no TFile', () => {
+      const { files } = buildApp('Journal', ['2026-05-03'])
+      const note = factory()({
+        basename: '2026-05-04',
+        parent: files['2026-05-03'].parent,
+      })
+      expect(note.getTitle()).toBe('Monday, 04 May 2026')
+      expect(note.isExistingNote()).toBe(false)
+      expect(note.backInTime().isExistingNote()).toBe(true)
+    })
   })
 
   describe('navigation', () => {

@@ -41,7 +41,19 @@ type JournalNoteStrategies = {
   BY_DESCENDING_ORDER: JournalNoteStrategy[]
 }
 
-export type JournalNoteFactory = (file: TFile) => JournalNote
+// The exact slice of `TFile` the factory reads: the basename (strategy
+// selection + the note's moment) and the parent folder (name, path, and —
+// lazily — the sibling note names via `parent.children`). Typed structurally
+// so callers that need a journal note for a file that doesn't exist on disk
+// (sidebar anchor, template preview) can pass a plain object instead of
+// casting to `TFile` — Obsidian's real `TFile` constructor can't take a
+// post-hoc path.
+export interface JournalNoteSource {
+  basename: string
+  parent: TFile['parent']
+}
+
+export type JournalNoteFactory = (file: JournalNoteSource) => JournalNote
 
 // Regex tier for the basename — matches the strategies built below. Quarterly
 // is gated behind a setting because we don't want a folder using `2026-Q1`
@@ -205,7 +217,7 @@ export function journalNoteFactoryWithSettings(
     BY_DESCENDING_ORDER,
   }
 
-  function getNoteStrategy(file: TFile): JournalNoteStrategy {
+  function getNoteStrategy(file: JournalNoteSource): JournalNoteStrategy {
     const buildStrategy = strategies.BY_DESCENDING_ORDER.filter((s) =>
       s.fileRegex.test(file.basename)
     ).first()
@@ -222,7 +234,7 @@ export function journalNoteFactoryWithSettings(
   // exactly one walk/render, so files sharing a parent share one (lazy)
   // children scan instead of paying O(folder size) per note.
   const snapshotsByFolder = new Map<unknown, FolderNamesSnapshot>()
-  function snapshotFor(parent: TFile['parent']): FolderNamesSnapshot {
+  function snapshotFor(parent: JournalNoteSource['parent']): FolderNamesSnapshot {
     let snapshot = snapshotsByFolder.get(parent)
     if (!snapshot) {
       snapshot = new FolderNamesSnapshot(() =>
@@ -254,7 +266,7 @@ export function journalNoteFactoryWithSettings(
     return present
   }
 
-  return function journalNote(file: TFile): JournalNote {
+  return function journalNote(file: JournalNoteSource): JournalNote {
     const strategy = getNoteStrategy(file)
     // @ts-ignore
     const today = moment().startOf('day')

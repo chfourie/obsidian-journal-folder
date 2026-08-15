@@ -74,15 +74,22 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
   rule's own options → per-file allowance with a written reason**, never a blanket off (that
   would hide careless future suppressions, the whole point of the rule).
   - Its options are **gitignore patterns** (matched via the `ignore` package), so a trailing
-    `!some/rule` **negation works** and later patterns win. `eslint.config.mjs` re-derives the
-    upstream pattern list out of `obsidianmd.configs.recommended` (with a `throw` guard if it
-    ever disappears) and re-declares the rule per `files:` with one `!<rule>` appended. Verified
-    narrow: a *different* restricted rule disabled in the same file still errors.
-  - Current allowances: `@typescript-eslint/no-deprecated` in the two settings-tab files, and
-    `obsidianmd/no-tfile-tfolder-cast` in `template-folder.ts` / `sidebar-anchor.ts`.
-- **`setDestructive()` is `@since` Obsidian 1.13.0**, well above the 1.7.2 `minAppVersion` floor,
-  so all five `.setWarning()` calls stay deprecated-but-correct. Revisit the set together if the
-  floor ever moves — that's a product decision, not a lint fix.
+    `!some/rule` **negation works** and later patterns win. When an allowance is needed,
+    re-derive the upstream pattern list out of `obsidianmd.configs.recommended` (with a `throw`
+    guard if it ever disappears) and re-declare the rule per `files:` with one `!<rule>`
+    appended. Verified narrow: a *different* restricted rule disabled in the same file still
+    errors. **No allowances currently exist** — the former two were fixed for real (below);
+    the scanner reports every inline disable of a restricted rule as a *Risk*.
+- **Destructive buttons go through `styleAsDestructive()`**
+  (`journal-folder-settings/destructive-button.ts`), never the deprecated `.setWarning()`:
+  it feature-detects `setDestructive()` at runtime and falls back to adding `mod-warning`
+  (the class `setWarning` added) on older Obsidian. Note the d.ts stamps `setDestructive`
+  `@since 1.13.0` but a live 1.12.7 already had it — trust the runtime probe, not the tag.
+- **Synthetic journal notes need no `as unknown as TFile` cast** — the factory's parameter is
+  the structural `JournalNoteSource` (`basename` + `parent`), so sidebar-anchor and
+  template-folder pass plain objects. Real `TFile`s satisfy it structurally. Keep new
+  factory-adjacent APIs structural rather than reintroducing `TFile` casts
+  (`obsidianmd/no-tfile-tfolder-cast` is a scanner *Risk* when disabled inline).
 - **`ui/sentence-case` has real options** — `brands`, `acronyms`, `ignoreWords`, `ignoreRegex`,
   `mode`, `enforceCamelCaseLower` — plus built-in skips (backticked text, `{placeholders}`,
   paths, `Ctrl+S`, version numbers, ALL_CAPS). It lowercases everything after the first word, so
@@ -105,11 +112,11 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
 - **Colocated `src/**/*.spec.ts` run under Vitest + jsdom**, where Obsidian's `createEl` /
   `createSpan` prototype extensions don't exist, so `prefer-create-el` is off for spec files
   only. (`tests/` is ignored wholesale; `src/contracts/*/*.spec.ts` is not.)
-- One warning targets a **deliberate** choice and stays justified rather than "fixed": the
-  declarative `:has` config-note hiding. Likewise the standing
-  `settings-tab/prefer-setting-definitions` warning on `journal-folder-settings-tab.ts` — the
-  declarative settings API is 1.13.0+, and that file is explicitly throwaway; the warning is
-  left standing *as* the reminder.
+- One warning stays deliberately: `settings-tab/prefer-setting-definitions` on
+  `journal-folder-settings-tab.ts`. Implementing `getSettingDefinitions()` makes Obsidian
+  1.13+ render the tab **declaratively and ignore `display()` entirely**, so it can't be
+  bolted on for search alone — it's a full migration of the (throwaway) 2000-line tab. The
+  warning is left standing *as* the reminder to do that migration when the tab is rebuilt.
 
 ---
 
@@ -342,9 +349,12 @@ the demo vault open and visible. See `scripts/screenshots/README.md`.
   pattern-matches without context: a bare `column-gap` is misread as CSS multi-column even inside
   `display: grid` (write the `gap: <row> <col>` shorthand); duplicate same-property declarations
   (the `height: 1.5em; height: 1lh` fallback idiom) are flagged (use `@supports` instead); every
-  `:has()` is flagged (stamp a modifier class in our own components — the two config-note-hiding
-  uses are a deliberate keep, since a declarative body-class rule beats a `MutationObserver`);
-  `display: contents` draws a partial-support warning. Its *Vault Enumeration* disclosure (from
+  `:has()` is flagged — stamp a modifier class in our own components, and in Obsidian's DOM
+  target the *child* instead: config-note hiding sets `display: none` on the
+  `.nav-file-title[data-path…]` itself, and the boxless `.nav-file` wrapper collapses with it
+  (verified live: row height 0, no margins) — no parent-matching selector needed;
+  `display: contents` draws a partial-support warning (the status editor's subsection wrappers
+  never needed it — they sit in plain block flow). Its *Vault Enumeration* disclosure (from
   `getMarkdownFiles`) is inherent to config-note discovery and not removable.
 
 ---

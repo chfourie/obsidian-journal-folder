@@ -38,6 +38,7 @@ import {
   type TaskStatus,
 } from '../../data-access'
 import { reorder } from './reorder-statuses'
+import { styleAsDestructive } from './destructive-button'
 import { buildTaskModel } from '../journal-tasks/task-models'
 import { renderStatusIcon } from '../journal-tasks/render-status-icon'
 import { eligibleMigratedStatuses } from '../journal-tasks/task-migration'
@@ -328,9 +329,8 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
     )
     .addButton((btn) => {
       const flowCount = Object.keys(settings.taskFlows).length
-      btn
+      styleAsDestructive(btn)
         .setButtonText('Delete')
-        .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
         .setDisabled(flowCount <= 1 || isDefault)
         .setTooltip(
           isDefault
@@ -890,9 +890,8 @@ class ConfirmDeleteFlowModal extends Modal {
     new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
       this.close()
     })
-    new ButtonComponent(buttons)
+    styleAsDestructive(new ButtonComponent(buttons))
       .setButtonText('Delete')
-      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(async () => {
         await this.onConfirm()
         this.close()
@@ -925,9 +924,8 @@ class ConfirmRemoveStatusModal extends Modal {
     new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
       this.close()
     })
-    new ButtonComponent(buttons)
+    styleAsDestructive(new ButtonComponent(buttons))
       .setButtonText('Remove')
-      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(async () => {
         await this.onConfirm()
         this.close()

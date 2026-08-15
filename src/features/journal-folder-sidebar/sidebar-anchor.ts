@@ -16,12 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, TFile, TFolder } from 'obsidian'
+import { type App, TFolder } from 'obsidian'
 import { moment } from '../../data-access'
 import {
   isJournalFileBasename,
   type JournalFolderSettings,
   type JournalNote,
+  type JournalNoteSource,
   journalNoteFactoryWithSettings,
 } from '../../data-access'
 
@@ -57,26 +58,15 @@ export function buildAnchorNote(
   ) {
     return null
   }
-  // The factory reads `file.basename`, `file.parent`, and (transitively
-  // via `file.parent.children`) the sibling note names — that's it. We
-  // duck-type a plain object rather than `new TFile()` because Obsidian's
-  // real TFile constructor wires `path` through an internal `setPath` that
-  // assumes the path is already a normalised vault-rooted string and
-  // throws a `lastIndexOf` on `undefined` otherwise. The duck-typed object
-  // bypasses that machinery entirely. We intentionally don't add the
-  // synthetic file to the folder's children, because if it doesn't exist
-  // on disk we don't want it counted as an "existing" note.
-  // A duck-typed synthetic TFile is intentional: `new TFile()` wires `path`
-  // through an internal `setPath` that crashes on post-construction assignment,
-  // and this anchor note never exists on disk, so `instanceof TFile` can't apply.
-  const synthetic = {
+  // `JournalNoteSource` is the structural slice the factory reads — the
+  // anchor note never exists on disk, so there is no real `TFile` to pass.
+  // We intentionally don't add the synthetic file to the folder's children,
+  // because if it doesn't exist on disk we don't want it counted as an
+  // "existing" note.
+  const synthetic: JournalNoteSource = {
     basename: anchorBasename,
-    name: `${anchorBasename}.md`,
-    path: `${folder.path}/${anchorBasename}.md`,
-    extension: 'md',
     parent: folder,
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- see comment above
-  } as unknown as TFile
+  }
   try {
     return journalNoteFactoryWithSettings(settings)(synthetic)
   } catch {

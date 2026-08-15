@@ -60,6 +60,7 @@ import {
   renderSignifiersSection,
 } from './signifier-category-editor'
 import { EmojiPickerModal, LucidePickerModal } from './icon-pickers'
+import { styleAsDestructive } from './destructive-button'
 
 const START_OF_WEEK_OPTIONS: Record<StartOfWeekSetting, string> = {
   'locale-default': 'Locale default',
@@ -1183,9 +1184,8 @@ class SettingsFormBuilder {
       .setName('Reset all to default values')
       .setDesc('Restores every setting in the plugin to its default.')
       .addButton((btn) => {
-        btn
+        styleAsDestructive(btn)
           .setIcon('reset')
-          .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
           .onClick(() => {
             new ConfirmModal(this.plugin.app, {
               title: 'Reset all settings?',
@@ -1970,9 +1970,8 @@ class ConfirmModal extends Modal {
       this.close()
     })
 
-    new ButtonComponent(buttons)
+    styleAsDestructive(new ButtonComponent(buttons))
       .setButtonText(this.options.confirmText)
-      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
       .onClick(() => {
         this.close()
         this.options.onConfirm()

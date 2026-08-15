@@ -60,9 +60,10 @@
    Today/Month-Year link strip; halve the collapsed margin in that case
    only (when the calendar is hidden, the 1rem still spaces the options
    bar from the markdown content below). JournalHeader.svelte stamps
-   `jf-has-calendar` when the calendar renders — a sibling `:has()` would
-   work too, but the community-review scanner flags `:has` for its broad
-   invalidation cost, and inside our own component a class is free. */
+   `jf-has-calendar` when the calendar renders — a sibling parent-matching
+   pseudo-class would work too, but the community-review scanner flags it
+   for its broad invalidation cost, and inside our own component a class
+   is free. */
 .journal-folder-header-options.jf-has-calendar {
 	margin-bottom: .5rem;
 }
@@ -773,15 +774,19 @@ a.internal-link.journal-folder-note-link.needs-confirmation {
 /* When the global "Hide journal-folder.md in file explorer" setting is on,
  * the settings feature toggles `journal-folder-hide-config-notes` on the
  * <body>. The selector targets the explorer item by `data-path` ending in
- * `journal-folder.md` and hides its containing `.nav-file` row. We don't
- * scope to `.workspace-leaf-content[data-type="file-explorer"]` because
- * Obsidian's DOM layering varies between layouts (popout windows, mobile)
- * and `.nav-file` itself is specific enough — there are no nav-files
+ * `journal-folder.md` and hides its `.nav-file-title` row directly — the
+ * `.nav-file` wrapper has no box of its own, so it collapses with it. (A
+ * parent-matching selector on `.nav-file` would work too, but the
+ * community-review scanner flags that pseudo-class for its broad selector
+ * invalidation.) We don't scope to
+ * `.workspace-leaf-content[data-type="file-explorer"]` because Obsidian's
+ * DOM layering varies between layouts (popout windows, mobile) and
+ * `.nav-file-title` itself is specific enough — there are no nav-files
  * outside file explorers. */
 body.journal-folder-hide-config-notes
-	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
+	.nav-file > .nav-file-title[data-path$="/journal-folder.md"],
 body.journal-folder-hide-config-notes
-	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
+	.nav-file > .nav-file-title[data-path="journal-folder.md"] {
 	display: none;
 }
 
@@ -1768,10 +1773,6 @@ input[data-jf-task-swapped] {
 .jf-status-edit-content .jf-status-edit-split {
 	min-height: 360px;
 	max-height: min(560px, 70vh);
-}
-
-.jf-status-edit-subsection {
-	display: contents;
 }
 
 .jf-status-edit-split {

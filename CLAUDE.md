@@ -81,8 +81,9 @@ re-derive config-note paths anywhere else.
   — never from `'obsidian'` or `'moment'` (the raw obsidian export isn't typed callable).
 - DOM globals use `activeDocument` / `activeWindow`, not bare `document` / `window`, for popout
   support (`obsidianmd/prefer-active-doc`; note it doesn't catch bare `window` — see agent-notes).
-- Synthetic `TFile`s are duck-typed plain objects cast `as unknown as TFile` — the real `TFile`
-  constructor crashes on post-construction `path` assignment.
+- Synthetic journal notes are plain `JournalNoteSource` objects (`basename` + `parent`) — never
+  cast to `TFile` (a scanner-flagged pattern; the real `TFile` constructor also crashes on
+  post-construction `path` assignment).
 - Inline sidebar affordances are `<span role="button" tabindex="0">` with an Enter/Space
   `onkeydown`, not `<button>` (Obsidian's button chrome can't be cleanly overridden).
 - `journal-folder-settings-tab.ts` is explicitly marked throwaway code — don't be surprised by its

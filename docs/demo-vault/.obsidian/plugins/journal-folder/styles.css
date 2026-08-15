@@ -636,6 +636,10 @@ a.internal-link.journal-folder-note-link.needs-confirmation {
 .journal-folder-config-modal-wrap {
 	width: min(95vw, 1100px);
 	max-width: 95vw;
+	/* Pin the height the way the native settings dialog does (its modal is
+	 * sized to --modal-height), so navigating between the root page and a
+	 * sparser sub-page doesn't resize the window. */
+	height: var(--modal-height, 85vh);
 }
 
 .journal-folder-config-modal-wrap .modal-tab-header {
@@ -2143,63 +2147,6 @@ input[data-jf-task-swapped] {
 
 .jf-icon-custom-text {
 	flex: 1;
-}
-
-/* ------------------------------------------------------------
- * Settings tab strip — splits the plugin settings (and the per-
- * folder modal) into themed tabs at the top of the form.
- * ------------------------------------------------------------ */
-
-.jf-settings-tabbed {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5em;
-}
-
-/* Pill-style buttons rather than transparent underlined text — the
- * underline-only style disappears inside Obsidian's `.mod-settings`
- * modals where the theme paints native `<button>` chrome that we'd
- * have to fight on every level. A solid pill reads clearly against
- * any theme background. */
-.jf-settings-tabbed .jf-settings-tab-strip {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.35em;
-	padding: 0.4em 0;
-	margin-bottom: 0.75em;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab {
-	display: inline-flex;
-	align-items: center;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 999px;
-	padding: 0.3em 0.85em;
-	font-size: 0.9em;
-	line-height: 1.2;
-	cursor: pointer;
-	box-shadow: none;
-	white-space: nowrap;
-	height: auto;
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab:hover {
-	color: var(--text-normal);
-	border-color: var(--interactive-accent);
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab.is-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
-	font-weight: 600;
-}
-
-.jf-settings-tabbed .jf-settings-tab-panel {
-	display: block;
 }
 
 /* ------------------------------------------------------------

@@ -16,12 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type App, TFile, TFolder } from 'obsidian'
+import { type App, TFolder } from 'obsidian'
 import { moment } from './moment'
 import type { JournalFolderSettings } from './journal-folder-settings.type'
 import {
   isJournalFileBasename,
   type JournalNote,
+  type JournalNoteSource,
   journalNoteFactoryWithSettings,
   type JournalTimeUnit,
 } from './journal-note'
@@ -172,9 +173,8 @@ export function currentPeriodBasename(tier: JournalTimeUnit): string {
 // anchored in `folder`, so a template note can be previewed as if it were
 // the live journal entry of that tier. Returns null when the folder is
 // missing or the synthesised basename doesn't parse (e.g. a quarterly
-// template while quarters are disabled). Mirrors the sidebar's duck-typed
-// `TFile` approach — Obsidian's real TFile constructor can't take a
-// post-hoc path.
+// template while quarters are disabled). Mirrors the sidebar's structural
+// `JournalNoteSource` approach — this preview note never exists on disk.
 export function buildTemplatePreviewNote(
   app: App,
   settings: JournalFolderSettings,
@@ -183,18 +183,10 @@ export function buildTemplatePreviewNote(
 ): JournalNote | null {
   const basename = currentPeriodBasename(tier)
   if (!isJournalFileBasename(basename, !!settings.quartersEnabled)) return null
-  // A duck-typed synthetic TFile is intentional: `new TFile()` wires `path`
-  // through an internal `setPath` that crashes on post-construction assignment,
-  // and this template-preview note never exists on disk, so `instanceof TFile`
-  // can't apply.
-  const synthetic = {
+  const synthetic: JournalNoteSource = {
     basename,
-    name: `${basename}.md`,
-    path: `${folder.path}/${basename}.md`,
-    extension: 'md',
     parent: folder,
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- see comment above
-  } as unknown as TFile
+  }
   try {
     return journalNoteFactoryWithSettings(settings)(synthetic)
   } catch {
