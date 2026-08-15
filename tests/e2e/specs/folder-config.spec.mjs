@@ -83,11 +83,11 @@ export const suite = {
         await openFolderConfig(ctx)
         ctx.step('Open Edit folder configuration to get the folder’s own settings form.')
         ctx.assert.ok(
-          await ctx.exists('.modal-container [data-jf-settings-tab]'),
-          'folder-config modal opened with the settings form'
+          await ctx.exists('.modal-container .setting-group'),
+          'folder-config modal opened with the grouped settings form'
         )
-        // Switch to Patterns and change a per-folder field to diverge from global.
-        await ctx.click('.modal-container [data-jf-settings-tab="patterns"]', { settleMs: 400 })
+        // Drill into the patterns sub-page via its navigable entry.
+        await ctx.click('.modal-container [data-jf-page-link="patterns"]', { settleMs: 400 })
         // Each per-folder pattern is gated behind a Default/Custom dropdown — the
         // moment input only renders once "Custom" is chosen, so flip the gate first.
         await ctx.setValue(
@@ -134,7 +134,6 @@ export const suite = {
         )
 
         await openFolderConfig(ctx)
-        await ctx.click('.modal-container [data-jf-settings-tab="general"]', { settleMs: 400 })
         const DD = '.modal-container [data-jf-setting="quartersEnabled"] select'
         ctx.assert.ok(
           await ctx.exists(DD),

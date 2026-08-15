@@ -167,12 +167,58 @@ export async function setValue(sel, value, { settleMs = 300 } = {}) {
   )
 }
 
-// Open the plugin settings tab and (optionally) switch to a tab by its id.
-export async function openSettings(tabId) {
+// Open the plugin settings tab (rendered declaratively on Obsidian 1.13+).
+// Optional page names descend the navigable sub-page entries in order, e.g.
+// openSettings('Tasks', 'Task flows').
+export async function openSettings(...pages) {
   await evalRaw(
     `(async()=>{app.setting.open(); await app.setting.openTabById('journal-folder'); await new Promise(r=>setTimeout(r,400)); return 'ok'})()`
   )
-  if (tabId) await click(`[data-jf-settings-tab="${tabId}"]`, { settleMs: 400 })
+  for (const name of pages) {
+    await inPage(
+      `const row = DA('.modal-container .setting-item.mod-navigable')` +
+        `.filter((r) => r.offsetParent !== null)` +
+        `.find((r) => txt(r.querySelector('.setting-item-name')) === ${JSON.stringify(name)}); ` +
+        `if (!row) return false; click(row); await sleep(400); return true;`
+    )
+  }
+}
+
+// Locator preamble shared by the by-name setting helpers: declarative rows
+// carry no data hooks, so they're addressed by their visible display name
+// (hidden rows — `visible: false` definitions — are skipped).
+const settingRowLookup = (name) =>
+  `const row = DA('.modal-container .setting-item')` +
+  `.filter((r) => r.offsetParent !== null)` +
+  `.find((r) => txt(r.querySelector('.setting-item-name')) === ${JSON.stringify(name)}); `
+
+export function settingExists(name) {
+  return inPage(`${settingRowLookup(name)} return !!row;`)
+}
+
+// Click an element inside the named declarative setting row (defaults to the
+// toggle's checkbox container).
+export async function clickSetting(
+  name,
+  sub = '.checkbox-container',
+  { settleMs = 300 } = {}
+) {
+  return inPage(
+    `${settingRowLookup(name)} const el = row && row.querySelector(${JSON.stringify(sub)}); ` +
+      `if (!el) return false; click(el); await sleep(${settleMs}); return true;`
+  )
+}
+
+// Set the value of the named declarative setting row's input/select control.
+export async function setSettingValue(name, value, { settleMs = 300 } = {}) {
+  return inPage(
+    `${settingRowLookup(name)} const e = row && row.querySelector('input, select, textarea'); ` +
+      `if (!e) return false; ` +
+      `e.value = ${JSON.stringify(String(value))}; ` +
+      `e.dispatchEvent(new Event('input', {bubbles: true})); ` +
+      `e.dispatchEvent(new Event('change', {bubbles: true})); ` +
+      `await sleep(${settleMs}); return true;`
+  )
 }
 
 export async function closeSettings() {

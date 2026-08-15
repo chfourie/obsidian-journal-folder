@@ -16,81 +16,107 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// The plugin settings tab: the tabbed layout renders, tab switching swaps the
-// active panel, and the expected tabs are present.
-
-async function openSettings(ctx) {
-  await ctx.eval(
-    `(async()=>{app.setting.open(); await app.setting.openTabById('journal-folder'); await new Promise(r=>setTimeout(r,400)); return 'ok'})()`
-  )
-}
-async function closeSettings(ctx) {
-  await ctx.eval(`(()=>{app.setting.close(); return 'ok'})()`)
-}
+// The plugin settings tab: rendered declaratively (Obsidian 1.13+) from
+// getSettingDefinitions() — grouped sections, navigable sub-pages, and
+// integration with Obsidian's settings search.
 
 export const suite = {
   name: 'settings',
   description:
-    'The plugin settings dialog, where you tune journalling behaviour. Its tabbed layout groups related options, and clicking a tab swaps to the matching panel.',
+    'The plugin settings dialog, where you tune journalling behaviour. Settings render declaratively: grouped sections up top, sub-pages for templates, patterns, tasks and signifiers, and every option findable through the settings search.',
   settings: {},
-  after: async (ctx) => closeSettings(ctx),
+  after: async (ctx) => ctx.closeSettings(),
   tests: [
     [
-      'settings tab renders the tab strip',
+      'settings render declaratively with grouped sections',
       async (ctx) => {
-        await openSettings(ctx)
-        ctx.step('Open the Journal Folder settings dialog to reveal its tab strip.')
-        ctx.assert.ok(await ctx.exists('[data-jf-settings-tab]'), 'tab strip rendered')
+        await ctx.openSettings()
+        ctx.step('Open the Journal Folder settings dialog to reveal its grouped sections.')
         ctx.assert.ok(
-          (await ctx.count('[data-jf-settings-tab]')) >= 4,
-          'several tabs present'
+          await ctx.exists('.modal-container .setting-group'),
+          'declarative setting groups rendered'
         )
-        await ctx.shot('Settings dialog tab strip', {
-          rect: "bodyRect('.modal-container .vertical-tab-content')",
-        })
-        await closeSettings(ctx)
-      },
-    ],
-    [
-      'the expected tabs exist',
-      async (ctx) => {
-        await openSettings(ctx)
-        ctx.step('Confirm the General, Tasks and Signifiers tabs are all available.')
-        for (const id of ['general', 'tasks', 'signifiers']) {
-          ctx.assert.ok(
-            await ctx.exists(`[data-jf-settings-tab="${id}"]`),
-            `${id} tab present`
-          )
+        for (const name of ['Start of week', 'Enable quarterly notes']) {
+          ctx.assert.ok(await ctx.settingExists(name), `"${name}" row present`)
         }
-        await ctx.shot('Available settings tabs', {
+        await ctx.shot('Settings dialog sections', {
           rect: "bodyRect('.modal-container .vertical-tab-content')",
         })
-        await closeSettings(ctx)
+        await ctx.closeSettings()
       },
     ],
     [
-      'clicking a tab swaps the active panel',
+      'the expected sub-pages exist',
       async (ctx) => {
-        await openSettings(ctx)
-        await ctx.click('[data-jf-settings-tab="tasks"]', { settleMs: 400 })
-        ctx.step('Click the Tasks tab and confirm its panel comes to the front.')
-        ctx.assert.ok(
-          await ctx.exists('[data-jf-tab-panel="tasks"]'),
-          'tasks panel shown after clicking its tab'
+        await ctx.openSettings()
+        ctx.step('Confirm the template, patterns, Tasks and Signifiers sub-pages are all available.')
+        const names = await ctx.inPage(
+          `return DA('.modal-container .setting-item.mod-navigable')` +
+            `.map((r) => txt(r.querySelector('.setting-item-name')));`
         )
-        await ctx.shot('Tasks settings panel', {
+        for (const name of [
+          'New-note template',
+          'Note title patterns',
+          'Tasks',
+          'Signifiers',
+        ]) {
+          ctx.assert.ok(names.includes(name), `${name} page present`)
+        }
+        await ctx.shot('Available settings sub-pages', {
           rect: "bodyRect('.modal-container .vertical-tab-content')",
         })
-        await ctx.click('[data-jf-settings-tab="signifiers"]', { settleMs: 400 })
-        ctx.step('Switch to the Signifiers tab and confirm its panel replaces the previous one.')
-        ctx.assert.ok(
-          await ctx.exists('[data-jf-tab-panel="signifiers"]'),
-          'signifiers panel shown after clicking its tab'
+        await ctx.closeSettings()
+      },
+    ],
+    [
+      'navigating into a sub-page swaps the content',
+      async (ctx) => {
+        await ctx.openSettings('Tasks')
+        ctx.step('Open the Tasks sub-page and confirm its content renders.')
+        ctx.assert.contains(
+          await ctx.text('.modal-container .vertical-tab-content'),
+          'General task settings',
+          'tasks page content shown'
         )
-        await ctx.shot('Signifiers settings panel', {
+        await ctx.shot('Tasks settings page', {
           rect: "bodyRect('.modal-container .vertical-tab-content')",
         })
-        await closeSettings(ctx)
+        await ctx.closeSettings()
+        await ctx.openSettings('Signifiers')
+        ctx.step('Open the Signifiers sub-page and confirm its editor mounts.')
+        ctx.assert.ok(
+          await ctx.exists('.modal-container [data-jf-settings-page="signifiers"]'),
+          'signifiers page shown'
+        )
+        await ctx.shot('Signifiers settings page', {
+          rect: "bodyRect('.modal-container .vertical-tab-content')",
+        })
+        await ctx.closeSettings()
+      },
+    ],
+    [
+      'plugin settings appear in the settings search',
+      async (ctx) => {
+        await ctx.openSettings()
+        await ctx.inPage(
+          `const inp = D('.modal-container input[type=search]') || D('.modal-container .search-input-container input'); ` +
+            `if (!inp) return false; inp.value = 'quarterly'; ` +
+            `inp.dispatchEvent(new Event('input', {bubbles: true})); await sleep(500); return true;`
+        )
+        ctx.step("Search the settings dialog for 'quarterly' and find the plugin's option.")
+        const hits = await ctx.inPage(
+          `return DA('.modal-container .vertical-tab-nav-item, .modal-container .setting-item')` +
+            `.filter((r) => r.offsetParent !== null)` +
+            `.map((r) => (r.textContent || '').trim());`
+        )
+        ctx.assert.ok(
+          hits.some((t) => t.includes('Enable quarterly notes')),
+          'quarterly-notes setting surfaced by search'
+        )
+        await ctx.shot('Settings search results', {
+          rect: "bodyRect('.modal-container')",
+        })
+        await ctx.closeSettings()
       },
     ],
   ],

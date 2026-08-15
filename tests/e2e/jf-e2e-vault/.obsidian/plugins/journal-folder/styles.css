@@ -41,7 +41,7 @@
 .journal-folder-header-title {
 	width: fit-content;
 	margin-inline: auto;
-	margin-block: .4rem !important;
+	margin-block: .4rem;
 	cursor: default;
 }
 
@@ -59,8 +59,11 @@
    default 1rem margin leaves too much air between the More-row and the
    Today/Month-Year link strip; halve the collapsed margin in that case
    only (when the calendar is hidden, the 1rem still spaces the options
-   bar from the markdown content below). */
-.journal-folder-header-options:has(+ .journal-folder-calendar) {
+   bar from the markdown content below). JournalHeader.svelte stamps
+   `jf-has-calendar` when the calendar renders — a sibling `:has()` would
+   work too, but the community-review scanner flags `:has` for its broad
+   invalidation cost, and inside our own component a class is free. */
+.journal-folder-header-options.jf-has-calendar {
 	margin-bottom: .5rem;
 }
 
@@ -92,7 +95,7 @@
 	text-decoration: none;
 
 	&:link, &:visited, &:hover, &:active {
-		text-decoration: none !important;
+		text-decoration: none;
 	}
 
 	&:hover {
@@ -110,12 +113,12 @@
    journal link can appear. We restate the combined opacity (instead of
    stacking on `.is-unresolved`'s theme opacity) for the same reason the
    calendar does: CSS opacity doesn't multiply across classes on the same
-   element — the more specific declaration wins outright. `!important` is
-   needed because Obsidian's own
-   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
-   rule has higher specificity than this selector and would otherwise win. */
-.journal-folder-note-link.needs-confirmation {
-	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+   element — the more specific declaration wins outright. We out-specify
+   Obsidian's own `.markdown-rendered .internal-link.is-unresolved`
+   (specificity 0,3,0) by qualifying with the `a.internal-link` element +
+   class (0,3,1), so no `!important` is needed. */
+a.internal-link.journal-folder-note-link.needs-confirmation {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5);
 }
 
 .journal-folder-header-more {
@@ -279,8 +282,9 @@
 .journal-folder-calendar-grid {
 	display: grid;
 	grid-template-columns: 1.4rem .35rem repeat(7, 1.32rem);
-	row-gap: 1px;
-	column-gap: 2.25px;
+	/* `gap` shorthand (not row-gap/column-gap): the community-review scanner
+	 * misreads a bare `column-gap` as the CSS multi-column feature. */
+	gap: 1px 2.25px;
 	font-size: .75rem;
 	justify-content: center;
 }
@@ -312,20 +316,10 @@
 	color: var(--text-accent);
 }
 
-/* Calendar cells force `--text-normal` with `!important` so the theme's
-   normal text colour is what readers see for missing days — Obsidian's own
-   `a.internal-link.is-unresolved` rule (and many community themes that
-   override it) repaints unresolved links in the accent or a custom red,
-   which would otherwise leak through onto every missing day cell. We still
-   stamp `is-unresolved` ourselves (in `calendarCellClasses`) so the theme's
-   `--link-unresolved-opacity` applies — the cell is faded the way an
-   unresolved link is faded, just not recoloured. The plugin stamps
-   `is-unresolved` rather than relying on Obsidian's link-resolution pass
-   because that pass only marks cells present during the initial markdown
-   render and misses months inserted later as the ResizeObserver settles or
-   as the user scrolls. Existing cells (`.exists`) and Sunday day cells
-   (`.day.is-sunday`) override the colour back to `--text-accent` further
-   down — both with `!important` so they can win against the base. */
+/* Base layout for every calendar cell (link cells AND empty placeholder
+   <div>s). Colour + text-decoration are NOT set here — link cells get them
+   from the high-specificity rule just below, which is what lets us avoid
+   `!important`. */
 .journal-folder-calendar-cell {
 	display: flex;
 	align-items: center;
@@ -333,13 +327,28 @@
 	min-height: 1.5rem;
 	padding: .05rem .15rem;
 	border-radius: var(--radius-s, .25rem);
-	color: var(--text-normal) !important;
-	text-decoration: none !important;
 	cursor: pointer;
 	box-sizing: border-box;
 	border: solid 1px transparent;
 	user-select: none;
 	background: transparent;
+}
+
+/* Link cells (day / week / month / year — rendered as `a.internal-link`)
+   force `--text-normal` and drop the underline so the theme's unresolved-link
+   recolour can't leak onto missing days. Obsidian repaints unresolved links
+   via `.markdown-rendered .internal-link.is-unresolved` (specificity 0,3,0);
+   qualifying with the shared `.journal-folder-calendar-body` ancestor + the
+   `a.internal-link` element/class gives us (0,3,1), which wins outright —
+   no `!important` required. The plugin stamps `is-unresolved` itself (in
+   `calendarCellClasses`) so the theme's `--link-unresolved-opacity` still
+   fades missing cells; it just can't recolour them. Empty placeholder cells
+   are plain <div>s, so they don't match this rule and keep the base layout.
+   Existing cells (`.exists`) and Sunday day cells (`.day.is-sunday`) raise the
+   colour back to `--text-accent` further down via still-higher specificity. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell {
+	color: var(--text-normal);
+	text-decoration: none;
 }
 
 .journal-folder-calendar-cell:hover {
@@ -348,8 +357,8 @@
 
 .journal-folder-calendar-cell.empty {
 	cursor: default;
-	background: transparent !important;
-	border-color: transparent !important;
+	background: transparent;
+	border-color: transparent;
 }
 
 .journal-folder-calendar-cell.week {
@@ -361,20 +370,15 @@
 	font-variant-numeric: tabular-nums;
 }
 
-/* Existing cells render in the theme accent so the user can see at a glance
-   which periods already have notes. `!important` is required to win against
-   the base cell's `!important`-qualified `--text-normal`. Missing cells get
-   no colour rule here — they keep the base `--text-normal`. */
-.journal-folder-calendar-cell.exists {
-	color: var(--text-accent) !important;
+/* Existing cells render in the theme accent (and underlined) so the user can
+   see at a glance which periods already have notes — uniformly across days,
+   weeks, months, and years. Adding `.exists` to the base link selector gives
+   (0,4,1), above the base link rule (0,3,1), so it wins without `!important`.
+   Missing cells get no colour rule here — they keep the base `--text-normal`. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.exists {
+	color: var(--text-accent);
 	font-weight: 600;
-}
-
-/* Existing cells get an underline on top of the emphasis colour so the user
-   can spot at a glance which periods already have notes — applies uniformly
-   to days, weeks, months, and years. */
-.journal-folder-calendar-cell.exists {
-	text-decoration: underline !important;
+	text-decoration: underline;
 	text-underline-offset: 2px;
 }
 
@@ -386,41 +390,41 @@
    the combined value. `--link-unresolved-opacity` is Obsidian's standard
    variable for unresolved-link fading; the .7 fallback matches Obsidian's
    default theme value, so themes that don't set the variable still get a
-   sensible result. `!important` is required because Obsidian's own
-   `a.internal-link.is-unresolved { opacity: var(--link-unresolved-opacity) }`
-   rule has specificity (0,2,1) — higher than this selector's (0,2,0) — so
-   without it the theme's full opacity wins and past- and future-missing
-   render identically. The 0.5 multiplier was tuned by eye: 0.8 (20% lighter)
-   and 0.7 (30%) weren't pronounced enough at the small calendar cell sizes. */
-.journal-folder-calendar-cell.past-missing {
-	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5) !important;
+   sensible result. We out-specify Obsidian's own
+   `.markdown-rendered .internal-link.is-unresolved { opacity: … }` (0,3,0)
+   with the (0,4,1) selector below, so no `!important` is needed; without the
+   override the theme's full opacity would win and past- and future-missing
+   would render identically. The 0.5 multiplier was tuned by eye: 0.8 (20%
+   lighter) and 0.7 (30%) weren't pronounced enough at the small cell sizes. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.past-missing {
+	opacity: calc(var(--link-unresolved-opacity, 0.7) * 0.5);
 }
 
 /* Sundays render in the theme accent colour across every state — existing,
    future-missing, past-missing — so the start of the week is always easy to
-   pick out. `!important` is required because the base cell rule above
-   forces `--text-normal !important` to keep the theme's normal text colour
-   on missing days; without `!important` here, Sunday missing cells would
-   inherit that and appear in `--text-normal` instead of accent. The
-   unresolved opacity (and the past-missing fade above) still applies. */
-.journal-folder-calendar-cell.day.is-sunday {
-	color: var(--text-accent) !important;
+   pick out. Adding `.day.is-sunday` to the base link selector gives (0,5,1),
+   above both the base link rule (0,3,1) and `.exists` (0,4,1), so a Sunday
+   stays accent without `!important`. The unresolved opacity (and the
+   past-missing fade above) still applies. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday {
+	color: var(--text-accent);
 }
 
 .journal-folder-calendar-cell.is-today {
 	border-color: var(--interactive-accent);
 }
 
-.journal-folder-calendar-cell.is-current,
-.journal-folder-calendar-cell.is-current:hover,
-/* The Sunday rule above (`.day.is-sunday`, 3 classes + !important) would
-   otherwise out-specify the 2-class current rule and keep accent-coloured
-   text on the accent background, making a current Sunday unreadable. This
-   4-class selector wins it back so every current cell uses on-accent text. */
-.journal-folder-calendar-cell.day.is-sunday.is-current,
-.journal-folder-calendar-cell.day.is-sunday.is-current:hover {
+/* The Sunday rule above (`…cell.day.is-sunday`, 0,5,1) would otherwise
+   out-specify a plain current cell and keep accent-coloured text on the
+   accent background, making a current Sunday unreadable. The sunday-current
+   selector below carries `.day.is-sunday.is-current` for (0,6,1), winning it
+   back so every current cell uses on-accent text — no `!important` needed. */
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.is-current,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.is-current:hover,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday.is-current,
+.journal-folder-calendar-body a.internal-link.journal-folder-calendar-cell.day.is-sunday.is-current:hover {
 	background: var(--interactive-accent);
-	color: var(--text-on-accent) !important;
+	color: var(--text-on-accent);
 	font-weight: 600;
 	border-color: var(--interactive-accent);
 }
@@ -439,8 +443,7 @@
 
 .journal-folder-calendar.is-mobile .journal-folder-calendar-grid {
 	grid-template-columns: 2rem .5rem repeat(7, 1.8rem);
-	row-gap: 4px;
-	column-gap: 9px;
+	gap: 4px 9px;
 	font-size: .95rem;
 }
 
@@ -633,6 +636,10 @@
 .journal-folder-config-modal-wrap {
 	width: min(95vw, 1100px);
 	max-width: 95vw;
+	/* Pin the height the way the native settings dialog does (its modal is
+	 * sized to --modal-height), so navigating between the root page and a
+	 * sparser sub-page doesn't resize the window. */
+	height: var(--modal-height, 85vh);
 }
 
 .journal-folder-config-modal-wrap .modal-tab-header {
@@ -779,7 +786,29 @@ body.journal-folder-hide-config-notes
 	.nav-file:has(> .nav-file-title[data-path$="/journal-folder.md"]),
 body.journal-folder-hide-config-notes
 	.nav-file:has(> .nav-file-title[data-path="journal-folder.md"]) {
-	display: none !important;
+	display: none;
+}
+
+/* When the global "Edit-mode indicator" setting is on, the settings feature
+ * toggles `journal-folder-edit-mode-indicator` on the <body>. We draw a
+ * left-edge rule on the editing surface so it reads at a glance as "editing"
+ * rather than reading view, keyed off Obsidian's own mode classes:
+ *   - Live Preview  → accent rule  (`.markdown-source-view.is-live-preview`)
+ *   - Source mode   → muted rule   (`...:not(.is-live-preview)`)
+ *   - Reading view  → nothing      (it's `.markdown-reading-view`, not matched)
+ * The rule is an INSET box-shadow on the non-scrolling `.cm-editor` wrapper, so
+ * it stays pinned to the pane's left edge, never scrolls, and — unlike a border
+ * — adds no box and so can't shift content or collide with theme padding. */
+body.journal-folder-edit-mode-indicator
+	.markdown-source-view.is-live-preview
+	.cm-editor {
+	box-shadow: inset 2px 0 0 0 var(--interactive-accent);
+}
+
+body.journal-folder-edit-mode-indicator
+	.markdown-source-view:not(.is-live-preview)
+	.cm-editor {
+	box-shadow: inset 2px 0 0 0 var(--text-muted);
 }
 
 /* Sidebar view */
@@ -1534,8 +1563,19 @@ li.task-list-item[data-task="-"] {
  * without measuring geometry, and reflows naturally. The
  * `jf-doc-task-status` marker is added only by the reading-view swap —
  * live preview positions its icon correctly on its own, and the
- * sidebar/panel rows keep their own flex spacing. */
+ * sidebar/panel rows keep their own flex spacing.
+ *
+ * `position: relative` is load-bearing for collapsible tasks (a task
+ * with a sub-list). Obsidian draws a `.list-collapse-indicator` as an
+ * `position: absolute` box that is wide enough to overlap the checkbox
+ * column; left static, our icon paints *under* that box, so a click on
+ * the icon lands on the indicator and folds the sub-list instead of
+ * cycling the status. Obsidian's own native checkbox dodges this by
+ * being `position: relative` — we mirror it, so the icon (later in DOM
+ * than the indicator) paints on top and captures its own clicks, while
+ * the indicator's exposed left edge stays foldable. */
 .jf-doc-task-status.jf-task-status {
+	position: relative;
 	margin-inline-start: calc(-1 * var(--checkbox-size, 1em));
 	margin-inline-end: var(--list-marker-gap, 0.5em);
 }
@@ -1554,6 +1594,33 @@ input[data-jf-doc-swapped] {
  * attribute toggle, not an inline style write. */
 input[data-jf-task-swapped] {
 	display: none;
+}
+
+/* Live-preview only: the native checkbox is `display: none`, so the marker
+ * gap to the right of our icon (the icon's `margin-right`) is empty editor
+ * surface. A click there lands on the `cm-line`, not the icon, so CodeMirror
+ * places the caret and drops the line into source view instead of cycling the
+ * status — the "click the right-hand side and it edits" bug. Widen the icon's
+ * hit target across that gap with a transparent absolute overlay. Routing it
+ * through a pseudo-element keeps the click's `evt.target` as the icon span
+ * itself (so `taskCheckboxTarget`'s `closest([data-jf-task-icon])` resolves),
+ * without inflating the shell's painted background the way padding would, and
+ * without touching layout. `data-jf-task-icon` is unique to the live-preview
+ * icon (reading view uses `data-jf-doc-icon`), so reading view / sidebar icons
+ * are untouched. `left: 100%` + the marker-gap width mirrors the base
+ * `margin-right` exactly, so the overlay ends precisely where the task text
+ * begins. */
+[data-jf-task-icon].jf-task-status {
+	position: relative;
+}
+
+[data-jf-task-icon].jf-task-status::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 100%;
+	width: var(--list-marker-gap, 0.4em);
 }
 
 /* Panel rows already establish their own flex layout — the icon
@@ -1588,7 +1655,7 @@ input[data-jf-task-swapped] {
 	display: grid;
 	grid-template-columns: auto auto auto 1fr auto auto;
 	align-items: center;
-	column-gap: 0.75em;
+	gap: 0 0.75em;
 	padding: 0.4em 0.6em;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
@@ -2083,63 +2150,6 @@ input[data-jf-task-swapped] {
 }
 
 /* ------------------------------------------------------------
- * Settings tab strip — splits the plugin settings (and the per-
- * folder modal) into themed tabs at the top of the form.
- * ------------------------------------------------------------ */
-
-.jf-settings-tabbed {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5em;
-}
-
-/* Pill-style buttons rather than transparent underlined text — the
- * underline-only style disappears inside Obsidian's `.mod-settings`
- * modals where the theme paints native `<button>` chrome that we'd
- * have to fight on every level. A solid pill reads clearly against
- * any theme background. */
-.jf-settings-tabbed .jf-settings-tab-strip {
-	display: flex !important;
-	flex-wrap: wrap;
-	gap: 0.35em;
-	padding: 0.4em 0;
-	margin-bottom: 0.75em;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab {
-	display: inline-flex !important;
-	align-items: center;
-	background: var(--background-secondary);
-	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 999px;
-	padding: 0.3em 0.85em;
-	font-size: 0.9em;
-	line-height: 1.2;
-	cursor: pointer;
-	box-shadow: none;
-	white-space: nowrap;
-	height: auto;
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab:hover {
-	color: var(--text-normal);
-	border-color: var(--interactive-accent);
-}
-
-.jf-settings-tabbed .jf-settings-tab-strip > button.jf-settings-tab.is-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
-	font-weight: 600;
-}
-
-.jf-settings-tabbed .jf-settings-tab-panel {
-	display: block;
-}
-
-/* ------------------------------------------------------------
  * Breadcrumb — drill-down navigation across Tasks-tab levels.
  * ------------------------------------------------------------ */
 
@@ -2154,18 +2164,20 @@ input[data-jf-task-swapped] {
 	font-size: 0.95em;
 }
 
-/* Override Obsidian's native `<button>` chrome aggressively — inside
- * `.mod-settings` the theme paints buttons with a filled chip
- * background that's wildly out of place for breadcrumb links. */
+/* Strip Obsidian's native `<button>` chrome (filled chip background, border,
+ * shadow, padding, fixed height) — wildly out of place for a breadcrumb link.
+ * The competing rules are app.css's `button` / `button:not(.clickable-icon)`
+ * (specificity 0,0,1 / 0,1,1); our `.jf-breadcrumb button.jf-breadcrumb-link`
+ * is (0,2,1), so it wins on specificity without `!important`. */
 .jf-breadcrumb button.jf-breadcrumb-link,
 .jf-breadcrumb span.jf-breadcrumb-link {
-	background: transparent !important;
-	border: 0 !important;
-	box-shadow: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	height: auto !important;
-	min-height: 0 !important;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+	margin: 0;
+	height: auto;
+	min-height: 0;
 	color: var(--text-accent);
 	cursor: pointer;
 	font: inherit;
@@ -2290,11 +2302,16 @@ input[data-jf-task-swapped] {
 	 * `top:0; bottom:0` would centre the icon over the entire subtree and drop
 	 * it below its own line. A one-line-tall box from the top keeps it on the
 	 * entry's line (`1lh` = the line height; `em` is the older-engine
-	 * fallback). `align-items: center` then centres the icon within it. */
+	 * fallback). `align-items: center` then centres the icon within it.
+	 *
+	 * `top` is the PRE-MEASUREMENT fallback: the positioner overwrites it with
+	 * the host's measured top-padding (inline `top`) so a padded block — headings
+	 * get `padding-top: var(--p-spacing)` in the editor — centres the icon on the
+	 * text line instead of floating in the padding strip above it. Unpadded
+	 * blocks measure 0, so the inline value equals this fallback. */
 	top: 0;
 	bottom: auto;
 	height: 1.5em;
-	height: 1lh;
 	/* `left` is overwritten by the measured value; this is only the pre-paint
 	 * fallback (the marker is hidden until measured anyway). */
 	left: 0;
@@ -2313,6 +2330,16 @@ input[data-jf-task-swapped] {
 	white-space: nowrap;
 	pointer-events: none;
 	visibility: hidden;
+}
+
+/* `1lh` (the line height) is the height we actually want; the `1.5em` above is
+ * the older-engine fallback (some stale Android WebViews lack `lh`). Kept in a
+ * separate @supports block rather than a duplicate `height` declaration, which
+ * the community-review scanner flags. */
+@supports (height: 1lh) {
+	.jf-signifier-gutter {
+		height: 1lh;
+	}
 }
 
 /* Revealed by the positioner once `left` has been measured. */

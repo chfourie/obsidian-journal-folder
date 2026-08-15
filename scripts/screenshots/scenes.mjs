@@ -43,10 +43,13 @@ const CAL_RECT = `rectOf('.journal-folder-calendar')`
 const POPOVER_RECT =
   `(()=>{const a=rectOf('.journal-folder-header-options');const b=bodyRect('[data-jf-more-panel]');` +
   `return {x:Math.min(a.l,b.l),y:Math.min(a.t,b.t),w:Math.max(a.r,b.r)-Math.min(a.l,b.l),h:Math.max(a.b,b.b)-Math.min(a.t,b.t)};})()`
-// Plugin settings content pane (horizontal tab chips + body), clamped so a
-// scrollable tab doesn't ask sips to crop past the bottom of the window.
+// Plugin settings content pane, clamped so a scrollable page doesn't ask sips
+// to crop past the bottom of the window. The declarative renderer stacks
+// sub-pages as additional '.vertical-tab-content' elements (the root stays in
+// the DOM, hidden), so measure the last *visible* one.
 const SETTINGS_RECT =
-  `(()=>{const r=bodyRect('.vertical-tab-content');return {...r,h:Math.min(r.h,window.innerHeight-r.t-6)};})()`
+  `(()=>{const els=[...document.querySelectorAll('.vertical-tab-content')].filter(e=>e.offsetParent!==null);` +
+  `const r=bodyRect(els[els.length-1]);return {...r,h:Math.min(r.h,window.innerHeight-r.t-6)};})()`
 // Sidebar cropped to its actual content height (the panel is full-window-tall),
 // optionally unioned with a portaled menu/panel opening to its left.
 const sidebarRect = (extra) =>
@@ -181,21 +184,26 @@ export const SCENES = [
     pad: 10,
   },
 
-  // ---- Settings tabs ----------------------------------------------------
+  // ---- Settings pages (declarative tab; sub-pages by display name) -------
+  {
+    name: 'settings-root',
+    setup: (c) => c.openSettings(),
+    rect: SETTINGS_RECT, pad: 0,
+  },
   {
     name: 'settings-tasks-overview',
-    setup: (c) => c.openSettings('tasks'),
+    setup: (c) => c.openSettings('Tasks', 'Task flows'),
     rect: SETTINGS_RECT, pad: 0,
   },
   {
     name: 'settings-tasks-flow-detail',
-    setup: async (c) => { await c.openSettings('tasks'); await c.click('.jf-flow-row') },
+    setup: async (c) => { await c.openSettings('Tasks', 'Task flows'); await c.click('.jf-flow-row') },
     rect: SETTINGS_RECT, pad: 0,
   },
   {
     name: 'settings-tasks-status-detail',
     setup: async (c) => {
-      await c.openSettings('tasks')
+      await c.openSettings('Tasks', 'Task flows')
       await c.click('.jf-flow-row')
       await c.inPage(
         `const b=[...document.querySelectorAll('.jf-status-row button,.jf-status-row [role=button]')].find(e=>(e.textContent||'').trim()==='Edit'); ` +
@@ -206,8 +214,20 @@ export const SCENES = [
   },
   {
     name: 'settings-signifiers',
-    setup: (c) => c.openSettings('signifiers'),
+    setup: (c) => c.openSettings('Signifiers'),
     rect: SETTINGS_RECT, pad: 0,
+  },
+
+  // ---- Folder configuration modal ---------------------------------------
+  {
+    name: 'folder-config-modal',
+    setup: async (c) => {
+      await openWithSidebar(c, 'Personal/2026-05-04')
+      await openSidebarMenu(c, '.jf-sidebar-more-link')
+      await c.click('[data-jf-menu-panel] [data-jf-menu-item-title="Edit folder configuration"]', { settleMs: 600 })
+    },
+    rect: `bodyRect('.modal-container .journal-folder-config-modal-wrap')`,
+    pad: 0,
   },
 
   // ---- Sidebar ----------------------------------------------------------

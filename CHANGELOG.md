@@ -7,6 +7,33 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.5.0]
+
+### Changed
+- **Native settings, findable through search.** The plugin settings now render
+  through Obsidian's declarative settings framework (Obsidian 1.13+): grouped
+  sections up top (General, Sidebar, Today, Calendar) and drill-in sub-pages
+  for *New-note template*, *Note title patterns*, *Tasks* (with nested *Task
+  flows* and *Task categories* pages), and *Signifiers*. Every option is now
+  indexed by Obsidian's settings **search**, so you can jump straight to a
+  setting by name. The task-flow → status drill-down and its breadcrumbs work
+  as before, one level deeper under *Tasks → Task flows*.
+- **The per-folder configuration modal matches the settings tab.** *More… →
+  Edit folder configuration* now uses the same native grouped layout and the
+  same drill-in flow (sub-pages with a back header) as the global settings,
+  instead of the previous custom tab strip. Every field keeps its explicit
+  *Default (inherit the global value)* choice, and the modal holds a fixed
+  height while navigating.
+- **Minimum Obsidian version is now 1.13.0** (previously 1.7.2), required by
+  the declarative settings API. Destructive buttons (reset, delete flow)
+  now use Obsidian's native destructive styling.
+
+### Removed
+- The per-setting reset-to-default buttons on simple toggles/dropdowns in the
+  global tab (the declarative framework doesn't support them). Date-pattern
+  fields keep their reset buttons, and the *Reset all to default values*
+  action remains.
+
 ## [3.4.0]
 
 ### Added

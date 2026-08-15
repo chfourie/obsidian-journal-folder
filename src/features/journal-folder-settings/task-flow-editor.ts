@@ -38,7 +38,6 @@ import {
   type TaskStatus,
 } from '../../data-access'
 import { reorder } from './reorder-statuses'
-import { styleAsDestructive } from './destructive-button'
 import { buildTaskModel } from '../journal-tasks/task-models'
 import { renderStatusIcon } from '../journal-tasks/render-status-icon'
 import { eligibleMigratedStatuses } from '../journal-tasks/task-migration'
@@ -329,8 +328,9 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
     )
     .addButton((btn) => {
       const flowCount = Object.keys(settings.taskFlows).length
-      styleAsDestructive(btn)
+      btn
         .setButtonText('Delete')
+        .setDestructive()
         .setDisabled(flowCount <= 1 || isDefault)
         .setTooltip(
           isDefault
@@ -890,8 +890,9 @@ class ConfirmDeleteFlowModal extends Modal {
     new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
       this.close()
     })
-    styleAsDestructive(new ButtonComponent(buttons))
+    new ButtonComponent(buttons)
       .setButtonText('Delete')
+      .setDestructive()
       .onClick(async () => {
         await this.onConfirm()
         this.close()
@@ -924,8 +925,9 @@ class ConfirmRemoveStatusModal extends Modal {
     new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
       this.close()
     })
-    styleAsDestructive(new ButtonComponent(buttons))
+    new ButtonComponent(buttons)
       .setButtonText('Remove')
+      .setDestructive()
       .onClick(async () => {
         await this.onConfirm()
         this.close()

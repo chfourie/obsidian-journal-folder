@@ -123,9 +123,10 @@ in `specs/` and is wired in `specs/index.mjs`.
 ### Settings tab — rendering — `settings.spec.mjs`
 | # | Scenario | Assertion | Status |
 |---|----------|-----------|--------|
-| 1 | Tab strip renders | ≥4 `[data-jf-settings-tab]` | ✅ |
-| 2 | Expected tabs exist | general/tasks/signifiers tabs | ✅ |
-| 3 | Clicking a tab swaps the panel | `[data-jf-tab-panel="<id>"]` | ✅ |
+| 1 | Declarative sections render | `.setting-group` + named rows | ✅ |
+| 2 | Expected sub-pages exist | template/patterns/Tasks/Signifiers `.mod-navigable` entries | ✅ |
+| 3 | Navigating a sub-page swaps content | Tasks content, `[data-jf-settings-page="signifiers"]` | ✅ |
+| 4 | Settings search finds plugin options | "quarterly" surfaces *Enable quarterly notes* | ✅ |
 
 ### Settings tab — config editing — `settings-config.spec.mjs`
 | # | Scenario | Assertion | Status |
