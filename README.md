@@ -44,7 +44,7 @@ A fifth tier — quarterly notes (`YYYY-Q[1-4]`) — is available as an opt-in. 
 
 ## Install
 
-The plugin is published to the Obsidian community plugin directory under the name **Journal Folder**. Open *Settings → Community plugins → Browse*, search for it, install, and enable.
+The plugin is published to the Obsidian community plugin directory under the name **Journal Folder**. Open *Settings → Community plugins → Browse*, search for it, install, and enable. Requires **Obsidian 1.13.0 or newer**.
 
 To run from source, clone this repo and:
 
@@ -77,7 +77,9 @@ Almost every setting can be edited from one of two UIs:
 - **Global defaults** — *Settings → Community plugins → Journal Folder*.
 - **Per-folder overrides** — sidebar tab → **More… → Edit folder configuration**.
 
-The same form drives both, with global-only sections hidden in folder mode. Edits are stored sparsely in per-folder front matter, so fields that match the global default fall through automatically when you change the global default later.
+Both use the same layout: small sections up top (General, Today, Calendar, …) and drill-in sub-pages for the bigger areas (New-note template, Note title patterns, Tasks, Signifiers). The global settings render through Obsidian's native settings framework, so every option is also findable through the settings **search**. The folder form hides global-only sections and gives every field a *Default (inherit)* choice; edits are stored sparsely in per-folder front matter, so fields that match the global default fall through automatically when you change the global default later.
+
+![The plugin settings — grouped sections and sub-pages](docs/screenshots/settings-root.png)
 
 For the underlying data structures, manual front-matter / `data.json` editing, and embedded-block syntax, see [Advanced configuration](#advanced-configuration). That section is the right reference if you're scripting setup across multiple vaults, storing config in source control, or overriding a single header from inside the note itself — but for day-to-day use, the settings UIs are the recommended path.
 
@@ -280,7 +282,9 @@ Items:
 - **Switch to dynamic / Switch to static** — flips the mode (also reflected in the section-header tag). Persists as the global `sidebar-mode` setting.
 - **Switch to default folder** — resets the picker to the configured `default-journal-folder`. Shown only when you're on a non-default folder *and* the configured default still exists in the known list.
 - **Set as default folder** — promotes the currently selected folder to the new global default. Shown only when the picker is on a non-default journal folder. The default folder itself has no global-settings-tab UI — set it from here.
-- **Edit folder configuration** — opens a modal containing the same form rows as the plugin settings tab, but writing to the selected folder's `journal-folder.md` front matter instead of the plugin's `data.json`. Global-only fields (`start-of-week`, `hide-journal-folder-notes`, the *Sidebar* section, the destructive *Reset all* button) are hidden. Per-folder fields show their **effective** value (global merged with the folder's existing front matter), and edits are stored sparsely — fields that match the global config are *removed* from the front matter so subsequent global edits keep flowing through, while diverging fields are written as kebab-cased keys.
+- **Edit folder configuration** — opens a modal with the same look and flow as the plugin settings tab (grouped sections plus drill-in sub-pages for templates, patterns, and tasks), but writing to the selected folder's `journal-folder.md` front matter instead of the plugin's `data.json`. Global-only fields (`start-of-week`, `hide-journal-folder-notes`, the *Sidebar* section, the destructive *Reset all* button) are hidden, and every field offers an explicit *Default (inherit the global value)* choice. Per-folder fields show their **effective** value (global merged with the folder's existing front matter), and edits are stored sparsely — fields that match the global config are *removed* from the front matter so subsequent global edits keep flowing through, while diverging fields are written as kebab-cased keys.
+
+![The Edit folder configuration modal](docs/screenshots/folder-config-modal.png)
 
   Every overridable row makes inheriting explicit rather than implicit. Dropdowns carry a **Default (*value*)** entry above the concrete choices, toggles become a **Default / On / Off** dropdown, and text and date-pattern fields sit behind a **Default / Custom** selector that reveals the input only under *Custom*. Choosing *Default* drops the folder's override, so that field follows the global setting again from then on.
 - **Initialise a new journal folder** — opens a fuzzy folder picker showing every folder that *isn't* already a journal folder (the vault root is excluded — it's not a supported journal folder elsewhere in the plugin). Picking a folder creates a `journal-folder.md` in it seeded with `journal-folder-title: <folder name>`, then switches the sidebar's selected folder to the new one.
@@ -474,9 +478,9 @@ Four **built-in templates** ship as read-only starting points — apply one to s
 | **Bullet Journal** | `[ ]` `[/]` `[x]` `[>]` `[-]` `[d]` |
 | **GTD** | `[ ]` `[/]` `[?]` `[x]` |
 
-Flows live globally on the plugin settings — they're defined in *Settings → Community plugins → Journal Folder → Tasks*. Each folder picks **which** flow it uses (via the per-folder *Tasks* tab in the *Edit folder configuration* modal); edits to a flow's statuses propagate to every folder pointing at the same flow.
+Flows live globally on the plugin settings — they're defined in *Settings → Community plugins → Journal Folder → Tasks → Task flows*. Each folder picks **which** flow it uses (via the *Tasks* sub-page in the *Edit folder configuration* modal); edits to a flow's statuses propagate to every folder pointing at the same flow.
 
-![Tasks tab — overview with flow list](docs/screenshots/settings-tasks-overview.png)
+![Task flows page — overview with flow list](docs/screenshots/settings-tasks-overview.png)
 
 Drilling into a flow opens an editor with apply-template / save-as / delete actions and the status list. Each status can be drilled into further for per-status appearance.
 
@@ -552,7 +556,7 @@ A category can be pinned to a **Maximum range** — `Day`, `Week`, `Month`, `Qua
 
 For example, a **Local** category bound to `#local` and capped to **Day** keeps those tasks visible only in a list scoped to (or anchored on) their own day — they drop out of the Week / Month / Year / All views when anchored on **Today**, so day-specific chores don't clutter your wider rollups.
 
-Categories are **global** (one set per vault) and are managed in *Settings → Community plugins → Journal Folder → Tasks*.
+Categories are **global** (one set per vault) and are managed in *Settings → Community plugins → Journal Folder → Tasks → Task categories*.
 
 ### Migrating tasks between notes
 
@@ -692,11 +696,11 @@ displayed text.
 
 ### Managing signifiers
 
-Signifiers have their own tab: *Settings → Community plugins → Journal Folder →
+Signifiers have their own page: *Settings → Community plugins → Journal Folder →
 Signifiers*. Add, reorder, and edit them there — each binds one or more tags to
 an icon (any Lucide icon or an emoji) with an optional colour for Lucide icons.
 
-![The Signifiers settings tab](docs/screenshots/settings-signifiers.png)
+![The Signifiers settings page](docs/screenshots/settings-signifiers.png)
 
 Signifiers are **global** — there's one shared set for the whole vault, not a
 per-folder list.
@@ -767,7 +771,7 @@ Each task flow has a single **rendering** mode that applies to all of its status
 
 The mode is **per-flow, not per-status** — mixing theme-styled and plugin-painted rows inside one nested list doesn't paint reliably across themes, so a flow always renders one way. If your theme styles some of your characters but not others (say it supports `[ ]` `[/]` `[x]` but not your custom `[d]` / `[?]`), keep the flow on **Plugin icons** so every status looks right, or use a flow whose alphabet your theme fully supports on **Theme checkbox**.
 
-The rendering mode lives in *Settings → Community plugins → Journal Folder → Tasks → \<flow\>* (the flow editor).
+The rendering mode lives in *Settings → Community plugins → Journal Folder → Tasks → Task flows → \<flow\>* (the flow editor).
 
 ### Recommended starting point
 
@@ -1046,8 +1050,8 @@ All title patterns use [moment.js format syntax](https://momentjs.com/docs/#/dis
 | `signifier-hide-tag-in-reading-view` / `signifier-hide-tag-in-live-preview` | Replace the matched tag with just the icon in reading view / live preview (both default true). **Global only.** |
 | `signifier-show-tags-on-active-line` | When hiding tags in live preview, reveal *all* of the cursor line's tags (default false reveals only the touched tag). **Global only.** |
 | `signifier-reserve-gutter`           | Reserve left-margin space so gutter icons never clip (default true). **Global only.** |
-| `signifiers`                         | Array of tag→icon bindings. Managed in the **Signifiers** settings tab, not by hand. **Global only.** |
-| `task-categories`                    | Array of tag→category groupings shown atop task lists. Each entry may carry a `maxRange` (`day`/`week`/`month`/`quarter`/`year`) that caps how far its tasks reach in lists — see [Task categories](#task-categories). Managed in the **Tasks** settings tab. **Global only.** |
+| `signifiers`                         | Array of tag→icon bindings. Managed in the **Signifiers** settings page, not by hand. **Global only.** |
+| `task-categories`                    | Array of tag→category groupings shown atop task lists. Each entry may carry a `maxRange` (`day`/`week`/`month`/`quarter`/`year`) that caps how far its tasks reach in lists — see [Task categories](#task-categories). Managed in the **Tasks → Task categories** settings page. **Global only.** |
 | `task-category-show-under-note`      | Whether a categorised task *also* appears in its note group (default false). **Global only.** |
 
 ### Task-flow data shape
@@ -1145,7 +1149,7 @@ max-items: 30                       # defaults to global tasksMaxItems
 
 ### See also
 
-- [Tasks](#tasks) and [Signifiers](#signifiers) — the features whose settings are summarised above; both are managed through their own settings tabs rather than by hand-editing.
+- [Tasks](#tasks) and [Signifiers](#signifiers) — the features whose settings are summarised above; both are managed through their own settings pages rather than by hand-editing.
 - [Per-folder layer in the architecture docs](https://github.com/chfourie/obsidian-journal-folder/blob/master/docs/settings-resolution.md) — developer-focused notes on the resolver and key-case conversion.
 - [Plugin source — `JournalFolderSettings`](https://github.com/chfourie/obsidian-journal-folder/blob/master/src/data-access/journal-folder-settings.type.ts) — authoritative type definition with per-field JSDoc rationale.
 

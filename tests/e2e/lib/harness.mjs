@@ -62,6 +62,9 @@ function makeContext() {
     setValue: page.setValue,
     openSettings: page.openSettings,
     closeSettings: page.closeSettings,
+    settingExists: page.settingExists,
+    clickSetting: page.clickSetting,
+    setSettingValue: page.setSettingValue,
     openSidebar: page.openSidebar,
     closeSidebar: page.closeSidebar,
     // vault

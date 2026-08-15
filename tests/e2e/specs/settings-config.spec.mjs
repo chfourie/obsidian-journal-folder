@@ -16,9 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// Editing configuration THROUGH the settings-tab UI and verifying it persists
-// to data.json: a dropdown, a text field, a toggle, signifier/category CRUD
-// (incl. the 3.0.1 stale-snapshot regression guard), and the task-flow
+// Editing configuration THROUGH the settings UI and verifying it persists
+// to data.json: declarative controls (dropdown, text field, toggle) drive
+// setControlValue, plus the imperatively-rendered pages — signifier/category
+// CRUD (incl. the 3.0.1 stale-snapshot regression guard) and the task-flow
 // drill-down + breadcrumb navigation.
 
 function setting(ctx, key) {
@@ -35,9 +36,12 @@ export const suite = {
     [
       'start-of-week dropdown persists',
       async (ctx) => {
-        await ctx.openSettings('general')
-        await ctx.setValue('[data-jf-setting="startOfWeek"] select', 'monday')
-        ctx.step('Set the start of the week to Monday from the General tab.')
+        await ctx.openSettings()
+        ctx.assert.ok(
+          await ctx.setSettingValue('Start of week', 'monday'),
+          'start-of-week dropdown found'
+        )
+        ctx.step('Set the start of the week to Monday from the General section.')
         ctx.assert.ok(
           await ctx.waitFor(() => setting(ctx, 'startOfWeek') === 'monday'),
           'startOfWeek saved'
@@ -51,8 +55,11 @@ export const suite = {
     [
       'a text field persists',
       async (ctx) => {
-        await ctx.openSettings('general')
-        await ctx.setValue('[data-jf-setting="journalFolderTitle"] input', 'My Journal')
+        await ctx.openSettings()
+        ctx.assert.ok(
+          await ctx.setSettingValue('Default journal folder title', 'My Journal'),
+          'title text field found'
+        )
         ctx.step('Type a new journal-folder title into its text field.')
         ctx.assert.ok(
           await ctx.waitFor(() => setting(ctx, 'journalFolderTitle') === 'My Journal'),
@@ -67,10 +74,13 @@ export const suite = {
     [
       'a toggle persists',
       async (ctx) => {
-        await ctx.openSettings('general')
+        await ctx.openSettings()
         ctx.assert.eq(setting(ctx, 'quartersEnabled'), false, 'precondition: off')
-        await ctx.click('[data-jf-setting="quartersEnabled"] .checkbox-container', { settleMs: 300 })
-        ctx.step('Turn on the quarterly-notes toggle from the General tab.')
+        ctx.assert.ok(
+          await ctx.clickSetting('Enable quarterly notes'),
+          'quarterly-notes toggle found'
+        )
+        ctx.step('Turn on the quarterly-notes toggle from the General section.')
         ctx.assert.ok(
           await ctx.waitFor(() => setting(ctx, 'quartersEnabled') === true),
           'quartersEnabled toggled on'
@@ -82,11 +92,11 @@ export const suite = {
       },
     ],
     [
-      'a note-title pattern persists (Patterns tab)',
+      'a note-title pattern persists (patterns page)',
       async (ctx) => {
-        await ctx.openSettings('patterns')
+        await ctx.openSettings('Note title patterns')
         await ctx.setValue('[data-jf-setting="dailyNoteShortTitlePattern"] input', '[D]D')
-        ctx.step('Change the daily-note short title pattern on the Patterns tab.')
+        ctx.step('Change the daily-note short title pattern on the patterns page.')
         ctx.assert.ok(
           await ctx.waitFor(() => setting(ctx, 'dailyNoteShortTitlePattern') === '[D]D'),
           'dailyNoteShortTitlePattern saved'
@@ -101,7 +111,7 @@ export const suite = {
       'adding a signifier persists and opens its editor',
       async (ctx) => {
         const before = setting(ctx, 'signifiers').length
-        await ctx.openSettings('signifiers')
+        await ctx.openSettings('Signifiers')
         await ctx.click('[data-jf-add-signifier]', { settleMs: 400 })
         ctx.step('Add a new signifier, which appends it to the list and opens its editor.')
         ctx.assert.ok(
@@ -120,7 +130,7 @@ export const suite = {
       'adding then SAVING the editor keeps the list intact (3.0.1 regression)',
       async (ctx) => {
         const baselineIds = setting(ctx, 'signifiers').map((s) => s.id)
-        await ctx.openSettings('signifiers')
+        await ctx.openSettings('Signifiers')
         await ctx.click('[data-jf-add-signifier]', { settleMs: 400 })
         await ctx.click('[data-jf-editor-save]', { settleMs: 500 })
         const after = await ctx.waitFor(() => setting(ctx, 'signifiers').length === baselineIds.length + 1)
@@ -140,9 +150,9 @@ export const suite = {
       'removing a signifier persists',
       async (ctx) => {
         const before = setting(ctx, 'signifiers').length
-        await ctx.openSettings('signifiers')
+        await ctx.openSettings('Signifiers')
         await ctx.click(
-          '[data-jf-tab-panel="signifiers"] .jf-signifier-list .setting-item [aria-label="Remove"]',
+          '[data-jf-settings-page="signifiers"] .jf-signifier-list .setting-item [aria-label="Remove"]',
           { settleMs: 400 }
         )
         ctx.step('Remove a signifier from the list using its Remove button.')
@@ -157,12 +167,12 @@ export const suite = {
       },
     ],
     [
-      'adding and removing a category persists (Tasks tab)',
+      'adding and removing a category persists (categories page)',
       async (ctx) => {
         const before = setting(ctx, 'taskCategories').length
-        await ctx.openSettings('tasks')
+        await ctx.openSettings('Tasks', 'Task categories')
         await ctx.click('[data-jf-add-category]', { settleMs: 400 })
-        ctx.step('Add a task category on the Tasks tab, then remove it again.')
+        ctx.step('Add a task category on its page, then remove it again.')
         ctx.assert.ok(
           await ctx.waitFor(() => setting(ctx, 'taskCategories').length === before + 1),
           'category appended'
@@ -172,7 +182,7 @@ export const suite = {
         })
         await ctx.click('[data-jf-editor-cancel]', { settleMs: 300 })
         await ctx.click(
-          '[data-jf-tab-panel="tasks"] .jf-signifier-list .setting-item:last-child [aria-label="Remove"]',
+          '[data-jf-settings-page="task-categories"] .jf-signifier-list .setting-item:last-child [aria-label="Remove"]',
           { settleMs: 400 }
         )
         ctx.assert.ok(
@@ -185,7 +195,7 @@ export const suite = {
     [
       'task-flow drill-down and breadcrumb navigate',
       async (ctx) => {
-        await ctx.openSettings('tasks')
+        await ctx.openSettings('Tasks', 'Task flows')
         ctx.assert.ok(
           await ctx.exists('.jf-flow-row[data-jf-flow="Bullet Journal"]'),
           'flow row present in overview'
@@ -194,7 +204,7 @@ export const suite = {
         ctx.step('Drill into the Bullet Journal task flow to see its detail view.')
         ctx.assert.ok(await ctx.exists('.jf-breadcrumb'), 'breadcrumb shown in flow detail')
         ctx.assert.contains(
-          await ctx.text('[data-jf-tab-panel="tasks"]'),
+          await ctx.text('[data-jf-settings-page="task-flows"]'),
           'Flow: Bullet Journal',
           'flow detail heading'
         )

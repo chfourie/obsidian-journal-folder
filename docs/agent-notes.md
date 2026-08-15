@@ -78,11 +78,9 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
     upstream pattern list out of `obsidianmd.configs.recommended` (with a `throw` guard if it
     ever disappears) and re-declares the rule per `files:` with one `!<rule>` appended. Verified
     narrow: a *different* restricted rule disabled in the same file still errors.
-  - Current allowances: `@typescript-eslint/no-deprecated` in the two settings-tab files, and
-    `obsidianmd/no-tfile-tfolder-cast` in `template-folder.ts` / `sidebar-anchor.ts`.
-- **`setDestructive()` is `@since` Obsidian 1.13.0**, well above the 1.7.2 `minAppVersion` floor,
-  so all five `.setWarning()` calls stay deprecated-but-correct. Revisit the set together if the
-  floor ever moves — that's a product decision, not a lint fix.
+  - Current allowances: `obsidianmd/no-tfile-tfolder-cast` in `template-folder.ts` /
+    `sidebar-anchor.ts`. (The `@typescript-eslint/no-deprecated` allowance for `.setWarning()`
+    died when `minAppVersion` moved to 1.13.0 — every site now calls `.setDestructive()`.)
 - **`ui/sentence-case` has real options** — `brands`, `acronyms`, `ignoreWords`, `ignoreRegex`,
   `mode`, `enforceCamelCaseLower` — plus built-in skips (backticked text, `{placeholders}`,
   paths, `Ctrl+S`, version numbers, ALL_CAPS). It lowercases everything after the first word, so
@@ -106,10 +104,48 @@ Type-checked against `tsconfig.json` (scoped to `src`; tests excluded).
   `createSpan` prototype extensions don't exist, so `prefer-create-el` is off for spec files
   only. (`tests/` is ignored wholesale; `src/contracts/*/*.spec.ts` is not.)
 - One warning targets a **deliberate** choice and stays justified rather than "fixed": the
-  declarative `:has` config-note hiding. Likewise the standing
-  `settings-tab/prefer-setting-definitions` warning on `journal-folder-settings-tab.ts` — the
-  declarative settings API is 1.13.0+, and that file is explicitly throwaway; the warning is
-  left standing *as* the reminder.
+  declarative `:has` config-note hiding. (The long-standing
+  `settings-tab/prefer-setting-definitions` warning is gone — the global tab now implements
+  `getSettingDefinitions()`; see the settings-tab architecture note below.)
+
+### Settings tab (declarative, Obsidian 1.13+)
+
+- `minAppVersion` is **1.13.0** — the global tab has **no `display()` fallback**; it renders
+  entirely from `getSettingDefinitions()` in `journal-folder-settings-tab.ts`, which is what
+  puts every option into Obsidian's settings-search index. `getControlValue` /
+  `setControlValue` bridge control keys (= `JournalFolderSettings` field names) to
+  `getCurrentSettings` / `saveSettings`. Cross-field side effects live in `setControlValue`
+  (folder-name toggle clears the title, reference-style change reseeds both markers,
+  heading-level dropdown string↔number coercion); keys whose change alters rendered *content*
+  call `update()`, everything else `refreshDomState()` (visible/disabled only).
+- Dynamic list sections can't be declared: **task flows** (drill-down flow → status with
+  breadcrumbs), **task categories**, and **signifiers** are imperative `SettingPage`
+  sub-pages (`TaskFlowsSettingPage`, `SectionSettingPage`), reached via `type: 'page'`
+  entries. Each sets `data-jf-settings-page="<id>"` on its container — that's the e2e hook
+  (the old `data-jf-settings-tab` / `data-jf-tab-panel` strip is gone everywhere). The page
+  factory runs per open, so drill-down state resets when the user navigates away (same
+  lifetime the old per-open builder had).
+- The **folder modal renders imperatively but mirrors the native look *and flow*** —
+  `renderSettingsForm(...)` in `folder-settings-form.ts` builds a root page of `SettingGroup`
+  sections (public since 1.11; same `.setting-group` chrome the declarative renderer emits)
+  for General/Today/Calendar, plus hand-rolled `.setting-item.mod-navigable` entries (with
+  `.setting-item-chevron`) that drill into templates/patterns/tasks sub-pages headed by the
+  native `.setting-page-titlebar` back chrome. E2e hooks: `data-jf-folder-page` on the
+  container, `data-jf-page-link` / `data-jf-page-back` on the affordances. No custom tab
+  strip — its CSS was deleted from `styles.css`. Shared copy and field renderers
+  (`PATTERN_TIERS`, placement labels/descs, `attachMomentSetting` / `attachTextSetting`) are
+  exported from the tab file so the two surfaces can't drift. Note Obsidian's `createEl`
+  `cls` option: pass multiple classes as an **array**, not a space-joined string (the jsdom
+  polyfill — and `classList.add` generally — rejects tokens with spaces).
+- Declarative control rows carry **no data hooks** — e2e targets them by visible name via the
+  `settingExists` / `clickSetting` / `setSettingValue` helpers in `tests/e2e/lib/page.mjs`;
+  `openSettings(...pages)` descends `.setting-item.mod-navigable` entries by name. The
+  moment-pattern render defs still set `data-jf-setting="<field>"`.
+- Verified live (1.13.7): search indexes the tab (`app.setting.searchIndex.tabs` entry with 9
+  top-level items; querying "quarterly" surfaces "Enable quarterly notes"), `visible:`
+  predicates hide rows via `offsetParent === null` (row stays in the DOM), page entries render
+  as `.setting-item.mod-navigable`, and a `change` event on a declarative dropdown persists
+  through `setControlValue` to `data.json`.
 
 ---
 
@@ -149,6 +185,13 @@ vault*, and the app running.
    demo vault, no signifiers, stale build. Verify with `eval code="app.vault.getName()"` before
    trusting a result. If `eval` reports "not found", you're probably on the wrong vault rather
    than a disabled toggle.
+   - **Worse: `vault=<name>` silently falls back to the focused vault when the named vault has no
+     open window** — it does *not* error. Verified live: `vault=jf-e2e-vault` executed against the
+     focused vault (first the user's real *Journal 2026*, later `demo-vault`) because the e2e
+     vault wasn't open. Always confirm `eval code="app.vault.adapter.basePath"` before any
+     stateful call. This also means **`npm run test:e2e` from a git worktree is a trap**: the
+     runner deploys into the *worktree's* `tests/e2e/jf-e2e-vault` while Obsidian only knows the
+     main checkout's registered vault — run e2e from the main checkout.
 
 Registered vaults live in `~/Library/Application Support/obsidian/obsidian.json` (id → path/open).
 

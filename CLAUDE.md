@@ -85,6 +85,9 @@ re-derive config-note paths anywhere else.
   constructor crashes on post-construction `path` assignment.
 - Inline sidebar affordances are `<span role="button" tabindex="0">` with an Enter/Space
   `onkeydown`, not `<button>` (Obsidian's button chrome can't be cleanly overridden).
-- `journal-folder-settings-tab.ts` is explicitly marked throwaway code — don't be surprised by its
-  shape. Its `renderSettingsForm({ mode: 'global' | 'folder' })` entrypoint serves both the global
-  tab and the per-folder `FolderConfigModal`.
+- The global settings tab renders **declaratively** via `getSettingDefinitions()` (Obsidian 1.13+
+  API, which also feeds the settings search); dynamic sections (task flows, categories, signifiers)
+  are imperative `SettingPage` sub-pages. The per-folder `FolderConfigModal` uses the separate
+  imperative `renderSettingsForm(...)` in `folder-settings-form.ts` — native `SettingGroup`
+  sections styled like the global tab, with per-field Default/Custom inherit dropdowns — and
+  the two share copy/helpers exported from `journal-folder-settings-tab.ts`.

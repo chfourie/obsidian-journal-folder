@@ -27,7 +27,7 @@ import {
   DEFAULT_SETTINGS,
   type JournalFolderSettings,
 } from '../../data-access'
-import { renderSettingsForm } from '../journal-folder-settings/journal-folder-settings-tab'
+import { renderSettingsForm } from '../journal-folder-settings/folder-settings-form'
 import { computeFrontMatterDiff } from './folder-config-sync'
 import { camelCase } from '../../data-access/string-utils'
 
@@ -80,7 +80,6 @@ export class FolderConfigModal extends Modal {
     renderSettingsForm({
       app: this.app,
       containerEl: this.contentEl,
-      mode: 'folder',
       getCurrentSettings: () => this.readEffectiveSettings(file),
       getGlobalSettings: this.getGlobalSettings,
       getOverriddenFields: () => this.readOverriddenFields(file),

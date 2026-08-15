@@ -102,6 +102,9 @@ export default defineConfig([
             '\\bJournal (Folder|Tasks)\\b',
             // Lucide, the icon library, is a proper noun.
             '\\bLucide\\b',
+            // "Today" is the plugin's one-click feature name, so it keeps
+            // its capital mid-sentence when naming that feature.
+            "\\bToday (action|picker|button)\\b",
             // A leading hex-colour format specimen ('#rrggbb …') is a sample
             // value, not a word — capitalising its first digit would be wrong.
             '^#[0-9a-zA-Z]{3,8}\\b',
@@ -109,17 +112,6 @@ export default defineConfig([
         },
       ],
     },
-  },
-  {
-    // `.setWarning()` is deprecated in favour of `.setDestructive()`, which is
-    // `@since` Obsidian 1.13.0 — far above manifest.json's 1.7.2 minAppVersion.
-    // Until that floor is raised these call sites have no non-deprecated
-    // equivalent; each carries its own inline `-- setDestructive needs …` reason.
-    files: [
-      'src/features/journal-folder-settings/journal-folder-settings-tab.ts',
-      'src/features/journal-folder-settings/task-flow-editor.ts',
-    ],
-    rules: allowDisabling('@typescript-eslint/no-deprecated'),
   },
   {
     // Synthetic journal notes for files that don't exist on disk are duck-typed

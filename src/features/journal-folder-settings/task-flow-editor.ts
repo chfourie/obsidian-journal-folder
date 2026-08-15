@@ -330,7 +330,7 @@ export function renderTaskFlowDetail(config: TaskFlowDetailConfig): void {
       const flowCount = Object.keys(settings.taskFlows).length
       btn
         .setButtonText('Delete')
-        .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
+        .setDestructive()
         .setDisabled(flowCount <= 1 || isDefault)
         .setTooltip(
           isDefault
@@ -892,7 +892,7 @@ class ConfirmDeleteFlowModal extends Modal {
     })
     new ButtonComponent(buttons)
       .setButtonText('Delete')
-      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
+      .setDestructive()
       .onClick(async () => {
         await this.onConfirm()
         this.close()
@@ -927,7 +927,7 @@ class ConfirmRemoveStatusModal extends Modal {
     })
     new ButtonComponent(buttons)
       .setButtonText('Remove')
-      .setWarning() // eslint-disable-line @typescript-eslint/no-deprecated -- setDestructive needs Obsidian 1.13.0 (> our 1.7.2 floor); revisit when minAppVersion is raised
+      .setDestructive()
       .onClick(async () => {
         await this.onConfirm()
         this.close()
