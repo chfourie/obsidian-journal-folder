@@ -291,7 +291,7 @@ export const SCENES = [
     // opening any modal. Only category rows carry an Edit button, so the first
     // match is the first category whatever the baseline renames them to.
     setup: async (c) => {
-      await c.openSettings('tasks')
+      await c.openSettings('Tasks', 'Task categories')
       await c.inPage(
         `const b=document.querySelector('.setting-item [aria-label="Edit"]'); if(!b) return false; ` +
           `b.dispatchEvent(new MouseEvent('click',{bubbles:true})); await new Promise(r=>setTimeout(r,400)); return true;`
