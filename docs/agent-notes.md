@@ -404,6 +404,26 @@ the demo vault open and visible. See `scripts/screenshots/README.md`.
 
 ---
 
+## Dependency upgrades
+
+`npm audit` is clean and must stay so; `npx npm-check-updates` lists drift. Three pins are held
+back on purpose — bumping them fails `npm install` on a peer conflict, not at build time:
+
+- **`@codemirror/state` / `@codemirror/view` are exact, no caret** — `obsidian` peer-depends on
+  the exact versions it bundles (1.13.1 → `state 6.5.0`, `view 6.38.6`). Read
+  `npm view obsidian@<v> peerDependencies` and match it; a minor bump is an `ERESOLVE`.
+- **`@eslint/js` stays on 9.x and `@eslint/json` on 0.14.0** — `eslint-plugin-obsidianmd` peers
+  `@eslint/js@^9.x` and pins `@eslint/json` exactly. That plugin is the community-review ruleset,
+  so it wins over a newer eslint.
+- **`typescript` stays under 6.1** — `typescript-eslint@8.x` peers `>=4.8.4 <6.1.0`; there is no
+  stable typescript-eslint that accepts TS 7 yet. Revisit when one ships.
+
+`overrides` patch transitive dev deps whose parents pin vulnerable ranges; each stays inside the
+dependant's major line (see the `comment:overrides` key). Re-check them after a major bump — an
+override can go dead when the parent moves on (jsdom 30 pulled undici 8, retiring the `undici@7`
+entry). A stale `package-lock.json` can report a phantom peer conflict; regenerating the lock
+surfaces the real one.
+
 ## Release flow
 
 `npm run release -- <patch|minor|major>` (`scripts/release.mjs`) runs everything in order, halting
