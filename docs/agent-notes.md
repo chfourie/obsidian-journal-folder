@@ -422,7 +422,12 @@ back on purpose — bumping them fails `npm install` on a peer conflict, not at 
 dependant's major line (see the `comment:overrides` key). Re-check them after a major bump — an
 override can go dead when the parent moves on (jsdom 30 pulled undici 8, retiring the `undici@7`
 entry). A stale `package-lock.json` can report a phantom peer conflict; regenerating the lock
-surfaces the real one.
+surfaces the real one (`rm -rf node_modules package-lock.json && npm install`).
+
+Some overrides have no parent-side fix at all: `obsidian` pins `moment` exactly (2.29.4) and
+`svelte` ranges `devalue@^5` — `moment@2` / `devalue@5` overrides carry the patch until upstream
+moves. In a sandboxed agent session npm can't write `~/.npm/_cacache` (EPERM) — run npm
+sandbox-off.
 
 ## Release flow
 
