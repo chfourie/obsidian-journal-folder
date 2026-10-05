@@ -20,7 +20,6 @@ import { Notice, normalizePath, type Plugin, TFile } from 'obsidian'
 import {
   configPathFor,
   findJournalFolderPaths,
-  type JournalFolderSettings,
   moment,
   PluginFeature,
 } from '../../data-access'
@@ -28,18 +27,12 @@ import { isTruthySetting } from '../journal-auto-template'
 import { resolveTodayFolders } from './resolve-today-folders'
 import { TodayFolderPickerModal } from './today-folder-picker-modal'
 
-const TODAY_RIBBON_ICON = 'calendar-check'
-
-// Adds a one-click "Today" affordance that opens (creating if needed) the
-// current day's note for a journal folder. Placement is the global
-// `todayButtonPlacement` setting: a dedicated top-level ribbon icon
-// (`'ribbon'`), an item in the existing ribbon menu (`'menu'`, owned by the
-// ribbon-menu feature, which calls `openToday()` here), or `'off'`. The
-// `open-today` command is always registered so the action is reachable from
-// the palette / mobile regardless of placement.
+// The one-click "Today" action that opens (creating if needed) the current
+// day's note for a journal folder. Its menu row / ribbon icon is owned by the
+// ribbon-menu feature (per `todayButtonPlacement`), which calls `openToday()`
+// here. The `open-today` command is always registered so the action is
+// reachable from the palette / mobile regardless of placement.
 export class JournalTodayFeature extends PluginFeature {
-  #ribbonEl: HTMLElement | null = null
-
   constructor(plugin: Plugin) {
     super(plugin)
   }
@@ -50,20 +43,10 @@ export class JournalTodayFeature extends PluginFeature {
       name: "Open today's journal note",
       callback: () => void this.openToday(),
     })
-    this.#reconcileRibbon()
-  }
-
-  unload(): void {
-    this.#removeRibbon()
-  }
-
-  useSettings(settings: JournalFolderSettings): void {
-    super.useSettings(settings)
-    this.#reconcileRibbon()
   }
 
   // Public so the ribbon-menu feature can drive the same action from its
-  // `'menu'` item. Resolves the candidate folders and either opens the single
+  // menu row / ribbon icon. Resolves the candidate folders and either opens the single
   // one directly or shows the folder picker.
   async openToday(): Promise<void> {
     const app = this.plugin.app
@@ -113,23 +96,5 @@ export class JournalTodayFeature extends PluginFeature {
       configPathFor(folderPath),
       false
     )
-  }
-
-  #reconcileRibbon(): void {
-    const wantRibbon = this.globalSettings.todayButtonPlacement === 'ribbon'
-    if (wantRibbon && !this.#ribbonEl) {
-      this.#ribbonEl = this.plugin.addRibbonIcon(
-        TODAY_RIBBON_ICON,
-        "Open today's journal note",
-        () => void this.openToday()
-      )
-    } else if (!wantRibbon && this.#ribbonEl) {
-      this.#removeRibbon()
-    }
-  }
-
-  #removeRibbon(): void {
-    this.#ribbonEl?.remove()
-    this.#ribbonEl = null
   }
 }

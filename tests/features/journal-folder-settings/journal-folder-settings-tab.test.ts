@@ -134,7 +134,14 @@ describe('JournalFolderSettingsTab (declarative)', () => {
       const defs = tab.getSettingDefinitions() as AnyDefinition[]
       const headings = defs.map((d) => d.heading).filter(Boolean)
       expect(headings).toEqual(
-        expect.arrayContaining(['General', 'Sidebar', 'Today', 'Calendar', 'Reset'])
+        expect.arrayContaining([
+          'General',
+          'Sidebar',
+          'Ribbon',
+          'Today',
+          'Calendar',
+          'Reset',
+        ])
       )
       const pages = defs.filter((d) => d.type === 'page').map((d) => d.name)
       expect(pages).toEqual(
@@ -145,6 +152,28 @@ describe('JournalFolderSettingsTab (declarative)', () => {
           'Signifiers',
         ])
       )
+    })
+
+    it('offers a menu/ribbon/off placement for every ribbon action', () => {
+      const { tab } = makeTab()
+      const defs = tab.getSettingDefinitions() as AnyDefinition[]
+      const ribbon = defs.find((d) => d.heading === 'Ribbon')!
+      const placements = flatten(ribbon.items!).filter((d) => d.control)
+      expect(placements.map((d) => d.control!.key)).toEqual([
+        'todayButtonPlacement',
+        'folderSidebarButtonPlacement',
+        'tasksSidebarButtonPlacement',
+        'colorSchemeButtonPlacement',
+        'initFolderButtonPlacement',
+      ])
+      for (const def of placements) {
+        expect(def.control!.type).toBe('dropdown')
+        expect(Object.keys(def.control!.options as object)).toEqual([
+          'menu',
+          'ribbon',
+          'off',
+        ])
+      }
     })
 
     it('names every definition so settings search can index it', () => {

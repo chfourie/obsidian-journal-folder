@@ -163,6 +163,7 @@ in `specs/` and is wired in `specs/index.mjs`.
 |---|----------|-----------|--------|
 | 1 | Ribbon menu command opens panel | `[data-jf-ribbon-menu]` + items + theme item | ✅ |
 | 2 | Theme toggle flips color scheme | `app.getTheme()` changes (restored after) | ✅ |
+| 3 | Menu action placed on ribbon / off | own ribbon icon + no menu row; off → neither | ✅ |
 
 ## Notes on remaining ⬜ candidates
 

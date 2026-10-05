@@ -40,6 +40,7 @@ import {
   type JournalTimeUnit,
   LUCIDE_MARKER_PREFIX,
   MIGRATION_REFERENCE_PRESETS,
+  type RibbonPlacementKey,
   type StartOfWeekSetting,
   type TaskMigrationPlacement,
   type TaskMigrationReferenceStyle,
@@ -509,6 +510,39 @@ export function buildGlobalSettingDefinitions(
     },
     {
       type: 'group',
+      heading: 'Ribbon',
+      items: [
+        {
+          name: 'Ribbon actions',
+          desc:
+            'Choose where each action appears: in the Journal Folder ' +
+            'ribbon menu, as its own top-level ribbon icon, or off. Every ' +
+            'action stays reachable from the command palette.',
+        },
+        ribbonPlacementDefinition(
+          'todayButtonPlacement',
+          "Open today's journal note"
+        ),
+        ribbonPlacementDefinition(
+          'folderSidebarButtonPlacement',
+          'Open Journal Folder sidebar'
+        ),
+        ribbonPlacementDefinition(
+          'tasksSidebarButtonPlacement',
+          'Open Journal Tasks sidebar'
+        ),
+        ribbonPlacementDefinition(
+          'colorSchemeButtonPlacement',
+          'Switch light/dark mode'
+        ),
+        ribbonPlacementDefinition(
+          'initFolderButtonPlacement',
+          'Initialise a new journal folder'
+        ),
+      ],
+    },
+    {
+      type: 'group',
       heading: 'Today',
       items: [
         {
@@ -516,23 +550,6 @@ export function buildGlobalSettingDefinitions(
           desc:
             "A one-click jump to the current day's note. Reachable any " +
             'time via the "Open today\'s journal note" command.',
-        },
-        {
-          name: 'Today button placement',
-          desc:
-            'Where the Today affordance appears. In menu — an item inside ' +
-            'the existing Journal Folder ribbon menu. Top-level ribbon icon ' +
-            '— its own icon in the ribbon. Off — hidden (the command still ' +
-            'works).',
-          control: {
-            type: 'dropdown',
-            key: 'todayButtonPlacement',
-            options: {
-              menu: 'In the Journal Folder menu',
-              ribbon: 'Top-level ribbon icon',
-              off: 'Off',
-            },
-          },
         },
         {
           name: 'Include folders in the Today picker by default',
@@ -897,6 +914,24 @@ export function buildGlobalSettingDefinitions(
       ],
     },
   ]
+}
+
+function ribbonPlacementDefinition(
+  field: RibbonPlacementKey,
+  name: string
+): SettingDefinition {
+  return {
+    name,
+    control: {
+      type: 'dropdown',
+      key: field,
+      options: {
+        menu: 'In the Journal Folder menu',
+        ribbon: 'Top-level ribbon icon',
+        off: 'Off',
+      },
+    },
+  }
 }
 
 function calendarVisibleDefinition(

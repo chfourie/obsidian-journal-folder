@@ -184,6 +184,18 @@ describe('readingViewRenderAffected (rerender(true) gate)', () => {
     expect(rerenders(withChange({ todayButtonPlacement: 'ribbon' }))).toBe(
       false
     )
+    expect(
+      rerenders(withChange({ folderSidebarButtonPlacement: 'ribbon' }))
+    ).toBe(false)
+    expect(
+      rerenders(withChange({ tasksSidebarButtonPlacement: 'ribbon' }))
+    ).toBe(false)
+    expect(
+      rerenders(withChange({ colorSchemeButtonPlacement: 'ribbon' }))
+    ).toBe(false)
+    expect(rerenders(withChange({ initFolderButtonPlacement: 'off' }))).toBe(
+      false
+    )
     expect(rerenders(withChange({ editModeIndicator: true }))).toBe(false)
   })
 

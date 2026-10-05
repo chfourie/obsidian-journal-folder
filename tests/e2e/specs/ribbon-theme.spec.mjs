@@ -27,6 +27,16 @@ async function openRibbonMenu(ctx) {
   )
 }
 
+function ribbonIconCount(ctx, label) {
+  return ctx.evalJSON(
+    `[...document.querySelectorAll('.side-dock-ribbon-action')]` +
+      `.filter(e=>e.getAttribute('aria-label')===${JSON.stringify(label)}).length`
+  )
+}
+
+const FOLDER_SIDEBAR_ROW =
+  '[data-jf-ribbon-menu] [data-jf-menu-item-title="Open Journal Folder sidebar"]'
+
 export const suite = {
   name: 'ribbon-theme',
   description:
@@ -73,6 +83,25 @@ export const suite = {
           // Restore the user's original scheme regardless of outcome.
           await ctx.eval(`(()=>{app.changeTheme(${JSON.stringify(before)}); return 'ok'})()`)
         }
+      },
+    ],
+    [
+      'a menu action placed on the ribbon gets its own icon and leaves the menu',
+      async (ctx) => {
+        const label = 'Open Journal Folder sidebar'
+        await ctx.applySettings({ folderSidebarButtonPlacement: 'ribbon' })
+        ctx.step('Move “Open Journal Folder sidebar” to a top-level ribbon icon.')
+        ctx.assert.eq(await ribbonIconCount(ctx, label), 1, 'dedicated ribbon icon added')
+        await openRibbonMenu(ctx)
+        ctx.assert.ok(!(await ctx.exists(FOLDER_SIDEBAR_ROW)), 'no duplicate menu row')
+        await ctx.eval(`(()=>{document.body.click(); return 'ok'})()`)
+
+        await ctx.applySettings({ folderSidebarButtonPlacement: 'off' })
+        ctx.step('Turn it off: neither the icon nor the menu row remains.')
+        ctx.assert.eq(await ribbonIconCount(ctx, label), 0, 'ribbon icon removed')
+        await openRibbonMenu(ctx)
+        ctx.assert.ok(!(await ctx.exists(FOLDER_SIDEBAR_ROW)), 'no menu row when off')
+        await ctx.eval(`(()=>{document.body.click(); return 'ok'})()`)
       },
     ],
   ],

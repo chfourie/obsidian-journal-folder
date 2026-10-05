@@ -7,6 +7,19 @@ Each release heading must be `## [x.y.z]` (the release workflow extracts the
 section between that heading and the next `## [` to populate the GitHub
 release body).
 
+## [3.6.0]
+
+### Added
+- **Every ribbon-menu action can live on the ribbon.** The *Today* button's
+  *In the menu / Top-level ribbon icon / Off* choice now applies to every action
+  in the Journal Folder menu — *Open Journal Folder sidebar*, *Open Journal
+  Tasks sidebar*, *Switch light/dark mode*, and *Initialise a new journal
+  folder*. All placements live in a new *Ribbon* settings section (the Today
+  placement moved there from *Today*).
+- **Commands for every menu action** (*Open Journal Folder sidebar*, *Open
+  Journal Tasks sidebar*, *Switch light/dark mode*, *Initialise a new journal
+  folder*), so each is reachable from the palette / mobile toolbar.
+
 ## [3.5.0]
 
 ### Changed

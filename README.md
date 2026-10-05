@@ -243,6 +243,8 @@ Everything the plugin does from outside a note hangs off a single **ribbon icon*
 - **Open Journal Tasks sidebar** — reveals the slim [tasks-only sidebar](#sidebar-task-panel).
 - **Initialise a new journal folder** — the same fuzzy folder picker described under [More… menu](#more-menu); it creates the `journal-folder.md` and switches the sidebar to the new folder.
 
+Each action (including *Open today's journal note*) can be moved out of the menu. In *Settings → Ribbon*, set it to **In the Journal Folder menu** (default), **Top-level ribbon icon** (its own icon in the ribbon strip), or **Off**. Every action is also a command, so it stays reachable from the command palette whatever its placement.
+
 **On mobile**, Obsidian doesn't show the desktop ribbon, so the menu is also registered as the **Open Journal Folder menu** command — run it from the command palette, or pin it to the mobile toolbar (*Settings → Toolbar*). On a phone the menu opens as a centred sheet with roomier rows.
 
 ## Sidebar tab

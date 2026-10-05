@@ -621,8 +621,17 @@ Rules whose *why* the code doesn't explain. Per-feature detail lives in the `doc
   use rAF (no `matchTriggerWidth`, so no visible symptom); port them if they misbehave.
 - **Always register a command for any ribbon-primary affordance.** Obsidian has **no ribbon strip
   on mobile**, so a ribbon-only entry is desktop-only; the command is the mobile entry point
-  (palette + pinnable to the toolbar). Applies to the ribbon menu (`open-journal-menu`) and Today
-  (`open-today`).
+  (palette + pinnable to the toolbar). Applies to the ribbon menu (`open-journal-menu`), Today
+  (`open-today`), and every other menu action (`RibbonAction.commandId`).
+- **Ribbon placement is per action, owned by the ribbon-menu feature.** Each menu action has a
+  global `*ButtonPlacement` (`RibbonPlacementKey`: `'menu'` / `'ribbon'` / `'off'`, default
+  `'menu'`). `buildMenuItems` (pure) drops non-menu actions and any emptied group's separator;
+  `RibbonIconSet` reconciles the top-level icons per action so unchanged ones keep their strip
+  position. The Today feature only owns the command + `openToday()`. Settings reach features
+  before their `load()`, so the icon reconcile waits for the home icon to keep it leading. A
+  state-dependent action (light/dark) gives a stable `ribbonTitle` / `ribbonIcon`. Adding an
+  action = a new placement field (type, defaults, `GLOBAL_ONLY_FIELDS`, `RENDER_INERT_FIELDS`,
+  settings-tab `Ribbon` group) + an entry in `#actionGroups()`.
 - **Light/dark uses Obsidian's own Base color scheme**, via an internal API absent from the public
   d.ts (verified live): `app.getTheme()` returns the **effective** scheme, resolving `'system'` to
   `'obsidian'` (dark) / `'moonstone'` (light); `app.changeTheme(v)` persists *and* repaints

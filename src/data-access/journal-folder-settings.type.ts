@@ -131,7 +131,15 @@ export type JournalFolderSettings = {
   //                works from the palette).
   // The command `open-today` is always registered regardless. **Global
   // only** — the ribbon strip is process-wide.
-  todayButtonPlacement: TodayButtonPlacement
+  todayButtonPlacement: RibbonButtonPlacement
+  // Same `'menu'` / `'ribbon'` / `'off'` choice for each of the ribbon
+  // menu's other actions. All default to `'menu'` (no new ribbon icons on
+  // upgrade). Owned by the ribbon-menu feature. **Global only** — the ribbon
+  // strip is process-wide.
+  folderSidebarButtonPlacement: RibbonButtonPlacement
+  tasksSidebarButtonPlacement: RibbonButtonPlacement
+  colorSchemeButtonPlacement: RibbonButtonPlacement
+  initFolderButtonPlacement: RibbonButtonPlacement
   // Per-folder opt-in: whether this folder participates in the "Today"
   // picker. Default **false**. The effective set of folders the Today
   // action offers is resolved in `resolveTodayFolders`: with a single known
@@ -387,7 +395,14 @@ export type SignifierPlacement = 'margin' | 'margin-column'
 
 export type SidebarMode = 'static' | 'dynamic'
 
-export type TodayButtonPlacement = 'menu' | 'ribbon' | 'off'
+export type RibbonButtonPlacement = 'menu' | 'ribbon' | 'off'
+
+export type RibbonPlacementKey =
+  | 'todayButtonPlacement'
+  | 'folderSidebarButtonPlacement'
+  | 'tasksSidebarButtonPlacement'
+  | 'colorSchemeButtonPlacement'
+  | 'initFolderButtonPlacement'
 
 export type StartOfWeekSetting =
   | 'locale-default'
@@ -437,6 +452,10 @@ export const DEFAULT_SETTINGS: JournalFolderSettings = {
   editModeIndicator: false,
   sidebarMode: 'dynamic',
   todayButtonPlacement: 'menu',
+  folderSidebarButtonPlacement: 'menu',
+  tasksSidebarButtonPlacement: 'menu',
+  colorSchemeButtonPlacement: 'menu',
+  initFolderButtonPlacement: 'menu',
   includeInTodayPicker: false,
   tasksSidebarEnabled: false,
   tasksSidebarAnchor: 'note',
